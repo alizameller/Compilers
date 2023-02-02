@@ -1,6 +1,4 @@
-/* Definition Section has one variable
- which can be accessed inside yylex() 
- and main() */
+/* Definition Section */
 
 %{
 #include "tokens-manual.h"
@@ -10,14 +8,10 @@ int yylval;
 
 DIGIT    [0-9] 
 
-/* Rule Section has three rules, first rule 
- matches with capital letters, second rule
- matches with any character except newline and 
- third rule does not take input after the enter */
-
-/*[A-Z] {printf("%s capital letter\n", yytext);}
+/* Rule Section  */
+/*
 [0-9]+ {yylval=atoi(yytext); returnNUMBER;} 
-\+ {returnPLUS;} */
+ */
 %%
 <<[EOF]>> {return TOKEOF=0;}
 \n {return 0;}
@@ -114,8 +108,7 @@ DIGIT    [0-9]
 "_imaginary" {return _IMAGINARY;}
 %%
   
-/* Code Section prints the number of
-capital letter present in the given input */
+/* Code Section */
 int yywrap(){}
 int main(){
   

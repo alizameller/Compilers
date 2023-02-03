@@ -64,3 +64,10 @@ enum tokens {
 	_COMPLEX,
 	_IMAGINARY
 };
+
+typedef union {
+          char *string_literal;
+          int integer;
+} YYSTYPE;
+
+YYSTYPE yylval;

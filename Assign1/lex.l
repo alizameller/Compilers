@@ -3,51 +3,53 @@
 %{
 #include "tokens-manual.h"
 int count = 0;
-int yylval;
 %}
 
-DIGIT    [0-9] 
+DIGIT   [0-9] 
+LETTER  [a-zA-Z]
 
 /* Rule Section  */
 /*
 [0-9]+ {yylval=atoi(yytext); returnNUMBER;} 
- */
-%%
-<<[EOF]>> {return TOKEOF=0;}
-\n {return 0;}
+[/t]+ ignore whitespace
 .* {return STRING;}
-{DIGIT}* {yylval = atoi(yytext); return NUMBER;}
-[ {return '['}
-] {return ']'}
-( {return '('}
-) {return ')'}
-\{ {return '{'} 
-\} {return '}'} 
-\. {return '.'}
--> {return 899} /* I don't know */
-& {return '&'}
-\* {return '*'}
-\+ {return '+'}
-- {return '-'}
-~ {return '~'}
-! {return '!'}
-\/ {return '/'} 
-% {return '%'}
-\^ {return '^'}
-\| {return '|'}
-\? {return '?'}
-\: {return ':'}
-\; {return ';'}
-= {return '='}
-, {return ','} 
-# {return '#'}
-## {return 900} /* I do not know */
-\<\: {return '['} 
-\:\>  {return ']'}
-\<%  {return '{'}
-%\>  {return '}'}
-%\:  {return '#'}
-%\:%\: {return 900}
+*/
+%%
+[ \t\f\r]+ /* ignore whitespace */ 
+<<EOF>>  {return TOKEOF;} 
+\n {count++;}
+{DIGIT}* {yylval.integer = atoi(yytext); return NUMBER;} /* Decimal */
+\[ {return '[';}
+\] {return ']';}
+\( {return '(';}
+\) {return ')';}
+\{ {return '{';} 
+\} {return '}';} 
+\. {return '.';}
+-> {return 899;} /* I don't know */
+& {return '&';}
+\* {return '*';}
+\+ {return '+';}
+- {return '-';}
+~ {return '~';}
+! {return '!';}
+\/ {return '/';} 
+% {return '%';}
+\^ {return '^';}
+\| {return '|';}
+\? {return '?';}
+\: {return ':';}
+\; {return ';';}
+= {return '=';}
+, {return ',';} 
+# {return '#';}
+## {return 900;} /* I do not know */
+\<\: {return '[';} 
+\:\>  {return ']';}
+\<%  {return '{';}
+%\>  {return '}';}
+%\:  {return '#';}
+%\:%\: {return 900;}
 \+\+ {return PLUSPLUS;}
 -- {return MINUSMINUS;}
 \<\< {return SHL;}
@@ -61,7 +63,7 @@ DIGIT    [0-9]
 \.\.\. {return ELLIPSIS;}
 \*= {return TIMESEQ;}
 \/= {return DIVEQ;}
-%= {return MODEEQ;}
+%= {return MODEQ;}
 \+= {return PLUSEQ;}
 -= {return MINUSEQ;}
 \<\<= {return SHLEQ;}
@@ -106,6 +108,8 @@ DIGIT    [0-9]
 "_bool" {return _BOOL;}
 "_complex" {return _COMPLEX;}
 "_imaginary" {return _IMAGINARY;}
+({LETTER}|_)({DIGIT}|{LETTER}|_)* {yylval.string_literal = strdup(yytext); return IDENT;}
+
 %%
   
 /* Code Section */
@@ -128,9 +132,19 @@ printf("Enter the filename: \n");
 scanf("%s",filename);
 fp = fopen(filename,"r");
 yyin = fp; */
+
 int t;
       while ((t = yylex())) {
-            printf("%d", t);
+            if (t == 0) {
+                  continue;
+            }
+            printf("yytext is %s\n", yytext);
+            if (t == IDENT) {
+                  printf("yyval is %s\n", yylval.string_literal);
+            } else if (t == NUMBER) {
+                  printf("yyval is %d\n", yylval.integer);
+            }
+            printf("return val is %d, count is %d\n", t, count);
       }
   
 return 0;

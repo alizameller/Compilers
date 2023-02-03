@@ -10,9 +10,8 @@ LETTER  [a-zA-Z]
 
 /* Rule Section  */
 /*
-[0-9]+ {yylval=atoi(yytext); returnNUMBER;} 
-[/t]+ ignore whitespace
 .* {return STRING;}
+NEED TO DO CHARLIT
 */
 %%
 [ \t\f\r]+ /* ignore whitespace */ 

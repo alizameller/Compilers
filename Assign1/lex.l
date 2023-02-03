@@ -1,13 +1,22 @@
+/*-----------------------------------------------------------------------------------------------------------------\
+|      TO DO                                                                                                       |
+|      1. REGEX for numbers (all diff types refer to Dan's ss), strings, CHARLIT                                   |
+|      2. Figure out how to handle different number types in yylval                                                |     
+|            a. convert to internal representation (i.e. how to store the number "int integer" is not universal)   |
+|      3.File name and line number (start conditions)                                                              |
+\-----------------------------------------------------------------------------------------------------------------*/
+
 /* Definition Section */
 
 %{
 #include "tokens-manual.h"
-int count = 0;
 %}
 
-DIGIT   [0-9] 
+DECIMAL   [0-9] 
+DIGIT  DECIMAL
 LETTER  [a-zA-Z]
-
+STRING  \"(?:[^"\\]|\\.)*\"
+%s FILENAME
 /* Rule Section  */
 /*
 .* {return STRING;}
@@ -15,9 +24,17 @@ NEED TO DO CHARLIT
 */
 %%
 [ \t\f\r]+ /* ignore whitespace */ 
-<<EOF>>  {return TOKEOF;} 
-\n {count++;}
-{DIGIT}* {yylval.integer = atoi(yytext); return NUMBER;} /* Decimal */
+
+#[ ][0-9]+ {report.lineNum = atoi(yytext+2); BEGIN(FILENAME);} /* get file number two tokens in, jump to getting filename */
+<FILENAME>{STRING} {
+                     if (report.fileName) {free (report.fileName);};
+                     report.fileName = strdup(yytext+1); /* skip beginning quote */
+                     report.fileName[strlen(yytext)-2] = '\0'; /* delete ending quote */
+                     BEGIN(INITIAL); 
+                   }
+\n {report.lineNum++;}
+<<EOF>>  {return TOKEOF;}
+{DIGIT}* {yylval.integer = atoi(yytext); return NUMBER;} /* Decimal need to do other number types */
 \[ {return '[';}
 \] {return ']';}
 \( {return '(';}
@@ -40,7 +57,7 @@ NEED TO DO CHARLIT
 \: {return ':';}
 \; {return ';';}
 = {return '=';}
-, {return ',';} 
+, {return ',';}
 # {return '#';}
 ## {return 900;} /* I do not know */
 \<\: {return '[';} 
@@ -108,42 +125,32 @@ NEED TO DO CHARLIT
 "_complex" {return _COMPLEX;}
 "_imaginary" {return _IMAGINARY;}
 ({LETTER}|_)({DIGIT}|{LETTER}|_)* {yylval.string_literal = strdup(yytext); return IDENT;}
-
 %%
   
 /* Code Section */
 int yywrap(){}
 int main(){
-  
-// Explanation:
-// yywrap() - wraps the above rule section
-/* yyin - takes the file pointer 
-          which contains the input*/
-/* yylex() - this is the main flex function
-          which runs the Rule Section*/
-// yytext is the text in the buffer
-  
-// Uncomment the lines below 
-// to take input from file
-/* FILE *fp;
-char filename[50];
-printf("Enter the filename: \n");
-scanf("%s",filename);
-fp = fopen(filename,"r");
-yyin = fp; */
 
-int t;
+      int t;
       while ((t = yylex())) {
             if (t == 0) {
                   continue;
             }
-            printf("yytext is %s\n", yytext);
-            if (t == IDENT) {
-                  printf("yyval is %s\n", yylval.string_literal);
-            } else if (t == NUMBER) {
-                  printf("yyval is %d\n", yylval.integer);
+            printf("%s\t\t\t", report.fileName);
+            printf("%d\t\t\t", report.lineNum);
+            printf("%d\t\t\t", t);
+
+            switch(t) {
+                  case(IDENT):
+                        printf("%s\n", yylval.string_literal);
+                        break;
+                  case(NUMBER):
+                        printf("%d\n", yylval.integer);
+                        break;
+                  default:
+                        printf("\n");
+                        break;
             }
-            printf("return val is %d, count is %d\n", t, count);
       }
   
 return 0;

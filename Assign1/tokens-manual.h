@@ -71,3 +71,10 @@ typedef union {
 } YYSTYPE;
 
 YYSTYPE yylval;
+
+struct info {
+      char *fileName; 
+      int lineNum;
+};
+
+struct info report;

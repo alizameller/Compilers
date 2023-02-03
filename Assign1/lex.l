@@ -26,7 +26,7 @@ LETTER  [a-zA-Z]
 \{ {return '{';} 
 \} {return '}';} 
 \. {return '.';}
--> {return 899;} /* I don't know */
+-> {return INDSEL;}
 & {return '&';}
 \* {return '*';}
 \+ {return '+';}

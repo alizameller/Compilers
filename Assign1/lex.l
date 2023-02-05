@@ -3,20 +3,27 @@
 |      1. REGEX for numbers (all diff types refer to Dan's ss), strings, CHARLIT                                   |
 |      2. Figure out how to handle different number types in yylval                                                |     
 |            a. convert to internal representation (i.e. how to store the number "int integer" is not universal)   |
-|      3.File name and line number (start conditions)                                                              |
+|      3̶.̶F̶i̶l̶e̶ n̶a̶m̶e̶ a̶n̶d̶ l̶i̶n̶e̶ n̶u̶m̶b̶e̶r̶ (̶s̶t̶a̶r̶t̶ c̶o̶n̶d̶i̶t̶i̶o̶n̶s̶)̶                                                              |
 \-----------------------------------------------------------------------------------------------------------------*/
 
 /* Definition Section */
 
 %{
 #include "tokens-manual.h"
+#include <limits.h>
 %}
 
-DECIMAL   [0-9] 
-DIGIT  DECIMAL
-LETTER  [a-zA-Z]
-STRING  \"(?:[^"\\]|\\.)*\"
+/*FLOAT_DEC ^(0|[1-9]\d*)?(\.\d+)?$ */
+INT_SUFFIX                    (([uU]?(l{1,2}|L{1,2})?)|((l{1,2}|L{1,2})?[uU]?))
+INTEGER                       [+|-]?(0|[1-9][0-9]*)
+DECIMAL                       [1-9]*
+HEX                           0[xX][0-9a-fA-F]+
+OCTAL                         0[0-7]*
+LETTER                        [a-zA-Z]
+STRING                        \"(?:[^"\\]|\\.)*\" 
 %s FILENAME
+%s ENDL
+%s SUFFIX
 /* Rule Section  */
 /*
 .* {return STRING;}
@@ -30,11 +37,73 @@ NEED TO DO CHARLIT
                      if (report.fileName) {free (report.fileName);};
                      report.fileName = strdup(yytext+1); /* skip beginning quote */
                      report.fileName[strlen(yytext)-2] = '\0'; /* delete ending quote */
-                     BEGIN(INITIAL); 
-                   }
+                     BEGIN(ENDL); 
+      }
+<ENDL>.*\n { /* Jump to the end of the line (i.e. skip over the flags) */
+      BEGIN(INITIAL);
+}
 \n {report.lineNum++;}
 <<EOF>>  {return TOKEOF;}
-{DIGIT}* {yylval.integer = atoi(yytext); return NUMBER;} /* Decimal need to do other number types */
+^{DECIMAL} { 
+            yylval.string_literal = strdup(yytext); 
+            numInfo.base = 10; 
+            BEGIN(SUFFIX);
+      } 
+^{HEX} {
+            yylval.string_literal = strdup(yytext); 
+            numInfo.base = 16; 
+            BEGIN(SUFFIX);
+      }
+^{OCTAL} {
+            yylval.string_literal = strdup(yytext); 
+            numInfo.base = 8; 
+            BEGIN(SUFFIX);
+      }
+<SUFFIX>{
+      [uU] {
+            yylval.integer = atoi(yylval.string_literal); 
+            numInfo.sign = "UNSIGNED";
+            numInfo.type = "";
+            return NUMBER; 
+            BEGIN(INITIAL); 
+            }
+      [uU][lL]|[lL][uU] {
+            yylval.integer = strtol(yylval.string_literal, NULL, numInfo.base); 
+            numInfo.sign = "UNSIGNED";
+            numInfo.type = "LONG";
+            return NUMBER; 
+            BEGIN(INITIAL); 
+            }
+      [uU][lL]{2}|[lL]{2}[uU] {
+            yylval.integer = strtoll(yylval.string_literal, NULL, numInfo.base); 
+            numInfo.sign = "UNSIGNED";
+            numInfo.type = "LONG LONG";
+            return NUMBER; 
+            BEGIN(INITIAL); 
+            }
+      [lL] {
+            yylval.integer = strtol(yylval.string_literal, NULL, numInfo.base); 
+            numInfo.sign = "SIGNED";
+            numInfo.type = "LONG";
+            return NUMBER; 
+            BEGIN(INITIAL); 
+            }
+      [lL]{2} {
+            yylval.integer = strtoll(yylval.string_literal, NULL, numInfo.base); 
+            numInfo.sign = "SIGNED";
+            numInfo.type = "LONG LONG";
+            return NUMBER; 
+            BEGIN(INITIAL); 
+            }
+      ({OCTAL}|{DECIMAL}|{HEX})$ {
+            yylval.string_literal = strdup(yytext); 
+            yylval.integer = strtoll(yylval.string_literal, NULL, numInfo.base); 
+            numInfo.sign = "SIGNED";
+            numInfo.type = "";
+            return NUMBER; 
+            BEGIN(INITIAL); 
+      }
+}
 \[ {return '[';}
 \] {return ']';}
 \( {return '(';}
@@ -56,6 +125,8 @@ NEED TO DO CHARLIT
 \? {return '?';}
 \: {return ':';}
 \; {return ';';}
+\< {return '<';}
+\> {return '>';}
 = {return '=';}
 , {return ',';}
 # {return '#';}
@@ -124,34 +195,288 @@ NEED TO DO CHARLIT
 "_bool" {return _BOOL;}
 "_complex" {return _COMPLEX;}
 "_imaginary" {return _IMAGINARY;}
-({LETTER}|_)({DIGIT}|{LETTER}|_)* {yylval.string_literal = strdup(yytext); return IDENT;}
+({LETTER}|_)([0-9)*]|{LETTER}|_)* {yylval.string_literal = strdup(yytext); return IDENT;}
 %%
   
 /* Code Section */
 int yywrap(){}
 int main(){
-
       int t;
       while ((t = yylex())) {
             if (t == 0) {
                   continue;
             }
+            //printf("%d\t\t\t", t);
             printf("%s\t\t\t", report.fileName);
             printf("%d\t\t\t", report.lineNum);
-            printf("%d\t\t\t", t);
 
             switch(t) {
                   case(IDENT):
+                        printf("IDENT\t\t\t");
                         printf("%s\n", yylval.string_literal);
                         break;
                   case(NUMBER):
-                        printf("%d\n", yylval.integer);
+                        printf("NUMBER\t\t\t");
+                        printf("%d\t\t\t", yylval.integer);
+                        printf("%s", numInfo.sign);
+                        printf(", %s\n", numInfo.type);
+                        break;
+                  case(INDSEL):
+                        printf("INDSEL\n");
+                        break;
+                  case(PLUSPLUS):
+                        printf("PLUSPLUS\n");
+                        break;
+                  case(MINUSMINUS):
+                        printf("MINUSMINUS\n");
+                        break;
+                  case(SHL):
+                        printf("SHL\n");
+                        break;
+                  case(SHR):
+                        printf("SHR\n");
+                        break;
+                  case(LTEQ):
+                        printf("LTEQ\n");
+                        break;
+                  case(GTEQ):
+                        printf("GTEQ\n");
+                        break;
+                  case(EQEQ):
+                        printf("EQEQ\n");
+                        break;
+                  case(NOTEQ):
+                        printf("NOTEQ\n");
+                        break;
+                  case(LOGAND):
+                        printf("LOGAND\n");
+                        break;
+                  case(LOGOR):
+                        printf("LOGOR\n");
+                        break;
+                  case(ELLIPSIS):
+                        printf("ELLIPSIS\n");
+                        break;
+                  case(TIMESEQ):
+                        printf("TIMESEQ\n");
+                        break;
+                  case(DIVEQ):
+                        printf("DIVEQ\n");
+                        break;
+                  case(MODEQ):
+                        printf("MODEQ\n");
+                        break;
+                  case(PLUSEQ):
+                        printf("PLUSEQ\n");
+                        break;
+                  case(MINUSEQ):
+                        printf("MINUSEQ\n");
+                        break;
+                  case(SHLEQ):
+                        printf("SHLEQ\n");
+                        break;
+                  case(SHREQ):
+                        printf("SHREQ\n");
+                        break;
+                  case(ANDEQ):
+                        printf("ANDEQ\n");
+                        break;
+                  case(OREQ):
+                        printf("OREQ\n");
+                        break;
+                  case(XOREQ):
+                        printf("XOREQ\n");
+                        break;
+                  case(AUTO):
+                        printf("AUTO\n");
+                        break;
+                  case(BREAK):
+                        printf("BREAK\n");
+                        break;
+                  case(CASE):
+                        printf("CASE\n");
+                        break;
+                  case(CHAR):
+                        printf("CHAR\n");
+                        break;
+                  case(CONST):
+                        printf("CONST\n");
+                        break;
+                  case(CONTINUE):
+                        printf("CONTINUE\n");
+                        break;
+                  case(DEFAULT):
+                        printf("DEFAULT\n");
+                        break;
+                  case(DO):
+                        printf("DO\n");
+                        break;
+                  case(DOUBLE):
+                        printf("DOUBLE\n");
+                        break;
+                  case(ELSE):
+                        printf("ELSE\n");
+                        break;
+                  case(ENUM):
+                        printf("ENUM\n");
+                        break;
+                  case(EXTERN):
+                        printf("EXTERN\n");
+                        break;
+                  case(FLOAT):
+                        printf("FLOAT\n");
+                        break;
+                  case(FOR):
+                        printf("FOR\n");
+                        break;
+                  case(GOTO):
+                        printf("GOTO\n");
+                        break;
+                  case(IF):
+                        printf("IF\n");
+                        break;
+                  case(INLINE):
+                        printf("INLINE\n");
+                        break;
+                  case(INT):
+                        printf("INT\n");
+                        break;
+                  case(LONG):
+                        printf("LONG\n");
+                        break;
+                  case(REGISTER):
+                        printf("REGISTER\n");
+                        break;
+                  case(RESTRICT):
+                        printf("RESTRICT\n");
+                        break;
+                  case(RETURN):
+                        printf("RETURN\n");
+                        break;
+                  case(SHORT):
+                        printf("SHORT\n");
+                        break;
+                  case(SIGNED):
+                        printf("SIGNED\n");
+                        break;
+                  case(SIZEOF):
+                        printf("SIZEOF\n");
+                        break;
+                  case(STATIC):
+                        printf("STATIC\n");
+                        break;
+                  case(STRUCT):
+                        printf("STRUCT\n");
+                        break;
+                  case(SWITCH):
+                        printf("SWITCH\n");
+                        break;
+                  case(TYPEDEF):
+                        printf("TYPEDEF\n");
+                        break;
+                  case(UNION):
+                        printf("UNION\n");
+                        break;
+                  case(UNSIGNED):
+                        printf("UNSIGNED\n");
+                        break;
+                  case(VOID):
+                        printf("VOID\n");
+                        break;
+                  case(VOLATILE):
+                        printf("VOLATILE\n");
+                        break;
+                  case(WHILE):
+                        printf("WHILE\n");
+                        break;
+                  case(_BOOL):
+                        printf("_BOOL\n");
+                        break;
+                  case(_COMPLEX):
+                        printf("_COMPLEX\n");
+                        break;
+                  case(_IMAGINARY):
+                        printf("_IMAGINARY\n");
+                        break;
+                  case('['):
+                        printf("[\n");
+                        break;
+                  case(']'):
+                        printf("]\n");
+                        break;
+                  case('('):
+                        printf("(\n");
+                        break;
+                  case(')'):
+                        printf(")\n");
+                        break;
+                  case('{'):
+                        printf("{\n");
+                        break;
+                  case('}'):
+                        printf("}\n");
+                        break;
+                  case('.'):
+                        printf(".\n");
+                        break;
+                  case('&'):
+                        printf("&\n");
+                        break;
+                  case('*'):
+                        printf("*\n");
+                        break;
+                  case('+'):
+                        printf("+\n");
+                        break;
+                  case('-'):
+                        printf("-\n");
+                        break;
+                  case('~'):
+                        printf("~\n");
+                        break;
+                  case('!'):
+                        printf("!\n");
+                        break;
+                  case('/'):
+                        printf("/\n");
+                        break;
+                  case('%'):
+                        printf("%%\n");
+                        break;
+                  case('^'):
+                        printf("^\n");
+                        break;
+                  case('|'):
+                        printf("|\n");
+                        break;
+                  case('?'):
+                        printf("?\n");
+                        break;
+                  case(':'):
+                        printf(":\n");
+                        break;
+                  case(';'):
+                        printf(";\n");
+                        break;
+                  case('='):
+                        printf("=\n");
+                        break;
+                  case(','):
+                        printf(",\n");
+                        break;
+                  case('#'):
+                        printf("#\n");
+                        break;
+                  case('>'):
+                        printf(">\n");
+                        break;
+                  case('<'):
+                        printf("<\n");
                         break;
                   default:
                         printf("\n");
                         break;
             }
       }
-  
-return 0;
+      return 0;
 }

@@ -66,8 +66,11 @@ enum tokens {
 };
 
 typedef union {
-          char *string_literal;
-          int integer;
+        char *string_literal;
+        int integer;
+		long l; 
+		long long ll;
+		double d; 
 } YYSTYPE;
 
 YYSTYPE yylval;
@@ -78,3 +81,12 @@ struct info {
 };
 
 struct info report;
+
+struct numinfo {
+		int base;
+		char *sign;
+		char *type;
+};
+
+struct numinfo numInfo; 
+

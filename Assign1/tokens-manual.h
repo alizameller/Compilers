@@ -65,28 +65,36 @@ enum tokens {
 	_IMAGINARY
 };
 
-typedef union {
-        char *string_literal;
-        int integer;
-		long l; 
-		long long ll;
-		double d; 
-} YYSTYPE;
-
-YYSTYPE yylval;
-
 struct info {
-      char *fileName; 
-      int lineNum;
+    char *fileName; 
+    int lineNum;
 };
 
 struct info report;
 
 struct numinfo {
-		int base;
-		char *sign;
-		char *type;
+	enum nums {
+		UNSIGNED_INT,
+		SIGNED_INT,
+		UNSIGNED_LONG,
+		SIGNED_LONG,
+		UNSIGNED_LONGLONG,
+		SIGNED_LONGLONG,
+		FLOAT_NUM,
+		LONG_DOUBLE
+	};
+	enum nums meta; 
+	union {
+    	long long int int_val;
+		long double float_val;  
+	} value; 
 };
 
 struct numinfo numInfo; 
 
+typedef union {
+    char *string_literal;
+	struct numinfo numInfo;
+} YYSTYPE;
+
+YYSTYPE yylval;

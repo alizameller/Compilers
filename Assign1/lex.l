@@ -3,6 +3,7 @@
 |      1. REGEX for numbers (all diff types refer to Dan's ss), strings, CHARLIT                                   |
 |      2. Figure out how to handle different number types in yylval                                                |     
 |            a. convert to internal representation (i.e. how to store the number "int integer" is not universal)   |
+|            b. MAKE LOCAL variable for base to do conversion                                                      |
 |      3̶.̶F̶i̶l̶e̶ n̶a̶m̶e̶ a̶n̶d̶ l̶i̶n̶e̶ n̶u̶m̶b̶e̶r̶ (̶s̶t̶a̶r̶t̶ c̶o̶n̶d̶i̶t̶i̶o̶n̶s̶)̶                                                              |
 \-----------------------------------------------------------------------------------------------------------------*/
 
@@ -11,14 +12,15 @@
 %{
 #include "tokens-manual.h"
 #include <limits.h>
+
 %}
 
-/*FLOAT_DEC ^(0|[1-9]\d*)?(\.\d+)?$ */
+/*FLOAT_DEC ^(0|[1-9]\d*)?(\.\d+)?$*/
+/* INTEGER [+|-]?(0|[1-9][0-9]*)*/
 INT_SUFFIX                    (([uU]?(l{1,2}|L{1,2})?)|((l{1,2}|L{1,2})?[uU]?))
-INTEGER                       [+|-]?(0|[1-9][0-9]*)
-DECIMAL                       [1-9]*
-HEX                           0[xX][0-9a-fA-F]+
-OCTAL                         0[0-7]*
+DECIMAL                       [+|-]?[1-9]*
+HEX                           [+|-]?0[xX][0-9a-fA-F]+
+OCTAL                         [+|-]?0[0-7]*
 LETTER                        [a-zA-Z]
 STRING                        \"(?:[^"\\]|\\.)*\" 
 %s FILENAME
@@ -30,76 +32,74 @@ STRING                        \"(?:[^"\\]|\\.)*\"
 NEED TO DO CHARLIT
 */
 %%
+%{
+int base;
+char *token;
+%}
 [ \t\f\r]+ /* ignore whitespace */ 
-
 #[ ][0-9]+ {report.lineNum = atoi(yytext+2); BEGIN(FILENAME);} /* get file number two tokens in, jump to getting filename */
 <FILENAME>{STRING} {
                      if (report.fileName) {free (report.fileName);};
                      report.fileName = strdup(yytext+1); /* skip beginning quote */
                      report.fileName[strlen(yytext)-2] = '\0'; /* delete ending quote */
                      BEGIN(ENDL); 
-      }
+                  }
 <ENDL>.*\n { /* Jump to the end of the line (i.e. skip over the flags) */
-      BEGIN(INITIAL);
-}
+            BEGIN(INITIAL);
+           }
 \n {report.lineNum++;}
 <<EOF>>  {return TOKEOF;}
-^{DECIMAL} { 
-            yylval.string_literal = strdup(yytext); 
-            numInfo.base = 10; 
+^{DECIMAL} {
+            token = strdup(yytext); 
+            base = 10; 
             BEGIN(SUFFIX);
-      } 
+            } 
 ^{HEX} {
-            yylval.string_literal = strdup(yytext); 
-            numInfo.base = 16; 
+            token = strdup(yytext); 
+            base = 16; 
             BEGIN(SUFFIX);
-      }
+       }
 ^{OCTAL} {
-            yylval.string_literal = strdup(yytext); 
-            numInfo.base = 8; 
+            token = strdup(yytext); 
+            base = 8; 
             BEGIN(SUFFIX);
-      }
+         }
 <SUFFIX>{
       [uU] {
-            yylval.integer = atoi(yylval.string_literal); 
-            numInfo.sign = "UNSIGNED";
-            numInfo.type = "";
+            yylval.numInfo.value.int_val = atoi(token); 
+            yylval.numInfo.meta = UNSIGNED_INT; 
             return NUMBER; 
             BEGIN(INITIAL); 
             }
       [uU][lL]|[lL][uU] {
-            yylval.integer = strtol(yylval.string_literal, NULL, numInfo.base); 
-            numInfo.sign = "UNSIGNED";
-            numInfo.type = "LONG";
+            yylval.numInfo.value.int_val  = strtol(token, NULL, base); 
+            yylval.numInfo.meta = UNSIGNED_LONG;
             return NUMBER; 
             BEGIN(INITIAL); 
             }
       [uU][lL]{2}|[lL]{2}[uU] {
-            yylval.integer = strtoll(yylval.string_literal, NULL, numInfo.base); 
-            numInfo.sign = "UNSIGNED";
-            numInfo.type = "LONG LONG";
+            yylval.numInfo.value.int_val  = strtoll(token, NULL, base); 
+            yylval.numInfo.meta = UNSIGNED_LONGLONG;
             return NUMBER; 
             BEGIN(INITIAL); 
             }
       [lL] {
-            yylval.integer = strtol(yylval.string_literal, NULL, numInfo.base); 
-            numInfo.sign = "SIGNED";
-            numInfo.type = "LONG";
+            yylval.numInfo.value.int_val  = strtol(token, NULL, base); 
+            yylval.numInfo.meta = SIGNED_LONG;
             return NUMBER; 
             BEGIN(INITIAL); 
             }
       [lL]{2} {
-            yylval.integer = strtoll(yylval.string_literal, NULL, numInfo.base); 
-            numInfo.sign = "SIGNED";
-            numInfo.type = "LONG LONG";
+            yylval.numInfo.value.int_val  = strtoll(token, NULL, base); 
+            yylval.numInfo.meta = SIGNED_LONGLONG;
             return NUMBER; 
             BEGIN(INITIAL); 
             }
       ({OCTAL}|{DECIMAL}|{HEX})$ {
-            yylval.string_literal = strdup(yytext); 
-            yylval.integer = strtoll(yylval.string_literal, NULL, numInfo.base); 
-            numInfo.sign = "SIGNED";
-            numInfo.type = "";
+            token  = strdup(yytext); 
+            //printf("%s", token); 
+            yylval.numInfo.value.int_val = strtoll(token, NULL, base); 
+            yylval.numInfo.meta = SIGNED_INT; 
             return NUMBER; 
             BEGIN(INITIAL); 
       }
@@ -217,9 +217,8 @@ int main(){
                         break;
                   case(NUMBER):
                         printf("NUMBER\t\t\t");
-                        printf("%d\t\t\t", yylval.integer);
-                        printf("%s", numInfo.sign);
-                        printf(", %s\n", numInfo.type);
+                        printf("VAL:%lld\t\t\t", yylval.numInfo.value.int_val);
+                        printf("TYPE:%d\n", yylval.numInfo.meta);
                         break;
                   case(INDSEL):
                         printf("INDSEL\n");

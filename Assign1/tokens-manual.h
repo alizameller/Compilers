@@ -69,7 +69,6 @@ struct info {
     char *fileName; 
     int lineNum;
 };
-
 struct info report;
 
 struct numinfo {
@@ -89,12 +88,10 @@ struct numinfo {
 		long double float_val;  
 	} value; 
 };
-
 struct numinfo numInfo; 
 
 typedef union {
     char *string_literal;
 	struct numinfo numInfo;
 } YYSTYPE;
-
 YYSTYPE yylval;

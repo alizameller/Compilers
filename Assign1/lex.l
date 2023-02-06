@@ -12,11 +12,9 @@
 %{
 #include "tokens-manual.h"
 #include <limits.h>
-
 %}
 
 /*FLOAT_DEC ^(0|[1-9]\d*)?(\.\d+)?$*/
-/* INTEGER [+|-]?(0|[1-9][0-9]*)*/
 INT_SUFFIX                    (([uU]?(l{1,2}|L{1,2})?)|((l{1,2}|L{1,2})?[uU]?))
 DECIMAL                       [+|-]?[1-9]*
 HEX                           [+|-]?0[xX][0-9a-fA-F]+
@@ -26,10 +24,10 @@ STRING                        \"(?:[^"\\]|\\.)*\"
 %s FILENAME
 %s ENDL
 %s SUFFIX
+%s PREFIX
 /* Rule Section  */
 /*
-.* {return STRING;}
-NEED TO DO CHARLIT
+NEED TO DO CHARLIT AND STRINGS
 */
 %%
 %{
@@ -65,31 +63,43 @@ char *token;
             BEGIN(SUFFIX);
          }
 <SUFFIX>{
-      [uU] {
+      [uU]$ {
+            if (token[0] == '-') {
+                  fprintf(stderr, "Error cannot use '-' with 'u' in %s\n", token);
+                  exit(1); 
+            }
             yylval.numInfo.value.int_val = atoi(token); 
             yylval.numInfo.meta = UNSIGNED_INT; 
             return NUMBER; 
             BEGIN(INITIAL); 
             }
-      [uU][lL]|[lL][uU] {
+      [uU][lL]|[lL][uU]$ {
+            if (token[0] == '-') {
+                  fprintf(stderr, "Error cannot use '-' with 'u' in %s\n", token);
+                  exit(1); 
+            }
             yylval.numInfo.value.int_val  = strtol(token, NULL, base); 
             yylval.numInfo.meta = UNSIGNED_LONG;
             return NUMBER; 
             BEGIN(INITIAL); 
             }
-      [uU][lL]{2}|[lL]{2}[uU] {
+      [uU][lL]{2}|[lL]{2}[uU]$ {
+            if (token[0] == '-') {
+                  fprintf(stderr, "Error cannot use '-' with 'u' in %s\n", token);
+                  exit(1); 
+            }
             yylval.numInfo.value.int_val  = strtoll(token, NULL, base); 
             yylval.numInfo.meta = UNSIGNED_LONGLONG;
             return NUMBER; 
             BEGIN(INITIAL); 
             }
-      [lL] {
+      [lL]$ {
             yylval.numInfo.value.int_val  = strtol(token, NULL, base); 
             yylval.numInfo.meta = SIGNED_LONG;
             return NUMBER; 
             BEGIN(INITIAL); 
             }
-      [lL]{2} {
+      [lL]{2}$ {
             yylval.numInfo.value.int_val  = strtoll(token, NULL, base); 
             yylval.numInfo.meta = SIGNED_LONGLONG;
             return NUMBER; 

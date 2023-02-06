@@ -1,8 +1,8 @@
 /*-----------------------------------------------------------------------------------------------------------------\
 |      TO DO                                                                                                       |
 |      1. REGEX for numbers (all diff types refer to Dan's ss), strings, CHARLIT                                   |
-|      2. Figure out how to handle different number types in yylval                                                |     
-|            a. convert to internal representation (i.e. how to store the number "int integer" is not universal)   |
+|      2̶.̶ F̶i̶g̶u̶r̶e̶ o̶u̶t̶ h̶o̶w̶ t̶o̶ h̶a̶n̶d̶l̶e̶ d̶i̶f̶f̶e̶r̶e̶n̶t̶ n̶u̶m̶b̶e̶r̶ t̶y̶p̶e̶s̶ i̶n̶ y̶y̶l̶v̶a̶l̶                                                |     
+|            a̶.̶ c̶o̶n̶v̶e̶r̶t̶ t̶o̶ i̶n̶t̶e̶r̶n̶a̶l̶ r̶e̶p̶r̶e̶s̶e̶n̶t̶a̶t̶i̶o̶n̶ (̶i̶.̶e̶.̶ h̶o̶w̶ t̶o̶ s̶t̶o̶r̶e̶ t̶h̶e̶ n̶u̶m̶b̶e̶r̶ "̶i̶n̶t̶ i̶n̶t̶e̶g̶e̶r̶"̶ i̶s̶ n̶o̶t̶ u̶n̶i̶v̶e̶r̶s̶a̶l̶)̶   |
 |            b. MAKE LOCAL variable for base to do conversion                                                      |
 |      3̶.̶F̶i̶l̶e̶ n̶a̶m̶e̶ a̶n̶d̶ l̶i̶n̶e̶ n̶u̶m̶b̶e̶r̶ (̶s̶t̶a̶r̶t̶ c̶o̶n̶d̶i̶t̶i̶o̶n̶s̶)̶                                                              |
 \-----------------------------------------------------------------------------------------------------------------*/
@@ -15,16 +15,20 @@
 %}
 
 /*FLOAT_DEC ^(0|[1-9]\d*)?(\.\d+)?$*/
-INT_SUFFIX                    (([uU]?(l{1,2}|L{1,2})?)|((l{1,2}|L{1,2})?[uU]?))
-DECIMAL                       [+|-]?[1-9]*
+/*INT_SUFFIX                    (([uU]?(l{1,2}|L{1,2})?)|((l{1,2}|L{1,2})?[uU]?))*/
+DECIMAL                       [+|-]?[1-9]+
 HEX                           [+|-]?0[xX][0-9a-fA-F]+
-OCTAL                         [+|-]?0[0-7]*
+OCTAL                         [+|-]?0[0-7]+
 LETTER                        [a-zA-Z]
-STRING                        \"(?:[^"\\]|\\.)*\" 
+NAME                           \"(?:[^"\\]|\\.)*\" 
+/* STRING_LITERAL             \"([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\" */
+/* CHAR_LITERAL             L?\'([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\' */
+
 %s FILENAME
 %s ENDL
 %s SUFFIX
-%s PREFIX
+%x STRING
+%x CHAR
 /* Rule Section  */
 /*
 NEED TO DO CHARLIT AND STRINGS
@@ -33,10 +37,12 @@ NEED TO DO CHARLIT AND STRINGS
 %{
 int base;
 char *token;
+char buf[32672];
+char *buf_ptr;
 %}
 [ \t\f\r]+ /* ignore whitespace */ 
 #[ ][0-9]+ {report.lineNum = atoi(yytext+2); BEGIN(FILENAME);} /* get file number two tokens in, jump to getting filename */
-<FILENAME>{STRING} {
+<FILENAME>{NAME} {
                      if (report.fileName) {free (report.fileName);};
                      report.fileName = strdup(yytext+1); /* skip beginning quote */
                      report.fileName[strlen(yytext)-2] = '\0'; /* delete ending quote */
@@ -47,17 +53,17 @@ char *token;
            }
 \n {report.lineNum++;}
 <<EOF>>  {return TOKEOF;}
-^{DECIMAL} {
+{DECIMAL} {
             token = strdup(yytext); 
             base = 10; 
             BEGIN(SUFFIX);
             } 
-^{HEX} {
+{HEX} {
             token = strdup(yytext); 
             base = 16; 
             BEGIN(SUFFIX);
        }
-^{OCTAL} {
+{OCTAL} {
             token = strdup(yytext); 
             base = 8; 
             BEGIN(SUFFIX);
@@ -65,7 +71,7 @@ char *token;
 <SUFFIX>{
       [uU]$ {
             if (token[0] == '-') {
-                  fprintf(stderr, "Error cannot use '-' with 'u' in %s\n", token);
+                  fprintf(stderr, "Error cannot use '-' with 'u' in %s%s\n", token, yytext);
                   exit(1); 
             }
             yylval.numInfo.value.int_val = atoi(token); 
@@ -75,7 +81,7 @@ char *token;
             }
       [uU][lL]|[lL][uU]$ {
             if (token[0] == '-') {
-                  fprintf(stderr, "Error cannot use '-' with 'u' in %s\n", token);
+                  fprintf(stderr, "Error cannot use '-' with 'u' in %s%s\n", token, yytext);
                   exit(1); 
             }
             yylval.numInfo.value.int_val  = strtol(token, NULL, base); 
@@ -85,7 +91,7 @@ char *token;
             }
       [uU][lL]{2}|[lL]{2}[uU]$ {
             if (token[0] == '-') {
-                  fprintf(stderr, "Error cannot use '-' with 'u' in %s\n", token);
+                  fprintf(stderr, "Error cannot use '-' with 'u' in %s%s\n", token, yytext);
                   exit(1); 
             }
             yylval.numInfo.value.int_val  = strtoll(token, NULL, base); 
@@ -114,6 +120,53 @@ char *token;
             BEGIN(INITIAL); 
       }
 }
+L?\' {buf_ptr = buf; BEGIN(CHAR);}
+L?\" {buf_ptr = buf; BEGIN(STRING);}
+<CHAR,STRING>{
+      [^\"\'\\\n]+ {
+            char *ptr = yytext; 
+            while(*ptr) {
+                  *buf_ptr++ = *ptr++;
+            }
+      }
+      \\[\\\'\"\?abfnrtv] {
+            /* go back to this */
+            exit(1);
+      }
+      \\[0-7]{1,3} {
+            char temp = strtol(yytext+1, NULL, 8);
+            if (temp > 128) {
+                  fprintf(stderr, "Warning: Octal escape sequence %s out of range", yytext); 
+                  *buf_ptr++ = 128; 
+            } else {
+                  *buf_ptr++ = temp; 
+            }
+      }
+      \\[xX][0-9a-fA-F] {
+            char temp = strtol(yytext, NULL, 16);
+            if (temp > 128) {
+                  fprintf(stderr, "Warning: Hex escape sequence %s out of range", yytext);
+                  *buf_ptr++ = 128;  
+            } else {
+                  *buf_ptr++ = temp; 
+            }
+      }
+      \" {   
+            *buf_ptr = '\0'; 
+            if (yylval.string_literal) {free (yylval.string_literal);};
+            yylval.string_literal = strdup(buf); 
+            return STRING; 
+            BEGIN(INITIAL);
+         }
+}
+<CHAR>\' {  
+            if ((buf_ptr - buf) > 1) {
+                  fprintf(stderr, "Warning: Unsupported multibyte character literal truncated to first byte\n");
+            }
+            yylval.char_literal = buf[0]; 
+            return CHARLIT; 
+            BEGIN(INITIAL);
+         }
 \[ {return '[';}
 \] {return ']';}
 \( {return '(';}
@@ -217,18 +270,25 @@ int main(){
                   continue;
             }
             //printf("%d\t\t\t", t);
-            printf("%s\t\t\t", report.fileName);
+            if (report.fileName) {
+                  printf("%s\t\t\t", report.fileName);
+            } else {
+                  printf("<STDIN>\t\t\t");
+            };
             printf("%d\t\t\t", report.lineNum);
 
             switch(t) {
                   case(IDENT):
-                        printf("IDENT\t\t\t");
-                        printf("%s\n", yylval.string_literal);
+                        printf("IDENT\t\t\t%s\n", yylval.string_literal);
                         break;
                   case(NUMBER):
-                        printf("NUMBER\t\t\t");
-                        printf("VAL:%lld\t\t\t", yylval.numInfo.value.int_val);
-                        printf("TYPE:%d\n", yylval.numInfo.meta);
+                        printf("NUMBER\t\t\tVAL:%lld\t\t\tTYPE:%d\n", yylval.numInfo.value.int_val, yylval.numInfo.meta);
+                        break;
+                  case(CHARLIT):
+                        printf("CHARLIT\t\t\t%c\n", yylval.char_literal);
+                        break;
+                  case(STRING):
+                        printf("STRING\t\t\t%s\n", yylval.string_literal);
                         break;
                   case(INDSEL):
                         printf("INDSEL\n");

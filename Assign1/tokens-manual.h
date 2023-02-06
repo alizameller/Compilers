@@ -93,5 +93,6 @@ struct numinfo numInfo;
 typedef union {
     char *string_literal;
 	struct numinfo numInfo;
+	char char_literal; 
 } YYSTYPE;
 YYSTYPE yylval;

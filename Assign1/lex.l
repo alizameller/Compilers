@@ -22,7 +22,7 @@ OCTAL                         [+|-]?0[0-7]+
 LETTER                        [a-zA-Z]
 NAME                           \"(?:[^"\\]|\\.)*\" 
 /* STRING_LITERAL             \"([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\" */
-/* CHAR_LITERAL             L?\'([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\' */
+/* CHAR_LITERAL               L?\'([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\' */
 
 %s FILENAME
 %s ENDL
@@ -37,7 +37,7 @@ NEED TO DO CHARLIT AND STRINGS
 %{
 int base;
 char *token;
-char buf[32672];
+char buf[65535];
 char *buf_ptr;
 %}
 [ \t\f\r]+ /* ignore whitespace */ 
@@ -123,50 +123,69 @@ char *buf_ptr;
 L?\' {buf_ptr = buf; BEGIN(CHAR);}
 L?\" {buf_ptr = buf; BEGIN(STRING);}
 <CHAR,STRING>{
+       \" {   
+            BEGIN(INITIAL);
+            *buf_ptr = '\0'; 
+            if (!(yylval.string_literal = malloc(strlen(buf)))) {
+			fprintf(stderr, "Error %s\n", strerror(errno));
+			exit(1);
+		}
+		memcpy(yylval.string_literal, buf, strlen(buf));
+            /*if (yylval.string_literal) { 
+                  free (yylval.string_literal);
+            }; */
+            //yylval.string_literal = strdup(buf); 
+            return STRING; 
+         }
       [^\"\'\\\n]+ {
             char *ptr = yytext; 
             while(*ptr) {
                   *buf_ptr++ = *ptr++;
             }
       }
-      \\[\\\'\"\?abfnrtv] {
-            /* go back to this */
-            exit(1);
-      }
+      \\\" {*buf_ptr++ = '\"';}
+      \\\? {*buf_ptr++ = '\?';}
+      \\a {*buf_ptr++ = '\a';}
+      \\b {*buf_ptr++ = '\b';}
+      \\f {*buf_ptr++ = '\f';}
+      \\n {*buf_ptr++ = '\n';}
+      \\r {*buf_ptr++ = '\r';}
+      \\t {*buf_ptr++ = '\t';}
+      \\v {*buf_ptr++ = '\v';}
       \\[0-7]{1,3} {
             char temp = strtol(yytext+1, NULL, 8);
-            if (temp > 128) {
+            if ((int)temp > 0xff) {
                   fprintf(stderr, "Warning: Octal escape sequence %s out of range", yytext); 
-                  *buf_ptr++ = 128; 
+                  *buf_ptr++ = 0xff; 
             } else {
-                  *buf_ptr++ = temp; 
+                  *buf_ptr++ = (char)temp; 
             }
       }
       \\[xX][0-9a-fA-F] {
             char temp = strtol(yytext, NULL, 16);
-            if (temp > 128) {
+            if ((int) temp > 0xff) {
                   fprintf(stderr, "Warning: Hex escape sequence %s out of range", yytext);
-                  *buf_ptr++ = 128;  
+                  *buf_ptr++ = 0xff;  
             } else {
-                  *buf_ptr++ = temp; 
+                  *buf_ptr++ = (char)temp; 
             }
       }
-      \" {   
-            *buf_ptr = '\0'; 
-            if (yylval.string_literal) {free (yylval.string_literal);};
-            yylval.string_literal = strdup(buf); 
-            return STRING; 
-            BEGIN(INITIAL);
-         }
+      \n {
+            fprintf(stderr, "Error: unterminated string constant");
+      }
 }
-<CHAR>\' {  
+<CHAR>{
+      \' {  
+            BEGIN(INITIAL);
             if ((buf_ptr - buf) > 1) {
                   fprintf(stderr, "Warning: Unsupported multibyte character literal truncated to first byte\n");
             }
             yylval.char_literal = buf[0]; 
             return CHARLIT; 
-            BEGIN(INITIAL);
          }
+      \\\' {*buf_ptr++ = '\'';} 
+}
+<STRING>\' {*buf_ptr++ = '\'';} 
 \[ {return '[';}
 \] {return ']';}
 \( {return '(';}
@@ -289,6 +308,7 @@ int main(){
                         break;
                   case(STRING):
                         printf("STRING\t\t\t%s\n", yylval.string_literal);
+                        free(yylval.string_literal); 
                         break;
                   case(INDSEL):
                         printf("INDSEL\n");

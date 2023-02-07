@@ -133,7 +133,6 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
 		}
             
 		memcpy(yylval.string_literal, buf, (buf_ptr - buf + 1)*sizeof(char));
-
             return STRING; 
          }
       [^\"\'\\\n]+ {
@@ -142,6 +141,7 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
                   *buf_ptr++ = *ptr++;
             }
       }
+      \\ {*buf_ptr++ = '\\';}
       \\\" {*buf_ptr++ = '\"';}
       \\\? {*buf_ptr++ = '\?';}
       \\a {*buf_ptr++ = '\a';}
@@ -280,6 +280,58 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
 %%
   
 /* Code Section */
+char *printEscapes(char character){
+      char *ret; 
+      switch (character) {
+            case '\'':
+                  ret = "\\'";
+                  break;
+
+            case '\"':
+                  ret = "\\\"";
+                  break;
+
+            case '\?':
+                  ret = "\\?";
+                  break;
+
+            case '\\':
+                  ret = "\\\\";
+                  break;
+
+            case '\a':
+                  ret = "\\a";
+                  break;
+
+            case '\b':
+                  ret = "\\b";
+                  break;
+
+            case '\f':
+                  ret = "\\f";
+                  break;
+
+            case '\n':
+                  ret = "\\n";
+                  break;
+
+            case '\r':
+                  ret = "\\r";
+                  break;
+
+            case '\t':
+                  ret = "\\t";
+                  break;
+
+            case '\v':
+                  ret = "\\v";
+                  break;
+
+            default:
+                  ret = "\\%03o";
+      }
+      return ret; 
+}
 int yywrap(){}
 int main(){
       int t;
@@ -303,6 +355,10 @@ int main(){
                         printf("NUMBER\t\t\tVAL:%lld\t\t\tTYPE:%d\n", yylval.numInfo.value.int_val, yylval.numInfo.meta);
                         break;
                   case(CHARLIT):
+                        if (yylval.char_literal >= 0 && yylval.char_literal <= 32) {
+                              printf("CHARLIT\t\t\t%s\n", printEscapes(yylval.char_literal));
+                              break;
+                        }
                         printf("CHARLIT\t\t\t%c\n", yylval.char_literal);
                         break;
                   case(STRING):

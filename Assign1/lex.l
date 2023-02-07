@@ -126,15 +126,14 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
        \" {   
             BEGIN(INITIAL);
             *buf_ptr = '\0'; 
-            if (!(yylval.string_literal = malloc(strlen(buf)))) {
+
+            if (!(yylval.string_literal = (char *) malloc((buf_ptr - buf + 1)*sizeof(char)))) {
 			fprintf(stderr, "Error %s\n", strerror(errno));
 			exit(1);
 		}
-		memcpy(yylval.string_literal, buf, strlen(buf));
-            /*if (yylval.string_literal) { 
-                  free (yylval.string_literal);
-            }; */
-            //yylval.string_literal = strdup(buf); 
+            
+		memcpy(yylval.string_literal, buf, (buf_ptr - buf + 1)*sizeof(char));
+
             return STRING; 
          }
       [^\"\'\\\n]+ {

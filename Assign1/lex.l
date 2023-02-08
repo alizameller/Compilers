@@ -12,6 +12,7 @@
 %{
 #include "tokens-manual.h"
 #include <limits.h>
+#include <ctype.h>
 %}
 
 /*FLOAT_DEC ^(0|[1-9]\d*)?(\.\d+)?$*/
@@ -35,8 +36,6 @@ NEED TO DO CHARLIT AND STRINGS
 */
 %%
 %{
-int base;
-char *token;
 char buf[65535];
 char *buf_ptr;
 %}
@@ -54,70 +53,63 @@ char *buf_ptr;
 \n {report.lineNum++;}
 <<EOF>>  {return TOKEOF;}
 {DECIMAL} {
-            token = strdup(yytext); 
-            base = 10; 
+            yylval.numInfo.value.int_val  = strtoll(yytext, NULL, 10);
             BEGIN(SUFFIX);
             } 
 {HEX} {
-            token = strdup(yytext); 
-            base = 16; 
+            yylval.numInfo.value.int_val  = strtoll(yytext, NULL, 16);
             BEGIN(SUFFIX);
        }
 {OCTAL} {
-            token = strdup(yytext); 
-            base = 8; 
+            yylval.numInfo.value.int_val  = strtoll(yytext, NULL, 8);
             BEGIN(SUFFIX);
          }
 <SUFFIX>{
-      [uU]$ {
-            if (token[0] == '-') {
-                  fprintf(stderr, "Error cannot use '-' with 'u' in %s%s\n", token, yytext);
+      [uU] {
+            if (yylval.numInfo.value.int_val < 0) {
+                  fprintf(stderr, "%s:%d:Error cannot use '-' with 'u'\n", report.fileName, report.lineNum);
                   exit(1); 
             }
-            yylval.numInfo.value.int_val = atoi(token); 
+            yylval.numInfo.value.int_val = (unsigned int) yylval.numInfo.value.int_val;
             yylval.numInfo.meta = UNSIGNED_INT; 
-            return NUMBER; 
-            BEGIN(INITIAL); 
+            BEGIN(INITIAL);
+            return NUMBER;  
             }
-      [uU][lL]|[lL][uU]$ {
-            if (token[0] == '-') {
-                  fprintf(stderr, "Error cannot use '-' with 'u' in %s%s\n", token, yytext);
+      [uU][lL]|[lL][uU] {
+            if (yylval.numInfo.value.int_val < 0) {
+                  fprintf(stderr, "%s:%d:Error cannot use '-' with 'u'\n", report.fileName, report.lineNum);
                   exit(1); 
             }
-            yylval.numInfo.value.int_val  = strtol(token, NULL, base); 
+            yylval.numInfo.value.int_val = (unsigned long) yylval.numInfo.value.int_val;
             yylval.numInfo.meta = UNSIGNED_LONG;
-            return NUMBER; 
-            BEGIN(INITIAL); 
+            BEGIN(INITIAL);
+            return NUMBER;  
             }
-      [uU][lL]{2}|[lL]{2}[uU]$ {
-            if (token[0] == '-') {
-                  fprintf(stderr, "Error cannot use '-' with 'u' in %s%s\n", token, yytext);
+      [uU][lL]{2}|[lL]{2}[uU] {
+            if (yylval.numInfo.value.int_val < 0) {
+                  fprintf(stderr, "%s:%d:Error cannot use '-' with 'u'\n", report.fileName, report.lineNum);
                   exit(1); 
             }
-            yylval.numInfo.value.int_val  = strtoll(token, NULL, base); 
             yylval.numInfo.meta = UNSIGNED_LONGLONG;
-            return NUMBER; 
-            BEGIN(INITIAL); 
+            BEGIN(INITIAL);
+            return NUMBER;  
             }
-      [lL]$ {
-            yylval.numInfo.value.int_val  = strtol(token, NULL, base); 
+      [lL] {
+            yylval.numInfo.value.int_val = (long) yylval.numInfo.value.int_val;
             yylval.numInfo.meta = SIGNED_LONG;
-            return NUMBER; 
-            BEGIN(INITIAL); 
+            BEGIN(INITIAL);
+            return NUMBER;  
             }
-      [lL]{2}$ {
-            yylval.numInfo.value.int_val  = strtoll(token, NULL, base); 
+      [lL]{2} {
             yylval.numInfo.meta = SIGNED_LONGLONG;
-            return NUMBER; 
-            BEGIN(INITIAL); 
+            BEGIN(INITIAL);
+            return NUMBER;  
             }
-      ({OCTAL}|{DECIMAL}|{HEX})$ {
-            token  = strdup(yytext); 
-            //printf("%s", token); 
-            yylval.numInfo.value.int_val = strtoll(token, NULL, base); 
+      [^uUlL] {
+            unput(yytext[0]);
             yylval.numInfo.meta = SIGNED_INT; 
-            return NUMBER; 
-            BEGIN(INITIAL); 
+            BEGIN(INITIAL);
+            return NUMBER;  
       }
 }
 L?\' {buf_ptr = buf; BEGIN(CHAR);}
@@ -126,13 +118,13 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
        \" {   
             BEGIN(INITIAL);
             *buf_ptr = '\0'; 
-
-            if (!(yylval.string_literal = (char *) malloc((buf_ptr - buf + 1)*sizeof(char)))) {
-			fprintf(stderr, "Error %s\n", strerror(errno));
+            yylval.stringInfo.length = buf_ptr - buf; 
+            if (!(yylval.stringInfo.string_literal = (char *) malloc((yylval.stringInfo.length + 1)*sizeof(char)))) {
+			fprintf(stderr, "%s:%d:Error mallocing %s\n", report.fileName, report.lineNum, strerror(errno));
 			exit(1);
 		}
             
-		memcpy(yylval.string_literal, buf, (buf_ptr - buf + 1)*sizeof(char));
+		memcpy(yylval.stringInfo.string_literal, buf, (yylval.stringInfo.length + 1)*sizeof(char));
             return STRING; 
          }
       [^\"\'\\\n]+ {
@@ -141,7 +133,7 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
                   *buf_ptr++ = *ptr++;
             }
       }
-      \\ {*buf_ptr++ = '\\';}
+      \\\\ {*buf_ptr++ = '\\';}
       \\\" {*buf_ptr++ = '\"';}
       \\\? {*buf_ptr++ = '\?';}
       \\a {*buf_ptr++ = '\a';}
@@ -152,32 +144,32 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
       \\t {*buf_ptr++ = '\t';}
       \\v {*buf_ptr++ = '\v';}
       \\[0-7]{1,3} {
-            char temp = strtol(yytext+1, NULL, 8);
-            if ((int)temp > 0xff) {
-                  fprintf(stderr, "Warning: Octal escape sequence %s out of range", yytext); 
+            long int temp = strtol(yytext + 1, NULL, 8);
+            if (temp > 0xff) {
+                  fprintf(stderr, "%s:%d:Warning:Octal escape sequence %s out of range", report.fileName, report.lineNum, yytext); 
                   *buf_ptr++ = 0xff; 
             } else {
                   *buf_ptr++ = (char)temp; 
             }
       }
-      \\[xX][0-9a-fA-F] {
-            char temp = strtol(yytext, NULL, 16);
-            if ((int) temp > 0xff) {
-                  fprintf(stderr, "Warning: Hex escape sequence %s out of range", yytext);
+      \\[xX][0-9a-fA-F]+ {
+            long int temp = strtol(yytext + 2, NULL, 16);
+            if (temp > 0xff) {
+                  fprintf(stderr, "%s:%d:Warning:Hex escape sequence %s out of range", report.fileName, report.lineNum, yytext);
                   *buf_ptr++ = 0xff;  
             } else {
                   *buf_ptr++ = (char)temp; 
             }
       }
       \n {
-            fprintf(stderr, "Error: unterminated string constant");
+            fprintf(stderr, "%s:%d:Error:Unterminated string constant", report.fileName, report.lineNum);
       }
 }
 <CHAR>{
       \' {  
             BEGIN(INITIAL);
             if ((buf_ptr - buf) > 1) {
-                  fprintf(stderr, "Warning: Unsupported multibyte character literal truncated to first byte\n");
+                  fprintf(stderr, "%s:%d:Warning:Unsupported multibyte character literal truncated to first byte\n", report.fileName, report.lineNum);
             }
             yylval.char_literal = buf[0]; 
             return CHARLIT; 
@@ -276,62 +268,74 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
 "_bool" {return _BOOL;}
 "_complex" {return _COMPLEX;}
 "_imaginary" {return _IMAGINARY;}
-({LETTER}|_)([0-9)*]|{LETTER}|_)* {yylval.string_literal = strdup(yytext); return IDENT;}
+({LETTER}|_)([0-9)*]|{LETTER}|_)* {yylval.stringInfo.string_literal = strdup(yytext); return IDENT;}
 %%
   
 /* Code Section */
-char *printEscapes(char character){
-      char *ret; 
-      switch (character) {
-            case '\'':
-                  ret = "\\'";
-                  break;
+void printHandler(char *toPrint, int length) {
+      int i;
+      for (i = 0; i < length; i++) {
+            unsigned char c = toPrint[i];
+            switch (c) {
+                  case '\'':
+                        printf("\\'");
+                        break;
 
-            case '\"':
-                  ret = "\\\"";
-                  break;
+                  case '\"':
+                        printf("\\\"");
+                        break;
 
-            case '\?':
-                  ret = "\\?";
-                  break;
+                  case '\\':
+                        printf("\\\\");
+                        break;
+                  
+                  case '`':
+                        printf("\\`");
+                        break;
 
-            case '\\':
-                  ret = "\\\\";
-                  break;
+                  case '\a':
+                        printf("\\a");
+                        break;
 
-            case '\a':
-                  ret = "\\a";
-                  break;
+                  case '\b':
+                        printf("\\b");
+                        break;
 
-            case '\b':
-                  ret = "\\b";
-                  break;
+                  case '\f':
+                        printf("\\f");
+                        break;
 
-            case '\f':
-                  ret = "\\f";
-                  break;
+                  case '\n':
+                        printf("\\n");
+                        break;
 
-            case '\n':
-                  ret = "\\n";
-                  break;
+                  case '\r':
+                        printf("\\r");
+                        break;
 
-            case '\r':
-                  ret = "\\r";
-                  break;
+                  case '\t':
+                        printf("\\t");
+                        break;
 
-            case '\t':
-                  ret = "\\t";
-                  break;
+                  case '\v':
+                        printf("\\v");
+                        break;
 
-            case '\v':
-                  ret = "\\v";
-                  break;
+                  case '\0':
+                        printf("\\0");
+                        break;
 
-            default:
-                  ret = "\\%03o";
+                  default:
+                        if (isprint(c)) {
+                              printf("%c", c); 
+                              continue;
+                        }
+                        printf("\\%0.3o", c);
+            }
       }
-      return ret; 
+      printf("\n");
 }
+
 int yywrap(){}
 int main(){
       int t;
@@ -349,21 +353,20 @@ int main(){
 
             switch(t) {
                   case(IDENT):
-                        printf("IDENT\t\t\t%s\n", yylval.string_literal);
+                        printf("IDENT\t\t\t%s\n", yylval.stringInfo.string_literal);
+                        free(yylval.stringInfo.string_literal);
                         break;
                   case(NUMBER):
                         printf("NUMBER\t\t\tVAL:%lld\t\t\tTYPE:%d\n", yylval.numInfo.value.int_val, yylval.numInfo.meta);
                         break;
                   case(CHARLIT):
-                        if (yylval.char_literal >= 0 && yylval.char_literal <= 32) {
-                              printf("CHARLIT\t\t\t%s\n", printEscapes(yylval.char_literal));
-                              break;
-                        }
-                        printf("CHARLIT\t\t\t%c\n", yylval.char_literal);
+                        printf("CHARLIT\t\t\t");
+                        printHandler(&(yylval.char_literal), 1);
                         break;
                   case(STRING):
-                        printf("STRING\t\t\t%s\n", yylval.string_literal);
-                        free(yylval.string_literal); 
+                        printf("STRING\t\t\t");
+                        printHandler(yylval.stringInfo.string_literal, yylval.stringInfo.length);
+                        free(yylval.stringInfo.string_literal); 
                         break;
                   case(INDSEL):
                         printf("INDSEL\n");

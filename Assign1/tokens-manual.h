@@ -90,8 +90,14 @@ struct numinfo {
 };
 struct numinfo numInfo; 
 
+struct stringinfo {
+	char *string_literal; 
+	int length; 
+};
+struct stringinfo stringInfo; 
+
 typedef union {
-    char *string_literal;
+    struct stringinfo stringInfo; 
 	struct numinfo numInfo;
 	char char_literal; 
 } YYSTYPE;

@@ -17,9 +17,9 @@
 
 /*FLOAT_DEC ^(0|[1-9]\d*)?(\.\d+)?$*/
 /*INT_SUFFIX                    (([uU]?(l{1,2}|L{1,2})?)|((l{1,2}|L{1,2})?[uU]?))*/
-DECIMAL                       [+|-]?[1-9]+
-HEX                           [+|-]?0[xX][0-9a-fA-F]+
-OCTAL                         [+|-]?0[0-7]+
+DECIMAL                       [1-9][0-9]*
+HEX                           0[xX][0-9a-fA-F]+
+OCTAL                         0[0-7]*
 LETTER                        [a-zA-Z]
 NAME                           \"(?:[^"\\]|\\.)*\" 
 /* STRING_LITERAL             \"([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\" */
@@ -27,7 +27,7 @@ NAME                           \"(?:[^"\\]|\\.)*\"
 
 %s FILENAME
 %s ENDL
-%s SUFFIX
+%x SUFFIX
 %x STRING
 %x CHAR
 /* Rule Section  */
@@ -50,8 +50,8 @@ char *buf_ptr;
 <ENDL>.*\n { /* Jump to the end of the line (i.e. skip over the flags) */
             BEGIN(INITIAL);
            }
-\n {report.lineNum++;}
 <<EOF>>  {return TOKEOF;}
+\n {report.lineNum++;}
 {DECIMAL} {
             yylval.numInfo.value.int_val  = strtoll(yytext, NULL, 10);
             BEGIN(SUFFIX);
@@ -66,30 +66,18 @@ char *buf_ptr;
          }
 <SUFFIX>{
       [uU] {
-            if (yylval.numInfo.value.int_val < 0) {
-                  fprintf(stderr, "%s:%d:Error cannot use '-' with 'u'\n", report.fileName, report.lineNum);
-                  exit(1); 
-            }
             yylval.numInfo.value.int_val = (unsigned int) yylval.numInfo.value.int_val;
             yylval.numInfo.meta = UNSIGNED_INT; 
             BEGIN(INITIAL);
             return NUMBER;  
             }
       [uU][lL]|[lL][uU] {
-            if (yylval.numInfo.value.int_val < 0) {
-                  fprintf(stderr, "%s:%d:Error cannot use '-' with 'u'\n", report.fileName, report.lineNum);
-                  exit(1); 
-            }
             yylval.numInfo.value.int_val = (unsigned long) yylval.numInfo.value.int_val;
             yylval.numInfo.meta = UNSIGNED_LONG;
             BEGIN(INITIAL);
             return NUMBER;  
             }
       [uU][lL]{2}|[lL]{2}[uU] {
-            if (yylval.numInfo.value.int_val < 0) {
-                  fprintf(stderr, "%s:%d:Error cannot use '-' with 'u'\n", report.fileName, report.lineNum);
-                  exit(1); 
-            }
             yylval.numInfo.meta = UNSIGNED_LONGLONG;
             BEGIN(INITIAL);
             return NUMBER;  
@@ -105,12 +93,23 @@ char *buf_ptr;
             BEGIN(INITIAL);
             return NUMBER;  
             }
-      [^uUlL] {
-            unput(yytext[0]);
-            yylval.numInfo.meta = SIGNED_INT; 
+      [\t\r\v\f ]+ {
+            yylval.numInfo.meta = SIGNED_INT;
+            BEGIN(INITIAL); 
+            return NUMBER;
+            }
+      \n {
+            yylval.numInfo.meta = SIGNED_INT;
+            yyless(0); //put current character (i.e. the one after the number we currently wish to read) back in scanner
             BEGIN(INITIAL);
-            return NUMBER;  
+            return NUMBER;
       }
+      . {
+            yylval.numInfo.meta = SIGNED_INT;
+            yyless(0); //put current character (i.e. the one after the number we currently wish to read) back in scanner
+            BEGIN(INITIAL);
+            return NUMBER;
+        }
 }
 L?\' {buf_ptr = buf; BEGIN(CHAR);}
 L?\" {buf_ptr = buf; BEGIN(STRING);}
@@ -357,7 +356,30 @@ int main(){
                         free(yylval.stringInfo.string_literal);
                         break;
                   case(NUMBER):
-                        printf("NUMBER\t\t\tVAL:%lld\t\t\tTYPE:%d\n", yylval.numInfo.value.int_val, yylval.numInfo.meta);
+                        printf("NUMBER\t\t\t");
+                        if (yylval.numInfo.meta < FLOAT_NUM) {
+                              printf("INTEGER\t\t\t%lld\t\t\t", yylval.numInfo.value.int_val);
+                              if (yylval.numInfo.meta%2 == 0) {
+                                    printf("UNSIGNED,");
+                              }
+                              switch(yylval.numInfo.meta) {
+                                    case(0):
+                                    case(1):
+                                          printf("INT");
+                                          break;
+                                    case(2):
+                                    case(3):
+                                          printf("LONG");
+                                          break;
+                                    case(4):
+                                    case(5):
+                                          printf("LONG LONG");
+                                          break;
+                              }
+                        } else {
+                              printf("REAL\t\t\t%Lf\t\t\t", yylval.numInfo.value.float_val);
+                        } // do other parts too!!
+                        printf("\n");
                         break;
                   case(CHARLIT):
                         printf("CHARLIT\t\t\t");

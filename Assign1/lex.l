@@ -22,12 +22,16 @@ HEX                           0[xX][0-9a-fA-F]+
 OCTAL                         0[0-7]*
 LETTER                        [a-zA-Z]
 NAME                           \"(?:[^"\\]|\\.)*\" 
+DFC                           ({DECIMAL}*\.[0-9]+)|({DECIMAL}+\.[0-9]*)|({DECIMAL})[eE][+-]?[0-9+]
+HFC                           ({HEX}?\.{HEX})|({HEX})[pP][+-]?[0-9+]
+FLOAT                         {DFC}|{HFC}
 /* STRING_LITERAL             \"([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\" */
 /* CHAR_LITERAL               L?\'([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\' */
 
 %s FILENAME
 %s ENDL
-%x SUFFIX
+%x INTEGER_SUFFIX
+%x FLOAT_SUFFIX
 %x STRING
 %x CHAR
 /* Rule Section  */
@@ -54,17 +58,25 @@ char *buf_ptr;
 \n {report.lineNum++;}
 {DECIMAL} {
             yylval.numInfo.value.int_val  = strtoll(yytext, NULL, 10);
-            BEGIN(SUFFIX);
+            yylval.numInfo.meta = SIGNED_INT;
+            BEGIN(INTEGER_SUFFIX);
             } 
 {HEX} {
             yylval.numInfo.value.int_val  = strtoll(yytext, NULL, 16);
-            BEGIN(SUFFIX);
+            yylval.numInfo.meta = SIGNED_INT;
+            BEGIN(INTEGER_SUFFIX);
        }
 {OCTAL} {
             yylval.numInfo.value.int_val  = strtoll(yytext, NULL, 8);
-            BEGIN(SUFFIX);
+            yylval.numInfo.meta = SIGNED_INT;
+            BEGIN(INTEGER_SUFFIX);
          }
-<SUFFIX>{
+{FLOAT} {
+            yylval.numInfo.value.float_val = strtold(yytext, NULL);
+            yylval.numInfo.meta = DOUBLE_NUM;
+            BEGIN(FLOAT_SUFFIX);
+}
+<INTEGER_SUFFIX>{
       [uU] {
             yylval.numInfo.value.int_val = (unsigned int) yylval.numInfo.value.int_val;
             yylval.numInfo.meta = UNSIGNED_INT; 
@@ -93,19 +105,33 @@ char *buf_ptr;
             BEGIN(INITIAL);
             return NUMBER;  
             }
+}
+<FLOAT_SUFFIX>{
+      [fF] {
+            yylval.numInfo.value.float_val = (float) yylval.numInfo.value.float_val;
+            yylval.numInfo.meta = FLOAT_NUM;
+            BEGIN(INITIAL);
+            return NUMBER;  
+            }
+      [lL] {
+            yylval.numInfo.value.float_val = (long double) yylval.numInfo.value.float_val;
+            yylval.numInfo.meta = LONG_DOUBLE;
+            BEGIN(INITIAL);
+            return NUMBER;  
+            }
+}
+<FLOAT_SUFFIX,INTEGER_SUFFIX>{
+
       [\t\r\v\f ]+ {
-            yylval.numInfo.meta = SIGNED_INT;
             BEGIN(INITIAL); 
             return NUMBER;
             }
       \n {
-            yylval.numInfo.meta = SIGNED_INT;
             yyless(0); //put current character (i.e. the one after the number we currently wish to read) back in scanner
             BEGIN(INITIAL);
             return NUMBER;
       }
       . {
-            yylval.numInfo.meta = SIGNED_INT;
             yyless(0); //put current character (i.e. the one after the number we currently wish to read) back in scanner
             BEGIN(INITIAL);
             return NUMBER;
@@ -357,28 +383,37 @@ int main(){
                         break;
                   case(NUMBER):
                         printf("NUMBER\t\t\t");
-                        if (yylval.numInfo.meta < FLOAT_NUM) {
+                        if (yylval.numInfo.meta < DOUBLE_NUM) {
                               printf("INTEGER\t\t\t%lld\t\t\t", yylval.numInfo.value.int_val);
                               if (yylval.numInfo.meta%2 == 0) {
                                     printf("UNSIGNED,");
                               }
-                              switch(yylval.numInfo.meta) {
-                                    case(0):
-                                    case(1):
-                                          printf("INT");
-                                          break;
-                                    case(2):
-                                    case(3):
-                                          printf("LONG");
-                                          break;
-                                    case(4):
-                                    case(5):
-                                          printf("LONG LONG");
-                                          break;
-                              }
                         } else {
-                              printf("REAL\t\t\t%Lf\t\t\t", yylval.numInfo.value.float_val);
+                              printf("REAL\t\t\t%.1Le\t\t\t", yylval.numInfo.value.float_val);
                         } // do other parts too!!
+                        switch(yylval.numInfo.meta) {
+                              case(0):
+                              case(1):
+                                    printf("INT");
+                                    break;
+                              case(2):
+                              case(3):
+                                    printf("LONG");
+                                    break;
+                              case(4):
+                              case(5):
+                                    printf("LONG LONG");
+                                    break;
+                              case(6):
+                                    printf("DOUBLE");
+                                    break;
+                              case(7):
+                                    printf("FLOAT");
+                                    break;
+                              case(8):
+                                    printf("LONG DOUBLE");
+                                    break;
+                        }
                         printf("\n");
                         break;
                   case(CHARLIT):

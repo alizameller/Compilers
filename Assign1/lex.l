@@ -1,10 +1,6 @@
 /*-----------------------------------------------------------------------------------------------------------------\
-|      TO DO                                                                                                       |
-|      1. REGEX for numbers (all diff types refer to Dan's ss), strings, CHARLIT                                   |
-|      2̶.̶ F̶i̶g̶u̶r̶e̶ o̶u̶t̶ h̶o̶w̶ t̶o̶ h̶a̶n̶d̶l̶e̶ d̶i̶f̶f̶e̶r̶e̶n̶t̶ n̶u̶m̶b̶e̶r̶ t̶y̶p̶e̶s̶ i̶n̶ y̶y̶l̶v̶a̶l̶                                                |     
-|            a̶.̶ c̶o̶n̶v̶e̶r̶t̶ t̶o̶ i̶n̶t̶e̶r̶n̶a̶l̶ r̶e̶p̶r̶e̶s̶e̶n̶t̶a̶t̶i̶o̶n̶ (̶i̶.̶e̶.̶ h̶o̶w̶ t̶o̶ s̶t̶o̶r̶e̶ t̶h̶e̶ n̶u̶m̶b̶e̶r̶ "̶i̶n̶t̶ i̶n̶t̶e̶g̶e̶r̶"̶ i̶s̶ n̶o̶t̶ u̶n̶i̶v̶e̶r̶s̶a̶l̶)̶   |
-|            b. MAKE LOCAL variable for base to do conversion                                                      |
-|      3̶.̶F̶i̶l̶e̶ n̶a̶m̶e̶ a̶n̶d̶ l̶i̶n̶e̶ n̶u̶m̶b̶e̶r̶ (̶s̶t̶a̶r̶t̶ c̶o̶n̶d̶i̶t̶i̶o̶n̶s̶)̶                                                              |
+|      TO DO:                                                                                                      |
+|                                                                                                                  |
 \-----------------------------------------------------------------------------------------------------------------*/
 
 /* Definition Section */
@@ -15,8 +11,6 @@
 #include <ctype.h>
 %}
 
-/*FLOAT_DEC ^(0|[1-9]\d*)?(\.\d+)?$*/
-/*INT_SUFFIX                    (([uU]?(l{1,2}|L{1,2})?)|((l{1,2}|L{1,2})?[uU]?))*/
 DECIMAL                       [1-9][0-9]*
 HEX                           0[xX][0-9a-fA-F]+
 OCTAL                         0[0-7]*
@@ -25,8 +19,6 @@ NAME                           \"(?:[^"\\]|\\.)*\"
 DFC                           (([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+
 HFC                           ({HEX}?\.{HEX})|({HEX})[pP][+-]?[0-9+]
 FLOAT                         {DFC}|{HFC}
-/* STRING_LITERAL             \"([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\" */
-/* CHAR_LITERAL               L?\'([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\' */
 
 %s FILENAME
 %s ENDL
@@ -34,10 +26,9 @@ FLOAT                         {DFC}|{HFC}
 %x FLOAT_SUFFIX
 %x STRING
 %x CHAR
+
 /* Rule Section  */
-/*
-NEED TO DO CHARLIT AND STRINGS
-*/
+
 %%
 %{
 char buf[65535];

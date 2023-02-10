@@ -22,7 +22,7 @@ HEX                           0[xX][0-9a-fA-F]+
 OCTAL                         0[0-7]*
 LETTER                        [a-zA-Z]
 NAME                           \"(?:[^"\\]|\\.)*\" 
-DFC                           ({DECIMAL}*\.[0-9]+)|({DECIMAL}+\.[0-9]*)|({DECIMAL})[eE][+-]?[0-9+]
+DFC                           (([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*))([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+
 HFC                           ({HEX}?\.{HEX})|({HEX})[pP][+-]?[0-9+]
 FLOAT                         {DFC}|{HFC}
 /* STRING_LITERAL             \"([^\'\\\n]|\\[\\\'\"\?abfnrtv]|\\[0-7]{1,3}|\\[xX][0-9a-fA-F]+)\" */
@@ -168,6 +168,7 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
       \\r {*buf_ptr++ = '\r';}
       \\t {*buf_ptr++ = '\t';}
       \\v {*buf_ptr++ = '\v';}
+      \\' {*buf_ptr++ = '\'';}
       \\[0-7]{1,3} {
             long int temp = strtol(yytext + 1, NULL, 8);
             if (temp > 0xff) {
@@ -199,7 +200,6 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
             yylval.char_literal = buf[0]; 
             return CHARLIT; 
          }
-      \\\' {*buf_ptr++ = '\'';} 
 }
 <STRING>\' {*buf_ptr++ = '\'';} 
 \[ {return '[';}
@@ -256,44 +256,44 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
 &= {return ANDEQ;}
 \|= {return OREQ;}
 \^= {return XOREQ;}
-"auto" {return AUTO;}
-"break" {return BREAK;}
-"case" {return CASE;}
-"char" {return CHAR;}
-"const" {return CONST;}
-"continue" {return CONTINUE;}
-"default" {return DEFAULT;}
-"do" {return DO;}
-"double" {return DOUBLE;}
-"else" {return ELSE;}
-"enum" {return ENUM;}
-"extern" {return EXTERN;}
-"float" {return FLOAT;}
-"for" {return FOR;}
-"goto" {return GOTO;}
-"if" {return IF;}
-"inline" {return INLINE;}
-"int" {return INT;}
-"long" {return LONG;}
-"register" {return REGISTER;}
-"restrict" {return RESTRICT;}
-"return" {return RETURN;}
-"short" {return SHORT;}
-"signed" {return SIGNED;}
-"sizeof" {return SIZEOF;}
-"static" {return STATIC;}
-"struct" {return STRUCT;}
-"switch" {return SWITCH;}
-"typedef" {return TYPEDEF;}
-"union" {return UNION;}
-"unsigned" {return UNSIGNED;}
-"void" {return VOID;}
-"volatile" {return VOLATILE;}
-"while" {return WHILE;}
-"_bool" {return _BOOL;}
-"_complex" {return _COMPLEX;}
-"_imaginary" {return _IMAGINARY;}
-({LETTER}|_)([0-9)*]|{LETTER}|_)* {yylval.stringInfo.string_literal = strdup(yytext); return IDENT;}
+auto {return AUTO;}
+break {return BREAK;}
+case {return CASE;}
+char {return CHAR;}
+const {return CONST;}
+continue {return CONTINUE;}
+default {return DEFAULT;}
+do {return DO;}
+double {return DOUBLE;}
+else {return ELSE;}
+enum {return ENUM;}
+extern {return EXTERN;}
+float {return FLOAT;}
+for {return FOR;}
+goto {return GOTO;}
+if {return IF;}
+inline {return INLINE;}
+int {return INT;}
+long {return LONG;}
+register {return REGISTER;}
+restrict {return RESTRICT;}
+return {return RETURN;}
+short {return SHORT;}
+signed {return SIGNED;}
+sizeof {return SIZEOF;}
+static {return STATIC;}
+struct {return STRUCT;}
+switch {return SWITCH;}
+typedef {return TYPEDEF;}
+union {return UNION;}
+unsigned {return UNSIGNED;}
+void {return VOID;}
+volatile {return VOLATILE;}
+while {return WHILE;}
+_Bool {return _BOOL;}
+_Complex {return _COMPLEX;}
+_Imaginary {return _IMAGINARY;}
+({LETTER}|_)([0-9]*|{LETTER}|_)* {yylval.stringInfo.string_literal = strdup(yytext); return IDENT;}
 %%
   
 /* Code Section */
@@ -368,29 +368,33 @@ int main(){
             if (t == 0) {
                   continue;
             }
-            //printf("%d\t\t\t", t);
+            //printf("%d\t\t\t\t\t", t);
             if (report.fileName) {
-                  printf("%s\t\t\t", report.fileName);
+                  printf("%s", report.fileName);
             } else {
-                  printf("<STDIN>\t\t\t");
+                  printf("<STDIN>");
             };
-            printf("%d\t\t\t", report.lineNum);
+            printf("\t\t%d\t", report.lineNum);
 
             switch(t) {
                   case(IDENT):
-                        printf("IDENT\t\t\t%s\n", yylval.stringInfo.string_literal);
+                        printf("IDENT\t%s\n", yylval.stringInfo.string_literal);
                         free(yylval.stringInfo.string_literal);
                         break;
                   case(NUMBER):
-                        printf("NUMBER\t\t\t");
+                        printf("NUMBER\t");
                         if (yylval.numInfo.meta < DOUBLE_NUM) {
-                              printf("INTEGER\t\t\t%lld\t\t\t", yylval.numInfo.value.int_val);
+                              printf("INTEGER\t%lld\t\t\t\t\t", yylval.numInfo.value.int_val);
                               if (yylval.numInfo.meta%2 == 0) {
                                     printf("UNSIGNED,");
                               }
                         } else {
-                              printf("REAL\t\t\t%.1Le\t\t\t", yylval.numInfo.value.float_val);
-                        } // do other parts too!!
+                              if (yylval.numInfo.value.float_val >= 10) {
+                                    printf("REAL\t%.2Le\t\t\t", yylval.numInfo.value.float_val);
+                              } else {
+                                    printf("REAL\t%.2Lf\t\t\t\t", yylval.numInfo.value.float_val);
+                              }
+                        } 
                         switch(yylval.numInfo.meta) {
                               case(0):
                               case(1):
@@ -417,11 +421,11 @@ int main(){
                         printf("\n");
                         break;
                   case(CHARLIT):
-                        printf("CHARLIT\t\t\t");
+                        printf("CHARLIT\t\t\t\t");
                         printHandler(&(yylval.char_literal), 1);
                         break;
                   case(STRING):
-                        printf("STRING\t\t\t");
+                        printf("STRING\t\t\t\t");
                         printHandler(yylval.stringInfo.string_literal, yylval.stringInfo.length);
                         free(yylval.stringInfo.string_literal); 
                         break;

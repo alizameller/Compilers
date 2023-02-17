@@ -3,7 +3,7 @@
 |                                                                                                                  |
 \-----------------------------------------------------------------------------------------------------------------*/
 
-/* Proglogue */
+/* Prologue */
 %{
 #include "ast.c"
 int yyerror(char *s);
@@ -11,7 +11,6 @@ int yylex(void);
 %}
 
 /* Bison declarations */
-%start	input 
 
 /* YYSTYPE union */
 %union {
@@ -22,15 +21,16 @@ int yylex(void);
     struct astnode *astnode_p;
 }
 
+
 /* Tokens */
 %token<ident> IDENT 
 %token<string> CHARLIT 
 %token<string> STRING 
 %token<number> NUMBER 
+/*
 %token<operator> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ
                  LOGAND LOGOR TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ
                 ANDEQ OREQ XOREQ SIZEOF
-/*
 %token<operator> ELLIPSIS AUTO BREAK CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE 
                  ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE INT LONG REGISTER 
                  RESTRICT RETURN SHORT SIGNED STATIC STRUCT SWITCH TYPEDEF UNION 
@@ -38,130 +38,132 @@ int yylex(void);
 */
 
 /* Bison Expressions */
-%type<astnode_p>	primary-expression 
-                  postfix-expression 
-                  argument-expression-list
-                  unary-expression
-                  unary-operator
-                  cast-expression
-                  multiplicative-expression
-                  additive-expression
-                  shift-expression
-                  relational-expression
-                  equality-expression
-                  AND-expression
-                  exclusive-OR-expression
-                  inclusive-OR-expression
-                  logical-AND-expression
-                  logical-OR-expression
-                  conditional-expression
-                  assignment-expression
-                  assignment-operator
+%type<astnode_p>	primary_expression 
+/*
+                  postfix_expression 
+                  argument_expression_list
+                  unary_expression
+                  unary_operator
+                  cast_expression
+                  multiplicative_expression
+                  additive_expression
+                  shift_expression
+                  relational_expression
+                  equality_expression
+                  AND_expression
+                  exclusive_OR_expression
+                  inclusive_OR_expression
+                  logical_AND_expression
+                  logical_OR_expression
+                  conditional_expression
+                  assignment_expression
+                  assignment_operator
                   expression 
-                  constant-expression
+                  constant_expression
+                  */
 
 /* Grammar rules */
 %%
 
-primary-expression: IDENT {$$ = new_astnode_ident($1);}
+primary_expression: IDENT {$$ = new_astnode_ident($1);}
     | NUMBER {$$ = new_astnode_num($1);}
     | CHARLIT {$$ = new_astnode_char($1);}
     | STRING {$$ = new_astnode_string($1);}
-    | '('expression')'
+    //| '('expression')'
+    ;
+/*
+postfix_expression: primary_expression
+    | postfix_expression '[' expression']' 
+    | postfix_expression '(' argument_expression_list ')' //look at opt 
+    | postfix_expression '.' IDENT
+    | postfix_expression INDSEL IDENT
+    | postfix_expression PLUSPLUS
+    | postfix_expression MINUSMINUS
+    //| '(' type_name ')' '{' initializer_list '}'
+    //| '(' type_name ')' '{' initializer_list ',' '}'
     ;
 
-postfix-expression: primary-expression
-    | postfix-expression '[' expression']' 
-    | postfix-expression '(' argument-expression-list ')' //look at opt 
-    | postfix-expression '.' IDENT
-    | postfix-expression INDSEL IDENT
-    | postfix-expression PLUSPLUS
-    | postfix-expression MINUSMINUS
-    //| '(' type-name ')' '{' initializer-list '}'
-    //| '(' type-name ')' '{' initializer-list ',' '}'
+argument_expression_list: assignment_expression
+    | argument_expression_list ',' assignment_expression
     ;
 
-argument-expression-list: assignment-expression
-    | argument-expression-list ',' assignment-expression
-    ;
-
-unary-expression: postfix-expression
-  | PLUSPLUS unary-expression
-  | MINUSMINUS unary-expression 
-  | unary-operator cast-expression 
-  | SIZEOF unary-expression 
-//  | SIZEOF '(' type-name ')'
+unary_expression: postfix_expression
+  | PLUSPLUS unary_expression
+  | MINUSMINUS unary_expression 
+  | unary_operator cast_expression 
+  | SIZEOF unary_expression 
+//  | SIZEOF '(' type_name ')'
   ;
 
-constant-expression: conditional-expression; 
+constant_expression: conditional_expression; 
 
-expression: assignment-expression
-  | expression ',' assignment-expression
+expression: assignment_expression
+  | expression ',' assignment_expression
   ;
 
-assignment-operator: '=' | TIMESEQ | DIVEQ | MODEQ | PLUSEQ | MINUSEQ 
+assignment_operator: '=' | TIMESEQ | DIVEQ | MODEQ | PLUSEQ | MINUSEQ 
   | SHLEQ | SHREQ | ANDEQ | XOREQ | OREQ
 
-assignment-expression: conditional-expression
-  | unary-expression assignment-operator assignment-expression
+assignment_expression: conditional_expression
+  | unary_expression assignment_operator assignment_expression
   ;
 
-conditional-expression: logical-OR-expression
-  | logical-OR-expression '?' expression ':' conditional-expression
+conditional_expression: logical_OR_expression
+  | logical_OR_expression '?' expression ':' conditional_expression
   ;
 
-logical-OR-expression: logical-AND-expression
-  | logical-OR-expression LOGOR logical-AND-expression
+logical_OR_expression: logical_AND_expression
+  | logical_OR_expression LOGOR logical_AND_expression
   ;
 
-logical-AND-expression: inclusive-OR-expression
-  | logical-AND-expression LOGAND inclusive-OR-expression
+logical_AND_expression: inclusive_OR_expression
+  | logical_AND_expression LOGAND inclusive_OR_expression
   ;
 
-inclusive-OR-expression: exclusive-OR-expression
-  | inclusive-OR-expression '|' exclusive-OR-expression
+inclusive_OR_expression: exclusive_OR_expression
+  | inclusive_OR_expression '|' exclusive_OR_expression
   ;
 
-exclusive-OR-expression: AND-expression
-  | exclusive-OR-expression '^' AND-expression
+exclusive_OR_expression: AND_expression
+  | exclusive_OR_expression '^' AND_expression
   ;
 
-AND-expression: equality-expression
-  | AND-expression '&' equality-expression
+AND_expression: equality_expression
+  | AND_expression '&' equality_expression
   ;
 
-equality-expression: relational-expression
-  | equality-expression EQEQ relational-expression
-  | equality-expression NOTEQ relational-expression
+equality_expression: relational_expression
+  | equality_expression EQEQ relational_expression
+  | equality_expression NOTEQ relational_expression
   ;
 
-relational-expression: shift-expression
-  | relational-expression '<' shift-expression
-  | relational-expression '>' shift-expression
-  | relational-expression LTEQ shift-expression
-  | relational-expression GTEQ shift-expression
+relational_expression: shift_expression
+  | relational_expression '<' shift_expression
+  | relational_expression '>' shift_expression
+  | relational_expression LTEQ shift_expression
+  | relational_expression GTEQ shift_expression
   ;
 
-shift-expression: additive-expression
-  | shift-expression SHL additive-expression 
-  | shift-expression SHR additive-expression
+shift_expression: additive_expression
+  | shift_expression SHL additive_expression 
+  | shift_expression SHR additive_expression
 
-additive-expression: multiplicative-expression
-  | additive-expression '+' multiplicative-expression
-  | additive-expression '-' multiplicative-expression
+additive_expression: multiplicative_expression
+  | additive_expression '+' multiplicative_expression
+  | additive_expression '_' multiplicative_expression
 
 
-multiplicative-expression: cast-expression
-  | multiplicative-expression '*' cast-expression
-  | multiplicative-expression '/' cast-expression
-  | multiplicative-expression '%' cast-expression
+multiplicative_expression: cast_expression
+  | multiplicative_expression '*' cast_expression
+  | multiplicative_expression '/' cast_expression
+  | multiplicative_expression '%' cast_expression
   ;
 
-cast-expression: unary-expression
-//  | '(' type-name ')' cast-expression
+cast_expression: unary_expression
+//  | '(' type_name ')' cast_expression
   ;
 
-unary-operator: '&'
+unary_operator: '&'
   | '*'
   | '+'
   | '-'
@@ -169,23 +171,28 @@ unary-operator: '&'
   | '!'
   ;
 
-//initializer-list:
-//type-name: *** WHAT DO I DO ABOUT THIS ONE ***
-
+//initializer_list:
+//type_name: *** WHAT DO I DO ABOUT THIS ONE ***
+*/
 %%
 
-int yyerror(string s)
-{
+void main( int argc, char *argv[] ) { 
+    extern FILE *yyin;
+    ++argv; 
+    −−argc;
+    yyin = fopen( argv[0], ”r” ); 
+    yydebug = 1;
+    errors = 0;
+    yyparse();
+    printf()
+}
+
+int yyerror(char *s) {
   extern int yylineno;	// defined and maintained in lex.c
   extern char *yytext;	// defined and maintained in lex.c
   
   cerr << "ERROR: " << s << " at symbol \"" << yytext;
   cerr << "\" on line " << yylineno << endl;
   exit(1);
-}
-
-int yyerror(char *s)
-{
-  return yyerror(string(s));
 }
 

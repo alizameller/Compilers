@@ -1,16 +1,18 @@
 #include "ast-manual.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 
 void insert_node() {
 
 }
 
-union astnode* new_astnode_char(nodetype type, char* charlit){
+union astnode* new_astnode_char(nodetype type, char charlit){
 	// allocate memory
-	union astnode *node_ptr = malloc (sizeof (union astnode));
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
-    node_ptr->char_lit.type = type; 
+    node_ptr->char_lit.type = type;
     node_ptr->char_lit.charlit = charlit;
 
     return node_ptr;
@@ -18,7 +20,7 @@ union astnode* new_astnode_char(nodetype type, char* charlit){
 
 union astnode* new_astnode_string(nodetype type, char* string){
 	// allocate memory
-	union astnode *node_ptr = malloc (sizeof (union astnode));
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
     node_ptr->str.type = type; 
@@ -29,7 +31,7 @@ union astnode* new_astnode_string(nodetype type, char* string){
 
 union astnode* new_astnode_ident(nodetype type, char* ident){
 	// allocate memory
-	union astnode *node_ptr = malloc (sizeof (union astnode));
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
     node_ptr->id.type = type; 
@@ -40,7 +42,7 @@ union astnode* new_astnode_ident(nodetype type, char* ident){
 
 union astnode* new_astnode_num(nodetype type, int number){
 	// allocate memory
-	union astnode *node_ptr = malloc (sizeof (union astnode));
+	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 
 	// set entries
     node_ptr->num.type = type; 
@@ -51,7 +53,7 @@ union astnode* new_astnode_num(nodetype type, int number){
 
 union astnode* new_astnode_binop(nodetype type, int operator, union astnode *left, union astnode *right){
 	// allocate memory
-	union astnode *node_ptr = malloc (sizeof (union astnode));
+	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 
 	// set entries
     node_ptr->binop.type = type; 

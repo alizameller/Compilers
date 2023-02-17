@@ -8,7 +8,7 @@ typedef enum nodetype {
     IDENT_NODE, 
     STRING_NODE,
     CHARLIT_NODE,
-}nodetype;
+} nodetype;
 
 struct astnode_binop {
     enum nodetype type;
@@ -42,7 +42,7 @@ struct astnode_string {
 // Char
 struct astnode_char {
     enum nodetype type;
-    char *charlit;
+    char charlit;
 };
 
 union astnode {
@@ -53,6 +53,6 @@ union astnode {
     struct astnode_string str;
     struct astnode_char char_lit; 
     /* etc.*/
-};
+} 
 
-#endif AST_H
+#endif //AST_H

@@ -4,38 +4,33 @@
 \-----------------------------------------------------------------------------------------------------------------*/
 
 /* Prologue */
-%{
-#include "ast.c"
-int yyerror(char *s);
-int yylex(void);
-%}
 
-/* Bison declarations */
-
-/* YYSTYPE union */
-%union {
-    struct numtype number;
-    char *string;
-    char *ident;
-    int operator;
-    struct astnode *astnode_p;
+%code requires {
+  #include "ast-manual.h"
+  int yylex(void);
+  int yyerror(char *s);
 }
 
+/* YYSTYPE union */
+%union { 
+	struct numinfo numInfo;
+  struct stringinfo stringInfo; 
+	char char_literal; 
+  union astnode *astnode_p; 
+}
 
 /* Tokens */
-%token<ident> IDENT 
-%token<string> CHARLIT 
-%token<string> STRING 
-%token<number> NUMBER 
-/*
-%token<operator> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ
-                 LOGAND LOGOR TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ
-                ANDEQ OREQ XOREQ SIZEOF
-%token<operator> ELLIPSIS AUTO BREAK CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE 
-                 ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE INT LONG REGISTER 
-                 RESTRICT RETURN SHORT SIGNED STATIC STRUCT SWITCH TYPEDEF UNION 
-                 UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
-*/
+%token<stringInfo> IDENT 
+%token<char_literal> CHARLIT 
+%token<stringInfo> STRING 
+%token<numInfo> NUMBER 
+%token INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ
+       LOGAND LOGOR TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ
+       ANDEQ OREQ XOREQ SIZEOF ELLIPSIS AUTO BREAK CASE CHAR CONST 
+       CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR GOTO 
+       IF INLINE INT LONG REGISTER RESTRICT RETURN SHORT SIGNED 
+       STATIC STRUCT SWITCH TYPEDEF UNION UNSIGNED VOID VOLATILE 
+       WHILE _BOOL _COMPLEX _IMAGINARY TOKEOF
 
 /* Bison Expressions */
 %type<astnode_p>	primary_expression 
@@ -65,10 +60,12 @@ int yylex(void);
 /* Grammar rules */
 %%
 
-primary_expression: IDENT {$$ = new_astnode_ident($1);}
-    | NUMBER {$$ = new_astnode_num($1);}
-    | CHARLIT {$$ = new_astnode_char($1);}
-    | STRING {$$ = new_astnode_string($1);}
+primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal);}
+    | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1.value.int_val);
+              printf("Number is %d\n", $<astnode_p>$->num.number); 
+              }
+    | CHARLIT {$$ = new_astnode_char(CHARLIT_NODE, $1);}
+    | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);}
     //| '('expression')'
     ;
 /*
@@ -175,24 +172,14 @@ unary_operator: '&'
 //type_name: *** WHAT DO I DO ABOUT THIS ONE ***
 */
 %%
-
-void main( int argc, char *argv[] ) { 
-    extern FILE *yyin;
-    ++argv; 
-    −−argc;
-    yyin = fopen( argv[0], ”r” ); 
-    yydebug = 1;
-    errors = 0;
-    yyparse();
-    printf()
+int main() {
+  yyparse();
+  return 0;
 }
 
-int yyerror(char *s) {
-  extern int yylineno;	// defined and maintained in lex.c
-  extern char *yytext;	// defined and maintained in lex.c
-  
-  cerr << "ERROR: " << s << " at symbol \"" << yytext;
-  cerr << "\" on line " << yylineno << endl;
-  exit(1);
+yyerror (s)  /* Called by yyparse on error */
+     char *s;
+{
+  printf ("%s\n", s);
 }
 

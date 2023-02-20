@@ -1,11 +1,4 @@
 #include "ast-manual.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-
-void insert_node() {
-
-}
 
 union astnode* new_astnode_char(nodetype type, char charlit){
 	// allocate memory
@@ -40,7 +33,7 @@ union astnode* new_astnode_ident(nodetype type, char* ident){
     return node_ptr;
 }
 
-union astnode* new_astnode_num(nodetype type, int number){
+union astnode* new_astnode_num(nodetype type, long long int number){
 	// allocate memory
 	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 

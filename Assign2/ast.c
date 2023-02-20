@@ -5,19 +5,19 @@ union astnode* new_astnode_char(nodetype type, char charlit){
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
-    node_ptr->char_lit.type = type;
-    node_ptr->char_lit.charlit = charlit;
+    node_ptr->charlit.type = type;
+    node_ptr->charlit.char_literal = charlit;
 
     return node_ptr;
 }
 
-union astnode* new_astnode_string(nodetype type, char* string){
+union astnode* new_astnode_string(nodetype type, char *string){
 	// allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
     node_ptr->str.type = type; 
-    node_ptr->str.string = string;
+    node_ptr->str.string_literal = string;
 
     return node_ptr;
 }

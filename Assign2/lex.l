@@ -3,6 +3,7 @@
 |                                                                                                                  |
 \-----------------------------------------------------------------------------------------------------------------*/
 /* Definition Section */
+%option noyywrap
 
 %{
 #include "parse.tab.h"
@@ -23,7 +24,7 @@ FLOAT                         {DFC}|{HFC}
 %s ENDL
 %x INTEGER_SUFFIX
 %x FLOAT_SUFFIX
-%x STRING
+%x STR
 %x CHAR
 
 /* Rule Section  */
@@ -128,8 +129,8 @@ char *buf_ptr;
         }
 }
 L?\' {buf_ptr = buf; BEGIN(CHAR);}
-L?\" {buf_ptr = buf; BEGIN(STRING);}
-<CHAR,STRING>{
+L?\" {buf_ptr = buf; BEGIN(STR);}
+<CHAR,STR>{
        \" {   
             BEGIN(INITIAL);
             *buf_ptr = '\0'; 
@@ -140,6 +141,7 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
 		}
             
 		memcpy(yylval.stringInfo.string_literal, buf, (yylval.stringInfo.length + 1)*sizeof(char));
+
             return STRING; 
          }
       [^\"\'\\\n]+ {
@@ -191,7 +193,7 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
             return CHARLIT; 
          }
 }
-<STRING>\' {*buf_ptr++ = '\'';} 
+<STR>\' {*buf_ptr++ = '\'';} 
 \[ {return '[';}
 \] {return ']';}
 \( {return '(';}
@@ -285,6 +287,3 @@ _Complex {return _COMPLEX;}
 _Imaginary {return _IMAGINARY;}
 ({LETTER}|_)([0-9]*|{LETTER}|_)* {yylval.stringInfo.string_literal = strdup(yytext); return IDENT;}
 %%
-
-int yywrap(){}
-/* Code Section */

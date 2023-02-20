@@ -76,7 +76,7 @@ union astnode* new_astnode_ident(nodetype type, char* ident);
 // String
 struct astnode_string {
     enum nodetype type;
-    char *string;
+    char *string_literal;
 };
 
 union astnode* new_astnode_string(nodetype type, char* string);
@@ -84,7 +84,7 @@ union astnode* new_astnode_string(nodetype type, char* string);
 // Char
 struct astnode_char {
     enum nodetype type;
-    char charlit;
+    char char_literal;;
 };
 
 union astnode* new_astnode_char(nodetype type, char charlit); 
@@ -95,7 +95,7 @@ typedef union astnode {
     struct astnode_num num;
     struct astnode_ident id;
     struct astnode_string str;
-    struct astnode_char char_lit; 
+    struct astnode_char charlit; 
     /* etc.*/
 } astnode; 
 

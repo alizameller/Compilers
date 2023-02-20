@@ -8,8 +8,9 @@
 %code requires {
   #include "ast-manual.h"
   int yylex(void);
-  int yyerror(char *s);
+  void yyerror(char *s);
 }
+%define parse.error verbose
 
 /* YYSTYPE union */
 %union { 
@@ -18,6 +19,8 @@
 	char char_literal; 
   union astnode *astnode_p; 
 }
+
+%start primary_expression
 
 /* Tokens */
 %token<stringInfo> IDENT 
@@ -60,13 +63,21 @@
 /* Grammar rules */
 %%
 
-primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal);}
+primary_expression: 
+      IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal);
+              printf("Ident is %s\n", $<astnode_p>$->str.string_literal); 
+              }
     | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1.value.int_val);
               printf("Number is %d\n", $<astnode_p>$->num.number); 
               }
-    | CHARLIT {$$ = new_astnode_char(CHARLIT_NODE, $1);}
-    | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);}
-    //| '('expression')'
+    | CHARLIT {$$ = new_astnode_char(CHARLIT_NODE, $1);
+              printf("Char is %c\n", $<astnode_p>$->charlit.char_literal); 
+              }
+    | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);
+              printf("String is %s\n", $<astnode_p>$->str.string_literal); 
+              }
+    | '('primary_expression')' {$$ = $2;}
+    | primary_expression 
     ;
 /*
 postfix_expression: primary_expression
@@ -173,13 +184,16 @@ unary_operator: '&'
 */
 %%
 int main() {
-  yyparse();
+  yydebug = 1;
+  while(1) {
+    yyparse();
+  }; 
   return 0;
 }
 
-yyerror (s)  /* Called by yyparse on error */
-     char *s;
-{
+void yyerror (s) 
+char *s;
+{  /* Called by yyparse on error */
   printf ("%s\n", s);
 }
 

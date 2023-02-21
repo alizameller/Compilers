@@ -45,18 +45,26 @@ struct stringinfo {
 };
 struct stringinfo stringInfo; 
 
+// Generic
+struct astnode_generic {
+    enum nodetype type;
+};
+
+struct astnode_unop {
+    enum nodetype type;
+    int operator;
+    union astnode *operand;
+};
+
+union astnode* new_astnode_unop(int operator, union astnode *operand);
+
 struct astnode_binop {
     enum nodetype type;
     int operator;
     union astnode *left,*right;
 };
 
-union astnode* new_astnode_binop(nodetype type, int operator, union astnode *left, union astnode *right);
-
-// Generic
-struct astnode_generic {
-    enum nodetype type;
-};
+union astnode* new_astnode_binop(int operator, union astnode *left, union astnode *right);
 
 // Number
 struct astnode_num {
@@ -91,6 +99,7 @@ union astnode* new_astnode_char(nodetype type, char charlit);
 
 typedef union astnode {
     struct astnode_generic generic;
+    struct astnode_unop unop;
     struct astnode_binop binop;
     struct astnode_num num;
     struct astnode_ident id;

@@ -44,12 +44,24 @@ union astnode* new_astnode_num(nodetype type, long long int number){
     return node_ptr;
 }
 
-union astnode* new_astnode_binop(nodetype type, int operator, union astnode *left, union astnode *right){
+union astnode* new_astnode_unop(int operator, astnode* operand){
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
+
+	// set entries
+    node_ptr->unop.type = UNOP_NODE; 
+    node_ptr->unop.operator = operator; 
+	node_ptr->unop.operand = operand;
+
+    return node_ptr;
+}
+
+union astnode* new_astnode_binop(int operator, union astnode *left, union astnode *right){
 	// allocate memory
 	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 
 	// set entries
-    node_ptr->binop.type = type; 
+    node_ptr->binop.type = BINOP_NODE; 
     node_ptr->binop.operator = operator; 
 	node_ptr->binop.left = left;
 	node_ptr->binop.right = right;

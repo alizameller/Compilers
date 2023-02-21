@@ -18,6 +18,7 @@
   struct stringinfo stringInfo; 
 	char char_literal; 
   union astnode *astnode_p; 
+  int operator; 
 }
 
 %start primary_expression
@@ -27,7 +28,7 @@
 %token<char_literal> CHARLIT 
 %token<stringInfo> STRING 
 %token<numInfo> NUMBER 
-%token INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ
+%token<operator> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ
        LOGAND LOGOR TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ
        ANDEQ OREQ XOREQ SIZEOF ELLIPSIS AUTO BREAK CASE CHAR CONST 
        CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR GOTO 
@@ -37,28 +38,26 @@
 
 /* Bison Expressions */
 %type<astnode_p>	primary_expression 
-/*
                   postfix_expression 
-                  argument_expression_list
+                  //argument_expression_list
                   unary_expression
-                  unary_operator
-                  cast_expression
-                  multiplicative_expression
-                  additive_expression
-                  shift_expression
-                  relational_expression
-                  equality_expression
-                  AND_expression
-                  exclusive_OR_expression
-                  inclusive_OR_expression
-                  logical_AND_expression
-                  logical_OR_expression
-                  conditional_expression
+%type<operator>   unary_operator
+%type<astnode_p>  //cast_expression
+                  //multiplicative_expression
+                  //additive_expression
+                  //shift_expression
+                  //relational_expression
+                  //equality_expression
+                  //AND_expression
+                  //exclusive_OR_expression
+                  //inclusive_OR_expression
+                  //logical_AND_expression
+                  //logical_OR_expression
+                  //conditional_expression
                   assignment_expression
-                  assignment_operator
-                  expression 
-                  constant_expression
-                  */
+%type<operator>   assignment_operator
+%type<astnode_p>  expression 
+                  //constant_expression
 
 /* Grammar rules */
 %%
@@ -76,17 +75,26 @@ primary_expression:
     | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);
               printf("String is %s\n", $<astnode_p>$->str.string_literal); 
               }
-    | '('primary_expression')' {$$ = $2;}
-    | primary_expression 
+    | '('expression')' {$$ = $2;} 
     ;
-/*
-postfix_expression: primary_expression
-    | postfix_expression '[' expression']' 
+
+postfix_expression: primary_expression {$$ = $1}
+    | postfix_expression '[' expression']' { // E1[E2] is identical to (*((E1)+(E2))) 
+                                            astnode *astnode_temp = new_astnode_binop('+', $1, $3);
+                                            $$ = new_astnode_unop('*', astnode_temp);                           
+    }
     | postfix_expression '(' argument_expression_list ')' //look at opt 
-    | postfix_expression '.' IDENT
-    | postfix_expression INDSEL IDENT
-    | postfix_expression PLUSPLUS
-    | postfix_expression MINUSMINUS
+    | postfix_expression '.' IDENT {astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $1.string_literal);
+                                    $$ = new_astnode_binop('.', $1, astnode_ident); 
+                                    // free?
+    }
+    | postfix_expression INDSEL IDENT { // E1->E2 is identical to (*E1).E2
+                                      astnode *astnode_temp = new_astnode_unop('*', $1);
+                                      astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $1.string_literal);
+                                      $$ = new_astnode_binop('.', astnode_temp, astnode_ident);
+    }
+    | postfix_expression PLUSPLUS {$$ = new_astnode_unop('++', $1);}
+    | postfix_expression MINUSMINUS {$$ = new_astnode_unop('--', $1);}
     //| '(' type_name ')' '{' initializer_list '}'
     //| '(' type_name ')' '{' initializer_list ',' '}'
     ;
@@ -95,27 +103,57 @@ argument_expression_list: assignment_expression
     | argument_expression_list ',' assignment_expression
     ;
 
+unary_expression: postfix_expression {$$ = $1}
+  | PLUSPLUS unary_expression {$$ = new_astnode_unop('++', $2);}
+  | MINUSMINUS unary_expression {$$ = new_astnode_unop('--', $2);}
+  | unary_operator unary_expression {$$ = new_astnode_unop($1, $2);}
+  | SIZEOF unary_expression {$$ = new_astnode_unop(SIZEOF, $2);} // what do I do about this one
+//  | SIZEOF '(' type_name ')'
+  ;
+/*  
 unary_expression: postfix_expression
   | PLUSPLUS unary_expression
   | MINUSMINUS unary_expression 
   | unary_operator cast_expression 
   | SIZEOF unary_expression 
 //  | SIZEOF '(' type_name ')'
+  ; */
+
+  unary_operator:  '&' {$$ = '&';}
+    | '*' {$$ = '*';}
+    | '+' {$$ = '+';}
+    | '-' {$$ = '-';}
+    | '~' {$$ = '~';}
+    | '!' {$$ = '!';}
   ;
 
-constant_expression: conditional_expression; 
+//constant_expression: conditional_expression; 
 
 expression: assignment_expression
   | expression ',' assignment_expression
   ;
 
-assignment_operator: '=' | TIMESEQ | DIVEQ | MODEQ | PLUSEQ | MINUSEQ 
-  | SHLEQ | SHREQ | ANDEQ | XOREQ | OREQ
-
+assignment_expression: 
+  unary_expression assignment_operator assignment_expression
+  ;
+/*
 assignment_expression: conditional_expression
   | unary_expression assignment_operator assignment_expression
-  ;
+  ; */
 
+assignment_operator: '=' {$$ = '=';}
+  | TIMESEQ {$$ = '*=';}
+  | DIVEQ {$$ = '/=';} 
+  | MODEQ {$$ = '%=';} 
+  | PLUSEQ {$$ = '+=';}
+  | MINUSEQ {$$ = '-=';}
+  | SHLEQ {$$ = '<<=';}
+  | SHREQ {$$ = '>>=';}
+  | ANDEQ {$$ = '&=';}
+  | XOREQ {$$ = '^=';}
+  | OREQ {$$ = '|=';}
+  ;
+/*
 conditional_expression: logical_OR_expression
   | logical_OR_expression '?' expression ':' conditional_expression
   ;
@@ -171,18 +209,11 @@ cast_expression: unary_expression
 //  | '(' type_name ')' cast_expression
   ;
 
-unary_operator: '&'
-  | '*'
-  | '+'
-  | '-'
-  | '~'
-  | '!'
-  ;
-
 //initializer_list:
 //type_name: *** WHAT DO I DO ABOUT THIS ONE ***
 */
 %%
+
 int main() {
   yydebug = 1;
   while(1) {

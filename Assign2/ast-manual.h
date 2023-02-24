@@ -5,13 +5,15 @@
 #include <stdlib.h>
 
 typedef enum nodetype {
-    BINOP_NODE,
     UNOP_NODE,
+    BINOP_NODE,
+    TERNOP_NODE,
     NUMBER_NODE,
     IDENT_NODE, 
     STRING_NODE,
     CHARLIT_NODE,
 } nodetype;
+
 
 struct info {
     char *fileName; 
@@ -21,7 +23,7 @@ struct info report;
 
 struct numinfo {
 	enum nums {
-		UNSIGNED_INT,
+		UNSIGNED_INT = 257,
 		SIGNED_INT,
 		UNSIGNED_LONG,
 		SIGNED_LONG,
@@ -66,6 +68,15 @@ struct astnode_binop {
 
 union astnode* new_astnode_binop(int operator, union astnode *left, union astnode *right);
 
+struct astnode_ternop {
+    enum nodetype type;
+    int operator1;
+    int operator2;
+    union astnode *left,*right, *middle;
+};
+
+union astnode* new_astnode_ternop(int operator1, int operator2, union astnode *left, union astnode *middle, union astnode *right);
+
 // Number
 struct astnode_num {
     enum nodetype type;
@@ -97,10 +108,13 @@ struct astnode_char {
 
 union astnode* new_astnode_char(nodetype type, char charlit); 
 
+void printAST(union astnode* node, int indent); 
+
 typedef union astnode {
     struct astnode_generic generic;
     struct astnode_unop unop;
     struct astnode_binop binop;
+    struct astnode_ternop ternop;
     struct astnode_num num;
     struct astnode_ident id;
     struct astnode_string str;

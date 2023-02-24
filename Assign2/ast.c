@@ -38,7 +38,7 @@ union astnode* new_astnode_num(nodetype type, long long int number){
 	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 
 	// set entries
-    node_ptr->num.type = type; 
+    node_ptr->generic.type = NUMBER_NODE; 
     node_ptr->num.number = number;
 
     return node_ptr;
@@ -49,7 +49,7 @@ union astnode* new_astnode_unop(int operator, astnode* operand){
 	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 
 	// set entries
-    node_ptr->unop.type = UNOP_NODE; 
+    node_ptr->generic.type = UNOP_NODE; 
     node_ptr->unop.operator = operator; 
 	node_ptr->unop.operand = operand;
 
@@ -61,7 +61,7 @@ union astnode* new_astnode_binop(int operator, union astnode *left, union astnod
 	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 
 	// set entries
-    node_ptr->binop.type = BINOP_NODE; 
+    node_ptr->generic.type = BINOP_NODE; 
     node_ptr->binop.operator = operator; 
 	node_ptr->binop.left = left;
 	node_ptr->binop.right = right;
@@ -69,3 +69,17 @@ union astnode* new_astnode_binop(int operator, union astnode *left, union astnod
     return node_ptr;
 }
 
+union astnode* new_astnode_ternop(int operator1, int operator2, union astnode *left, union astnode *middle, union astnode *right){
+// allocate memory
+	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
+
+	// set entries
+    node_ptr->generic.type = TERNOP_NODE; 
+    node_ptr->ternop.operator1 = operator1; 
+    node_ptr->ternop.operator2 = operator2; 
+	node_ptr->ternop.left = left;
+    node_ptr->ternop.middle = middle;
+	node_ptr->ternop.right = right;
+
+    return node_ptr;
+}

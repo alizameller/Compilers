@@ -112,7 +112,7 @@ postfix_expression: primary_expression {$$ = $1;}
                                             astnode *astnode_temp = new_astnode_binop('+', $1, $3);
                                             $$ = new_astnode_unop('*', astnode_temp);                           
     }
-    | postfix_expression '(' argument_expression_list ')' //look at opt 
+    //| postfix_expression '(' argument_expression_list ')' /* This causes S/R conflict */
     | postfix_expression '.' IDENT {astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $3.string_literal);
                                     $$ = new_astnode_binop('.', $1, astnode_ident); 
                                     // free?
@@ -122,7 +122,7 @@ postfix_expression: primary_expression {$$ = $1;}
                                       astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $3.string_literal);
                                       $$ = new_astnode_binop('.', astnode_temp, astnode_ident);
     }
-    | postfix_expression PLUSPLUS {$$ = new_astnode_unop(PLUSPLUS, $1);}
+    //| postfix_expression PLUSPLUS {$$ = new_astnode_unop(PLUSPLUS, $1);} /* This causes a S/R conflict! */
     | postfix_expression MINUSMINUS {$$ = new_astnode_unop(MINUSMINUS, $1);}
     | '(' type_name ')' '{' initializer_list '}'
     | '(' type_name ')' '{' initializer_list ',' '}'
@@ -149,21 +149,21 @@ unary_operator: '&' {$$ = '&';}
 
 unary_expression: postfix_expression {$$ = $1;}
   | PLUSPLUS unary_expression {$$ = new_astnode_unop(PLUSPLUS, $2);}
-  | MINUSMINUS unary_expression {$$ = new_astnode_unop(MINUSMINUS, $2);}
+  //| MINUSMINUS unary_expression {$$ = new_astnode_unop(MINUSMINUS, $2);} /* This causes S/R conflict */
   | unary_operator cast_expression {$$ = new_astnode_unop($1, $2);}
   //| SIZEOF unary_expression {$$ = new_astnode_unop(SIZEOF, $2);}
   //| SIZEOF '(' type_name ')' {$$ = new_astnode_unop(SIZEOF, $3);} 
   ;
 
 multiplicative_expression: cast_expression {$$ = $1;}
-  | multiplicative_expression '*' cast_expression {$$ = new_astnode_binop('*', $1, $3);}
+  //| multiplicative_expression '*' cast_expression {$$ = new_astnode_binop('*', $1, $3);} /* This causes S/R conflict */
   | multiplicative_expression '/' cast_expression {$$ = new_astnode_binop('/', $1, $3);}
   | multiplicative_expression '%' cast_expression {$$ = new_astnode_binop('%', $1, $3);}
   ;
 
 additive_expression: multiplicative_expression {$$ = $1;}
-  | additive_expression '+' multiplicative_expression {$$ = new_astnode_binop('+', $1, $3);}
-  | additive_expression '_' multiplicative_expression {$$ = new_astnode_binop('-', $1, $3);}
+  //| additive_expression '+' multiplicative_expression {$$ = new_astnode_binop('+', $1, $3);} /* This causes S/R conflict */
+  //| additive_expression '_' multiplicative_expression {$$ = new_astnode_binop('-', $1, $3);} /* This causes S/R conflict */
   ;
 
 shift_expression: additive_expression {$$ = $1;}
@@ -184,7 +184,7 @@ equality_expression: relational_expression {$$ = $1;}
   ;
 
 AND_expression: equality_expression {$$ = $1;}
-  | AND_expression '&' equality_expression {$$ = new_astnode_binop('&', $1, $3);}
+  //| AND_expression '&' equality_expression {$$ = new_astnode_binop('&', $1, $3);} /* This causes S/R conflict */
   ;
 
 exclusive_OR_expression: AND_expression {$$ = $1;}

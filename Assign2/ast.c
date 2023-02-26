@@ -33,13 +33,13 @@ union astnode* new_astnode_ident(nodetype type, char* ident){
     return node_ptr;
 }
 
-union astnode* new_astnode_num(nodetype type, long long int number){
+union astnode* new_astnode_num(nodetype type, struct numinfo numInfo){
 	// allocate memory
 	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 
 	// set entries
     node_ptr->generic.type = NUMBER_NODE; 
-    node_ptr->num.number = number;
+    node_ptr->num.numInfo = numInfo;
 
     return node_ptr;
 }

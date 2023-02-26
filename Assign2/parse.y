@@ -3,7 +3,8 @@
 |       - T̶E̶R̶N̶E̶R̶Y̶                                                                                                  |
 |       - O̶R̶D̶E̶R̶ O̶F̶ O̶P̶E̶R̶A̶T̶I̶O̶N̶S̶                                                                                      |
 |       - F̶I̶X̶ "̶s̶y̶n̶t̶a̶x̶ e̶r̶r̶o̶r̶"̶ b̶u̶g̶ o̶n̶ s̶e̶c̶o̶n̶d̶ i̶n̶p̶u̶t̶                                                                   |
-|       - functions                                                                                                |
+|       - functions                                                                                                | 
+|       - n̶u̶m̶b̶e̶r̶ t̶y̶p̶e̶s̶                                                                                             |
 \-----------------------------------------------------------------------------------------------------------------*/
 
 /* Prologue */
@@ -61,6 +62,7 @@ void yyerror(char *s);
 %type<astnode_p> expression 
                 constant_expression
 %type<operator>  type_name
+
 /* Grammar rules */
 %left <operator> ','
 %right '=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
@@ -74,8 +76,8 @@ void yyerror(char *s);
 %left SHL SHR
 %left <operator> '+' '-'
 %left <operator> '*' '/' '%'
-%right SIZEOF '!' '~' /* +a, -a, &a, a* */
-%left PLUSPLUS MINUSMINUS /* postfix */ INDSEL '(' ')' '[' ']' /* .a, ->a */
+%right SIZEOF '!' '~' 
+%left PLUSPLUS MINUSMINUS INDSEL '(' ')' '[' ']'
 %left IF
 %left ELSE
 
@@ -93,7 +95,7 @@ expression: assignment_expression {$$ = $1;}
 primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal);
               //printf("Ident is %s\n", $<astnode_p>$->str.string_literal); 
               }
-        | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1.value.int_val);
+        | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1);
                     //printf("Number is %d\n", $<astnode_p>$->num.number); 
                     }
         | CHARLIT {$$ = new_astnode_char(CHARLIT_NODE, $1);
@@ -306,6 +308,50 @@ void printBinop(int operator){
     } 
 }
 
+void printNum(struct numinfo numInfo){
+    switch(numInfo.meta) {
+            case(0):
+            case(1):
+                printf("int)");
+                printf("%lld\n", numInfo.value.int_val);
+                break;
+            case(2):
+            case(3):
+                printf("long)");
+                printf("%lld\n", numInfo.value.int_val);
+                break;
+            case(4):
+            case(5):
+                printf("long long)");
+                printf("%lld\n", numInfo.value.int_val);
+                break;
+            case(6):
+                printf("double)");
+                if (numInfo.value.float_val >= 10) {
+                    printf("%.2Le\n", numInfo.value.float_val);
+                } else {
+                    printf("%.2Lf\n", numInfo.value.float_val);
+                }
+                break;
+            case(7):
+                printf("float)");
+                if (numInfo.value.float_val >= 10) {
+                    printf("%.2Le\n", numInfo.value.float_val);
+                } else {
+                    printf("%.2Lf\n", numInfo.value.float_val);
+                }
+                break;
+            case(8):
+                printf("long double)");
+                if (numInfo.value.float_val >= 10) {
+                    printf("%.2Le\n", numInfo.value.float_val);
+                } else {
+                    printf("%.2Lf\n", numInfo.value.float_val);
+                }
+                break;
+    }
+}
+
 void printAST(union astnode* node, int indent) {
     for (int i = 0; i < indent; i++){
         printf("\t");
@@ -334,8 +380,8 @@ void printAST(union astnode* node, int indent) {
             printAST(node->ternop.right, indent+1);
             break;
         case NUMBER_NODE:
-            printf("CONSTANT %d\n", node->num.number);
-            // handle type
+            printf("CONSTANT: (type=");
+            printNum(node->num.numInfo);
             break;
         case IDENT_NODE:
             printf("IDENT %s\n", node->id.ident);

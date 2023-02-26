@@ -23,7 +23,7 @@ struct info report;
 
 struct numinfo {
 	enum nums {
-		UNSIGNED_INT = 257,
+		UNSIGNED_INT,
 		SIGNED_INT,
 		UNSIGNED_LONG,
 		SIGNED_LONG,
@@ -80,9 +80,9 @@ union astnode* new_astnode_ternop(int operator1, int operator2, union astnode *l
 // Number
 struct astnode_num {
     enum nodetype type;
-    int number;
+    struct numinfo numInfo;
 };
-union astnode* new_astnode_num(nodetype type, long long int number);
+union astnode* new_astnode_num(nodetype type, struct numinfo numInfo);
 
 // Ident
 struct astnode_ident {

@@ -113,7 +113,7 @@ union astnode* new_astnode_char(nodetype type, char charlit);
 // Argument Node
 struct astnode_argument {
     enum nodetype type;
-    char *argument;
+    union astnode *argument;
 };
 
 // List of Arguments

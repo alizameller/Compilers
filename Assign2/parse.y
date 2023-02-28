@@ -127,11 +127,14 @@ postfix_expression: primary_expression {$$ = $1;}
     | '(' type_name ')' '{' argument_expression_list ',' '}'
     ;
 
-function_call: postfix_expression '(' argument_expression_list ')'   //{$$ = MAKE FUNC CALL NODE $1, args: $3}
+function_call: postfix_expression '(' argument_expression_list ')'   {$$ = $3;} //{$$ = MAKE FUNC CALL NODE $1, args: $3}
     | postfix_expression '(' ')' //{$$ = MAKE FUNC CALL NODE $1, args: NULL}
     ;
 
-argument_expression_list: assignment_expression {$$ = init_list($1);}
+argument_expression_list: assignment_expression {
+                                                union astnode *head = new_astnode_arg($1);
+                                                $$ = init_list(head);
+                                                }
     | argument_expression_list ',' assignment_expression {$$ = append_arg($1, $3);}
     ;  
 
@@ -375,6 +378,8 @@ void printNum(struct numinfo numInfo){
 }
 
 void printAST(union astnode* node, int indent) {
+    int count = 1; 
+
     for (int i = 0; i < indent; i++){
         printf("\t");
     }
@@ -418,6 +423,14 @@ void printAST(union astnode* node, int indent) {
         case CHARLIT_NODE:
             printf("CHARLIT %c\n", node->charlit.char_literal);
             break;
+        case ARGLIST_NODE:
+            printf("arg #%d\n", count);
+            printAST((node->list.arg_head)->arg.argument, indent+1);
+            while(node->list.arg_next != NULL) {
+                printf("arg #%d\n", ++count);
+                printAST((node->list.arg_next)->arg.argument, indent+1);
+                node = node->list.arg_next;
+            }
     }
     free(node); 
 }

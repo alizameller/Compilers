@@ -116,18 +116,21 @@ union astnode *init_list(union astnode *arg_head) {
     return node_ptr;
 }
 
-union astnode *append_arg(union astnode *arg_head, union astnode *arg_entry) {
+union astnode * append_arg(union astnode *arg_head, union astnode *arg_entry) {
     // make arg_entry an astnode_arg
-    union astnode *arg_entry = new_astnode_arg(arg_entry); 
+    union astnode *entry = new_astnode_arg(arg_entry); 
     // create a temp astnode called current
-    union astnode *current = &(arg_head->list.arg_head);
+    union astnode *current = arg_head;
     // iterate through list setting current to the next argument until the next arg is NULL
+    
     while(current->list.arg_next != NULL) {
         current = current->list.arg_next;
     }
     // set the current node's next argument = NULL
-    current->list.arg_next = arg_entry; 
-    arg_entry->list.arg_next = NULL; 
+    current->list.arg_next = entry; 
+    entry->list.arg_next = NULL; 
+
+    return arg_head; //return the head
 }
 
 union astnode* new_astnode_func(nodetype type, char *function_name);

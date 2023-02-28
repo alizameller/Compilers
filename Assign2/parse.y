@@ -260,12 +260,19 @@ constant_expression: conditional_expression;
 
 %%
 
+void printIndents(int indent){
+    for (int i = 0; i < indent; i++){
+        printf("\t");
+    }
+}
 
 void printBinop(int operator){
     if(operator == '=') {
         printf("ASSIGNMENT\n"); 
-    } else if(operator >= 267 && operator <= 270){
+    } else if(operator >= 265 && operator <= 268){
         printf("COMPARISON OP ");
+    } else if(operator >= 269 && operator <= 270){
+        printf("BINARY OP ");
     } else if(operator >= 271 && operator <= 284){
         printf("ASSIGNMENT COMPOUND (");
     } 
@@ -326,11 +333,11 @@ void printBinop(int operator){
             break;
     }
 
-    if(operator >= 267 && operator <= 270){
+    if(operator >= 265 && operator <= 268){
         printf("=\n");
     } else if(operator >= 271 && operator <= 282){
         printf(")\n");
-    } 
+    }
 }
 
 void printNum(struct numinfo numInfo){
@@ -379,10 +386,7 @@ void printNum(struct numinfo numInfo){
 
 void printAST(union astnode* node, int indent) {
     int count = 1; 
-
-    for (int i = 0; i < indent; i++){
-        printf("\t");
-    }
+    printIndents(indent);
 
     switch(node->generic.type){
         case UNOP_NODE: 
@@ -424,9 +428,11 @@ void printAST(union astnode* node, int indent) {
             printf("CHARLIT %c\n", node->charlit.char_literal);
             break;
         case ARGLIST_NODE:
+            printIndents(indent + 1);
             printf("arg #%d=\n", count);
             printAST((node->list.arg_head)->arg.argument, indent+1);
             while(node->list.arg_next != NULL) {
+                printIndents(indent + 1);
                 printf("arg #%d=\n", ++count);
                 printAST((node->list.arg_next)->arg.argument, indent+1);
                 node = node->list.arg_next;

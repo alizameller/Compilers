@@ -130,13 +130,13 @@ union astnode  *append_arg(union astnode *arg_head, union astnode *arg_entry);
 // Function Call node
 struct astnode_function {
     enum nodetype type;
-    char *function_name;
-    char *return_type;
+    union astnode *function_name;
     union astnode *arg_head; 
+    int num_args;
+    //char *return_type;
 };
 
-union astnode* new_astnode_func(nodetype type, char *function_name); // this returns the struct astnode_arglist *arg_head
-
+union astnode* new_astnode_func(union astnode *function_name, union astnode *arg_list);
 union astnode* astnode_one(); 
 
 void printAST(union astnode* node, int indent); 

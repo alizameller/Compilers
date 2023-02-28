@@ -127,7 +127,7 @@ postfix_expression: primary_expression {$$ = $1;}
     | '(' type_name ')' '{' argument_expression_list ',' '}'
     ;
 
-function_call: postfix_expression '(' argument_expression_list ')'   {$$ = $3;} //{$$ = MAKE FUNC CALL NODE $1, args: $3}
+function_call: postfix_expression '(' argument_expression_list ')'   {$$ = new_astnode_func($1, $3);} //{$$ = MAKE FUNC CALL NODE $1, args: $3}
     | postfix_expression '(' ')' //{$$ = MAKE FUNC CALL NODE $1, args: NULL}
     ;
 
@@ -424,13 +424,21 @@ void printAST(union astnode* node, int indent) {
             printf("CHARLIT %c\n", node->charlit.char_literal);
             break;
         case ARGLIST_NODE:
-            printf("arg #%d\n", count);
+            printf("arg #%d=\n", count);
             printAST((node->list.arg_head)->arg.argument, indent+1);
             while(node->list.arg_next != NULL) {
-                printf("arg #%d\n", ++count);
+                printf("arg #%d=\n", ++count);
                 printAST((node->list.arg_next)->arg.argument, indent+1);
                 node = node->list.arg_next;
             }
+            break;
+        case FUNCTION_NODE:
+            printf("FNCALL, %d arguments\n", node->func.num_args);
+            printAST(node->func.function_name, indent+1);
+            printAST(node->func.arg_head, indent-1);
+            break;
+        case ARGUMENT_NODE:
+        break; 
     }
     free(node); 
 }

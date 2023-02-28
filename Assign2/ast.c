@@ -123,7 +123,7 @@ union astnode * append_arg(union astnode *arg_head, union astnode *arg_entry) {
     union astnode *current = arg_head;
     // iterate through list setting current to the next argument until the next arg is NULL
     
-    while(current->list.arg_next != NULL) {
+    while(current->list.arg_next) {
         current = current->list.arg_next;
     }
     // set the current node's next argument = NULL
@@ -133,6 +133,27 @@ union astnode * append_arg(union astnode *arg_head, union astnode *arg_entry) {
     return arg_head; //return the head
 }
 
-union astnode* new_astnode_func(nodetype type, char *function_name);
+union astnode* new_astnode_func(union astnode *function_name, union astnode *arg_list) {
+   // allocate memory
+    union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
+    
+    node_ptr->generic.type = FUNCTION_NODE;
+    node_ptr->func.function_name = function_name;
+    node_ptr->func.arg_head = arg_list;
+    node_ptr->func.num_args = 0;
+
+
+    union astnode *current = arg_list;
+    // iterate through list setting current to the next argument until the next arg is NULL
+    if (arg_list->list.arg_head) {
+        (node_ptr->func.num_args)++; //count head as arg 1
+        while(current->list.arg_next) {
+            (node_ptr->func.num_args)++; //count every subsequent arg
+            current = current->list.arg_next;
+        }
+    }
+    
+    return node_ptr;
+}
 
 

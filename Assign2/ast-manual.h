@@ -12,8 +12,10 @@ typedef enum nodetype {
     IDENT_NODE, 
     STRING_NODE,
     CHARLIT_NODE,
+    FUNCTION_NODE,
+    ARGUMENT_NODE,
+    ARGLIST_NODE,
 } nodetype;
-
 
 struct info {
     char *fileName; 
@@ -103,10 +105,39 @@ union astnode* new_astnode_string(nodetype type, char* string);
 // Char
 struct astnode_char {
     enum nodetype type;
-    char char_literal;;
+    char char_literal;
 };
 
 union astnode* new_astnode_char(nodetype type, char charlit); 
+
+// Argument Node
+struct astnode_argument {
+    enum nodetype type;
+    char *argument;
+};
+
+// List of Arguments
+struct astnode_arglist {
+    enum nodetype type;
+    union astnode *arg_head;
+    union astnode *arg_next;
+};
+
+union astnode* new_astnode_arg(union astnode *arg_entry);
+union astnode *init_list(union astnode *arg_head);
+union astnode  *append_arg(union astnode *arg_head, union astnode *arg_entry);
+
+// Function Call node
+struct astnode_function {
+    enum nodetype type;
+    char *function_name;
+    char *return_type;
+    union astnode *arg_head; 
+};
+
+union astnode* new_astnode_func(nodetype type, char *function_name); // this returns the struct astnode_arglist *arg_head
+
+union astnode* astnode_one(); 
 
 void printAST(union astnode* node, int indent); 
 
@@ -118,7 +149,10 @@ typedef union astnode {
     struct astnode_num num;
     struct astnode_ident id;
     struct astnode_string str;
-    struct astnode_char charlit; 
+    struct astnode_char charlit;
+    struct astnode_function func;
+    struct astnode_argument arg;
+    struct astnode_arglist list;   
     /* etc.*/
 } astnode; 
 

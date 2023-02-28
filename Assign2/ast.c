@@ -69,7 +69,7 @@ union astnode* new_astnode_binop(int operator, union astnode *left, union astnod
     return node_ptr;
 }
 
-union astnode* new_astnode_ternop(int operator1, int operator2, union astnode *left, union astnode *middle, union astnode *right){
+union astnode *new_astnode_ternop(int operator1, int operator2, union astnode *left, union astnode *middle, union astnode *right){
 // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
 
@@ -83,3 +83,53 @@ union astnode* new_astnode_ternop(int operator1, int operator2, union astnode *l
 
     return node_ptr;
 }
+
+union astnode *astnode_one(){
+    // allocate memory
+    union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
+
+    node_ptr->generic.type = NUMBER_NODE;
+    node_ptr->num.numInfo.meta = UNSIGNED_INT;
+    node_ptr->num.numInfo.value.int_val = 1; 
+
+    return node_ptr; 
+} 
+
+union astnode *new_astnode_arg(union astnode *argument) {
+    // allocate memory
+    union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
+
+    node_ptr->generic.type = ARGUMENT_NODE;
+    node_ptr->arg.argument = argument; 
+
+    return node_ptr; 
+}
+
+union astnode *init_list(union astnode *arg_head) {
+    // allocate memory
+    union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
+
+    node_ptr->generic.type = ARGLIST_NODE;
+    node_ptr->list.arg_head= arg_head;
+    node_ptr->list.arg_next = NULL; 
+
+    return node_ptr;
+}
+
+union astnode *append_arg(union astnode *arg_head, union astnode *arg_entry) {
+    // make arg_entry an astnode_arg
+    union astnode *arg_entry = new_astnode_arg(arg_entry); 
+    // create a temp astnode called current
+    union astnode *current = &(arg_head->list.arg_head);
+    // iterate through list setting current to the next argument until the next arg is NULL
+    while(current->list.arg_next != NULL) {
+        current = current->list.arg_next;
+    }
+    // set the current node's next argument = NULL
+    current->list.arg_next = arg_entry; 
+    arg_entry->list.arg_next = NULL; 
+}
+
+union astnode* new_astnode_func(nodetype type, char *function_name);
+
+

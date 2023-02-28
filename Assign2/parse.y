@@ -45,7 +45,8 @@ void yyerror(char *s);
                 argument_expression_list
                 unary_expression
 %type<operator> unary_operator
-%type<astnode_p> cast_expression
+%type<astnode_p> function_call 
+                cast_expression
                 multiplicative_expression
                 additive_expression
                 shift_expression
@@ -61,11 +62,11 @@ void yyerror(char *s);
 %type<operator> assignment_operator
 %type<astnode_p> expression 
                 constant_expression
-%type<operator>  type_name
+                type_name
 
-/* Grammar rules */
 %left <operator> ','
 %right '=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
+%right <operator> '?' ":"
 %left LOGOR
 %left LOGAND
 %left <operator> '|'
@@ -76,43 +77,41 @@ void yyerror(char *s);
 %left SHL SHR
 %left <operator> '+' '-'
 %left <operator> '*' '/' '%'
-%right SIZEOF '!' '~' 
-%left PLUSPLUS MINUSMINUS INDSEL '(' ')' '[' ']'
+%right SIZEOF '!' '~' /* +a, -a, &a, a* */
+%left PLUSPLUS MINUSMINUS /* postfix */ INDSEL '(' ')' '[' ']' /* .a, ->a */
 %left IF
 %left ELSE
 
 %%
 
-start : expression
-    | start expression
+start: statement
+    | start statement
     ;
+
+statement: expression ';' {printAST($1, 0);}
+;
 
 expression: assignment_expression {$$ = $1;}
     | expression ',' assignment_expression {$$ = new_astnode_binop(',', $1, $3);}
-    | expression ';' {printAST($1, 0);}
     ;
 
-primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal);
-              //printf("Ident is %s\n", $<astnode_p>$->str.string_literal); 
-              }
-        | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1);
-                    //printf("Number is %d\n", $<astnode_p>$->num.number); 
-                    }
-        | CHARLIT {$$ = new_astnode_char(CHARLIT_NODE, $1);
-                    //printf("Char is %c\n", $<astnode_p>$->charlit.char_literal); 
-                    }
-        | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);
-                    //printf("String is %s\n", $<astnode_p>$->str.string_literal); 
-                    }
-        | '('expression')' {$$ = $2;} 
-        ;
+primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal); 
+    }
+    | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1);
+    }
+    | CHARLIT {$$ = new_astnode_char(CHARLIT_NODE, $1); 
+    }
+    | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);
+    }
+    | '('expression')' {$$ = $2;} 
+    ;
 
 postfix_expression: primary_expression {$$ = $1;}
     | postfix_expression '[' expression']' { // E1[E2] is identical to (*((E1)+(E2))) 
                                             astnode *astnode_temp = new_astnode_binop('+', $1, $3);
                                             $$ = new_astnode_unop('*', astnode_temp);                           
     }
-    //| postfix_expression '(' argument_expression_list ')' /* This causes S/R conflict */
+    | function_call {$$ = $1;}
     | postfix_expression '.' IDENT {astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $3.string_literal);
                                     $$ = new_astnode_binop('.', $1, astnode_ident); 
                                     // free?
@@ -122,116 +121,139 @@ postfix_expression: primary_expression {$$ = $1;}
                                       astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $3.string_literal);
                                       $$ = new_astnode_binop('.', astnode_temp, astnode_ident);
     }
-    //| postfix_expression PLUSPLUS {$$ = new_astnode_unop(PLUSPLUS, $1);} /* This causes a S/R conflict! */
+    | postfix_expression PLUSPLUS {$$ = new_astnode_unop(PLUSPLUS, $1);}
     | postfix_expression MINUSMINUS {$$ = new_astnode_unop(MINUSMINUS, $1);}
-    | '(' type_name ')' '{' initializer_list '}'
-    | '(' type_name ')' '{' initializer_list ',' '}'
+    | '(' type_name ')' '{' argument_expression_list '}'
+    | '(' type_name ')' '{' argument_expression_list ',' '}'
     ;
 
-cast_expression: unary_expression
-  | '(' type_name ')' cast_expression
-  ;
+function_call: postfix_expression '(' argument_expression_list ')'   //{$$ = MAKE FUNC CALL NODE $1, args: $3}
+    | postfix_expression '(' ')' //{$$ = MAKE FUNC CALL NODE $1, args: NULL}
+    ;
 
-type_name: CHAR {$$ = CHAR;}
-  | INT {$$ = INT;}
-  | LONG {$$ = LONG;}
-  | DOUBLE {$$ = DOUBLE;}
-  | FLOAT {$$ = FLOAT;}
-  ;
+argument_expression_list: assignment_expression {$$ = init_list($1);}
+    | argument_expression_list ',' assignment_expression {$$ = append_arg($1, $3);}
+    ;  
+
+type_name: CHAR {$$ = new_astnode_char(CHARLIT_NODE, 1);}
+    | INT { 
+            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
+            temp->meta = UNSIGNED_INT;
+            temp->value.int_val = 1;
+            $$ = new_astnode_num(NUMBER_NODE, *temp);}
+    | LONG {
+            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
+            temp->meta = UNSIGNED_LONG;
+            temp->value.int_val = 1;
+            $$ = new_astnode_num(NUMBER_NODE, *temp);}
+    | DOUBLE {
+            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
+            temp->meta = DOUBLE_NUM;
+            temp->value.float_val = 1;
+            $$ = new_astnode_num(NUMBER_NODE, *temp);}
+    | FLOAT {
+            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
+            temp->meta = FLOAT_NUM;
+            temp->value.float_val = 1;
+            $$ = new_astnode_num(NUMBER_NODE, *temp);}
+    ;
 
 unary_operator: '&' {$$ = '&';}
-  | '*' {$$ = '*';}
-  | '+' {$$ = '+';}
-  | '-' {$$ = '-';}
-  | '~' {$$ = '~';}
-  | '!' {$$ = '!';}
-  ;
+    | '*' {$$ = '*';}
+    | '+' {$$ = '+';}
+    | '-' {$$ = '-';}
+    | '~' {$$ = '~';}
+    | '!' {$$ = '!';}
+    ;
 
-unary_expression: postfix_expression {$$ = $1;}
-  | PLUSPLUS unary_expression {$$ = new_astnode_unop(PLUSPLUS, $2);}
-  //| MINUSMINUS unary_expression {$$ = new_astnode_unop(MINUSMINUS, $2);} /* This causes S/R conflict */
-  | unary_operator cast_expression {$$ = new_astnode_unop($1, $2);}
-  //| SIZEOF unary_expression {$$ = new_astnode_unop(SIZEOF, $2);}
-  //| SIZEOF '(' type_name ')' {$$ = new_astnode_unop(SIZEOF, $3);} 
-  ;
-
-multiplicative_expression: cast_expression {$$ = $1;}
-  //| multiplicative_expression '*' cast_expression {$$ = new_astnode_binop('*', $1, $3);} /* This causes S/R conflict */
-  | multiplicative_expression '/' cast_expression {$$ = new_astnode_binop('/', $1, $3);}
-  | multiplicative_expression '%' cast_expression {$$ = new_astnode_binop('%', $1, $3);}
-  ;
-
-additive_expression: multiplicative_expression {$$ = $1;}
-  //| additive_expression '+' multiplicative_expression {$$ = new_astnode_binop('+', $1, $3);} /* This causes S/R conflict */
-  //| additive_expression '_' multiplicative_expression {$$ = new_astnode_binop('-', $1, $3);} /* This causes S/R conflict */
-  ;
-
-shift_expression: additive_expression {$$ = $1;}
-  | shift_expression SHL additive_expression {$$ = new_astnode_binop(SHL, $1, $3);}
-  | shift_expression SHR additive_expression {$$ = new_astnode_binop(SHR, $1, $3);}
-  ;
-
-relational_expression: shift_expression {$$ = $1;}
-  | relational_expression '<' shift_expression {$$ = new_astnode_binop('<', $1, $3);}
-  | relational_expression '>' shift_expression {$$ = new_astnode_binop('>', $1, $3);}
-  | relational_expression LTEQ shift_expression {$$ = new_astnode_binop(LTEQ, $1, $3);}
-  | relational_expression GTEQ shift_expression {$$ = new_astnode_binop(GTEQ, $1, $3);}
-  ;
-
-equality_expression: relational_expression {$$ = $1;}
-  | equality_expression EQEQ relational_expression {$$ = new_astnode_binop(EQEQ, $1, $3);}
-  | equality_expression NOTEQ relational_expression {$$ = new_astnode_binop(NOTEQ, $1, $3);}
-  ;
-
-AND_expression: equality_expression {$$ = $1;}
-  //| AND_expression '&' equality_expression {$$ = new_astnode_binop('&', $1, $3);} /* This causes S/R conflict */
-  ;
-
-exclusive_OR_expression: AND_expression {$$ = $1;}
-  | exclusive_OR_expression '^' AND_expression {$$ = new_astnode_binop('^', $1, $3);}
-  ;
-
-inclusive_OR_expression: exclusive_OR_expression {$$ = $1;}
-  | inclusive_OR_expression '|' exclusive_OR_expression {$$ = new_astnode_binop('|', $1, $3);}
-  ;
-
-logical_AND_expression: inclusive_OR_expression {$$ = $1;}
-  | logical_AND_expression LOGAND inclusive_OR_expression {$$ = new_astnode_binop(LOGAND, $1, $3);}
-  ;
-
-logical_OR_expression: logical_AND_expression {$$ = $1;}
-| logical_OR_expression LOGOR logical_AND_expression {$$ = new_astnode_binop(LOGOR, $1, $3);}
-;
-
-conditional_expression: logical_OR_expression {$$ = $1;}
-  | logical_OR_expression '?' expression ':' conditional_expression {$$ = new_astnode_ternop('?', ':', $1, $3, $5);}
-  ;
-
-assignment_expression: conditional_expression {$$ = $1;}
-  | unary_expression assignment_operator assignment_expression {$$ = new_astnode_binop($2, $1, $3);}
-  ; 
-
-assignment_operator: '=' {$$ = '=';}
-  | TIMESEQ {$$ = TIMESEQ;}
-  | DIVEQ {$$ = DIVEQ;} 
-  | MODEQ {$$ = MODEQ;} 
-  | PLUSEQ {$$ = PLUSEQ;}
-  | MINUSEQ {$$ = MINUSEQ;}
-  | SHLEQ {$$ = SHLEQ;}
-  | SHREQ {$$ = SHREQ;}
-  | ANDEQ {$$ = ANDEQ;}
-  | XOREQ {$$ = XOREQ;}
-  | OREQ {$$ = OREQ;}
-  ;
-
-argument_expression_list: assignment_expression {$$ = $1;}
-    | argument_expression_list ',' assignment_expression {$$ = new_astnode_binop(',', $1, $3);}
+cast_expression: unary_expression {$$ = $1;}
+    | '(' type_name ')' cast_expression {$$ = new_astnode_binop('\0', $2, $4);} // I do not know how to handle this
     ; 
 
-constant_expression: conditional_expression; 
+unary_expression: postfix_expression {$$ = $1;}
+    | PLUSPLUS unary_expression { 
+                                union astnode* one = astnode_one();
+                                $$ = new_astnode_binop('+', $2, one);
+    } 
+    | MINUSMINUS unary_expression { 
+                                union astnode* one = astnode_one();
+                                $$ = new_astnode_binop('-', $2, one);
+    }
+    | unary_operator cast_expression {$$ = new_astnode_unop($1, $2);}
+    | SIZEOF unary_expression {$$ = new_astnode_unop(SIZEOF, $2);}
+    | SIZEOF '(' type_name ')' {$$ = new_astnode_unop(SIZEOF, $3);} 
+    ;
 
-initializer_list:
-;
+multiplicative_expression: cast_expression {$$ = $1;}
+    | multiplicative_expression '*' cast_expression {$$ = new_astnode_binop('*', $1, $3);} 
+    | multiplicative_expression '/' cast_expression {$$ = new_astnode_binop('/', $1, $3);}
+    | multiplicative_expression '%' cast_expression {$$ = new_astnode_binop('%', $1, $3);}
+    ;
+
+additive_expression: multiplicative_expression {$$ = $1;}
+    | additive_expression '+' multiplicative_expression {$$ = new_astnode_binop('+', $1, $3);} 
+    | additive_expression '_' multiplicative_expression {$$ = new_astnode_binop('-', $1, $3);} 
+    ;
+
+shift_expression: additive_expression {$$ = $1;}
+    | shift_expression SHL additive_expression {$$ = new_astnode_binop(SHL, $1, $3);}
+    | shift_expression SHR additive_expression {$$ = new_astnode_binop(SHR, $1, $3);}
+    ;
+
+relational_expression: shift_expression {$$ = $1;}
+    | relational_expression '<' shift_expression {$$ = new_astnode_binop('<', $1, $3);}
+    | relational_expression '>' shift_expression {$$ = new_astnode_binop('>', $1, $3);}
+    | relational_expression LTEQ shift_expression {$$ = new_astnode_binop(LTEQ, $1, $3);}
+    | relational_expression GTEQ shift_expression {$$ = new_astnode_binop(GTEQ, $1, $3);}
+    ;
+
+equality_expression: relational_expression {$$ = $1;}
+    | equality_expression EQEQ relational_expression {$$ = new_astnode_binop(EQEQ, $1, $3);}
+    | equality_expression NOTEQ relational_expression {$$ = new_astnode_binop(NOTEQ, $1, $3);}
+    ;
+
+AND_expression: equality_expression {$$ = $1;}
+    | AND_expression '&' equality_expression {$$ = new_astnode_binop('&', $1, $3);}
+    ;
+
+exclusive_OR_expression: AND_expression {$$ = $1;}
+    | exclusive_OR_expression '^' AND_expression {$$ = new_astnode_binop('^', $1, $3);}
+    ;
+
+inclusive_OR_expression: exclusive_OR_expression {$$ = $1;}
+    | inclusive_OR_expression '|' exclusive_OR_expression {$$ = new_astnode_binop('|', $1, $3);}
+    ;
+
+logical_AND_expression: inclusive_OR_expression {$$ = $1;}
+    | logical_AND_expression LOGAND inclusive_OR_expression {$$ = new_astnode_binop(LOGAND, $1, $3);}
+    ;
+
+logical_OR_expression: logical_AND_expression {$$ = $1;}
+    | logical_OR_expression LOGOR logical_AND_expression {$$ = new_astnode_binop(LOGOR, $1, $3);}
+    ;
+
+conditional_expression: logical_OR_expression {$$ = $1;}
+    | logical_OR_expression '?' expression ':' conditional_expression {$$ = new_astnode_ternop('?', ':', $1, $3, $5);}
+    ;
+
+assignment_expression: conditional_expression {$$ = $1;}
+    | unary_expression assignment_operator assignment_expression {$$ = new_astnode_binop($2, $1, $3);}
+    ;  
+
+assignment_operator: '=' {$$ = '=';}
+    | TIMESEQ {$$ = TIMESEQ;}
+    | DIVEQ {$$ = DIVEQ;} 
+    | MODEQ {$$ = MODEQ;} 
+    | PLUSEQ {$$ = PLUSEQ;}
+    | MINUSEQ {$$ = MINUSEQ;}
+    | SHLEQ {$$ = SHLEQ;}
+    | SHREQ {$$ = SHREQ;}
+    | ANDEQ {$$ = ANDEQ;}
+    | XOREQ {$$ = XOREQ;}
+    | OREQ {$$ = OREQ;}
+    ;
+
+constant_expression: conditional_expression; 
 
 %%
 
@@ -359,7 +381,11 @@ void printAST(union astnode* node, int indent) {
 
     switch(node->generic.type){
         case UNOP_NODE: 
-            printf("UNARY OP %c\n", node->unop.operator);
+            if (node->unop.operator == SIZEOF) {
+                printf("UNARY OP SIZEOF\n");
+            } else {
+                printf("UNARY OP %c\n", node->unop.operator);
+            }
             printAST(node->unop.operand, indent+1); 
             break;
         case BINOP_NODE:
@@ -406,4 +432,3 @@ int main(){
 void yyerror(char *str) {
   fprintf(stderr,"error: %s\n",str);
 }
-

@@ -31,8 +31,8 @@ void yyerror(char *s);
 %token<char_literal> CHARLIT 
 %token<stringInfo> STRING 
 %token<numInfo> NUMBER 
-%token<operator> INDSEL PLUSPLUS MINUSMINUS LTEQ GTEQ EQEQ NOTEQ
-        LOGAND LOGOR SHL SHR TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ 
+%token<operator> INDSEL PLUSPLUS MINUSMINUS LOGAND LOGOR SHL SHR 
+        LTEQ GTEQ EQEQ NOTEQ TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ 
         SHREQ ANDEQ OREQ XOREQ SIZEOF ELLIPSIS AUTO BREAK CASE CHAR 
         CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR 
         GOTO IF INLINE INT LONG REGISTER RESTRICT RETURN SHORT SIGNED 
@@ -78,7 +78,7 @@ void yyerror(char *s);
 %left <operator> '+' '-'
 %left <operator> '*' '/' '%'
 %right SIZEOF '!' '~' /* +a, -a, &a, a* */
-%left PLUSPLUS MINUSMINUS /* postfix */ INDSEL '(' ')' '[' ']' /* .a, ->a */
+%left PLUSPLUS MINUSMINUS INDSEL '(' ')' '[' ']' /* .a, ->a */
 %left IF
 %left ELSE
 
@@ -269,11 +269,13 @@ void printIndents(int indent){
 void printBinop(int operator){
     if(operator == '=') {
         printf("ASSIGNMENT\n"); 
-    } else if(operator >= 265 && operator <= 268){
-        printf("COMPARISON OP ");
-    } else if(operator >= 269 && operator <= 270){
+    } else if(operator >= 265 && operator <= 266){
+        printf("LOGICAL OP ");
+    } else if(operator >= 267 && operator <= 268){
         printf("BINARY OP ");
-    } else if(operator >= 271 && operator <= 284){
+    } else if(operator >= 269 && operator <= 272){
+        printf("COMPARISON OP ");
+    } else if(operator >= 273 && operator <= 284){
         printf("ASSIGNMENT COMPOUND (");
     } 
     switch(operator){
@@ -296,10 +298,10 @@ void printBinop(int operator){
             printf("||\n");
             break;
         case SHL:
-            printf("<<");
+            printf("<<\n");
             break;
         case SHR:
-            printf(">>");
+            printf(">>\n");
             break;
         case TIMESEQ:
             printf("*");
@@ -333,9 +335,9 @@ void printBinop(int operator){
             break;
     }
 
-    if(operator >= 265 && operator <= 268){
+    if(operator >= 269 && operator <= 272){
         printf("=\n");
-    } else if(operator >= 271 && operator <= 282){
+    } else if(operator >= 273 && operator <= 282){
         printf(")\n");
     }
 }
@@ -391,8 +393,14 @@ void printAST(union astnode* node, int indent) {
     switch(node->generic.type){
         case UNOP_NODE: 
             if (node->unop.operator == SIZEOF) {
-                printf("UNARY OP SIZEOF\n");
-            } else {
+                printf("SIZEOF\n");
+            } else if (node->unop.operator == '&') {
+                printf("ADDRESSOF\n");
+            } else if (node->unop.operator == PLUSPLUS) {
+                printf("UNARY OP POSTINC\n");
+            }  else if (node->unop.operator == MINUSMINUS) {
+                printf("UNARY OP POSTDEC\n");
+            }   else{
                 printf("UNARY OP %c\n", node->unop.operator);
             }
             printAST(node->unop.operand, indent+1); 
@@ -400,6 +408,13 @@ void printAST(union astnode* node, int indent) {
         case BINOP_NODE:
             if ((node->binop.operator >= 265 && node->binop.operator <= 282) || node->binop.operator == '=') {
                 printBinop(node->binop.operator); 
+            } else if (node->binop.operator == '.') {
+                if ((node->binop.left)->unop.operator && (node->binop.left)->unop.operator == '*') {
+                    printf("INDIRECT SELECT, member ");
+                    printAST(node->binop.right, indent);
+                    printAST((node->binop.left)->unop.operand, indent+1);  
+                }  
+                break;
             } else {
                 printf("BINARY OP %c\n", node->binop.operator);
             }

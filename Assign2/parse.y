@@ -3,7 +3,7 @@
 |       - T̶E̶R̶N̶E̶R̶Y̶                                                                                                  |
 |       - O̶R̶D̶E̶R̶ O̶F̶ O̶P̶E̶R̶A̶T̶I̶O̶N̶S̶                                                                                      |
 |       - F̶I̶X̶ "̶s̶y̶n̶t̶a̶x̶ e̶r̶r̶o̶r̶"̶ b̶u̶g̶ o̶n̶ s̶e̶c̶o̶n̶d̶ i̶n̶p̶u̶t̶                                                                   |
-|       - functions                                                                                                | 
+|       - f̶u̶n̶c̶t̶i̶o̶n̶s̶                                                                                                | 
 |       - n̶u̶m̶b̶e̶r̶ t̶y̶p̶e̶s̶                                                                                             |
 \-----------------------------------------------------------------------------------------------------------------*/
 
@@ -31,8 +31,8 @@ void yyerror(char *s);
 %token<char_literal> CHARLIT 
 %token<stringInfo> STRING 
 %token<numInfo> NUMBER 
-%token<operator> INDSEL PLUSPLUS MINUSMINUS LOGAND LOGOR SHL SHR 
-        LTEQ GTEQ EQEQ NOTEQ TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ 
+%token<operator> INDSEL LOGAND LOGOR SHL SHR LTEQ GTEQ EQEQ NOTEQ
+        PLUSPLUS MINUSMINUS TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ 
         SHREQ ANDEQ OREQ XOREQ SIZEOF ELLIPSIS AUTO BREAK CASE CHAR 
         CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR 
         GOTO IF INLINE INT LONG REGISTER RESTRICT RETURN SHORT SIGNED 
@@ -77,8 +77,8 @@ void yyerror(char *s);
 %left SHL SHR
 %left <operator> '+' '-'
 %left <operator> '*' '/' '%'
-%right SIZEOF '!' '~' /* +a, -a, &a, a* */
-%left PLUSPLUS MINUSMINUS INDSEL '(' ')' '[' ']' /* .a, ->a */
+%right SIZEOF '!' '~'
+%left PLUSPLUS MINUSMINUS INDSEL '(' ')' '[' ']' 
 %left IF
 %left ELSE
 
@@ -108,27 +108,26 @@ primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal)
 
 postfix_expression: primary_expression {$$ = $1;}
     | postfix_expression '[' expression']' { // E1[E2] is identical to (*((E1)+(E2))) 
-                                            astnode *astnode_temp = new_astnode_binop('+', $1, $3);
+                                            union astnode *astnode_temp = new_astnode_binop('+', $1, $3);
                                             $$ = new_astnode_unop('*', astnode_temp);                           
     }
     | function_call {$$ = $1;}
-    | postfix_expression '.' IDENT {astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $3.string_literal);
+    | postfix_expression '.' IDENT {union astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $3.string_literal);
                                     $$ = new_astnode_binop('.', $1, astnode_ident); 
-                                    // free?
     }
     | postfix_expression INDSEL IDENT { // E1->E2 is identical to (*E1).E2
-                                      astnode *astnode_temp = new_astnode_unop('*', $1);
-                                      astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $3.string_literal);
+                                      union astnode *astnode_temp = new_astnode_unop('*', $1);
+                                      union astnode *astnode_ident = new_astnode_ident(IDENT_NODE, $3.string_literal);
                                       $$ = new_astnode_binop('.', astnode_temp, astnode_ident);
     }
     | postfix_expression PLUSPLUS {$$ = new_astnode_unop(PLUSPLUS, $1);}
     | postfix_expression MINUSMINUS {$$ = new_astnode_unop(MINUSMINUS, $1);}
-    | '(' type_name ')' '{' argument_expression_list '}'
-    | '(' type_name ')' '{' argument_expression_list ',' '}'
+    //| '(' type_name ')' '{' argument_expression_list '}'
+    //| '(' type_name ')' '{' argument_expression_list ',' '}'
     ;
 
-function_call: postfix_expression '(' argument_expression_list ')'   {$$ = new_astnode_func($1, $3);} //{$$ = MAKE FUNC CALL NODE $1, args: $3}
-    | postfix_expression '(' ')' //{$$ = MAKE FUNC CALL NODE $1, args: NULL}
+function_call: postfix_expression '(' argument_expression_list ')'   {$$ = new_astnode_func($1, $3);} 
+    | postfix_expression '(' ')' {$$ = new_astnode_func($1, NULL);}
     ;
 
 argument_expression_list: assignment_expression {
@@ -176,11 +175,11 @@ cast_expression: unary_expression {$$ = $1;}
 unary_expression: postfix_expression {$$ = $1;}
     | PLUSPLUS unary_expression { 
                                 union astnode* one = astnode_one();
-                                $$ = new_astnode_binop('+', $2, one);
+                                $$ = new_astnode_binop(PLUSEQ, $2, one);
     } 
     | MINUSMINUS unary_expression { 
                                 union astnode* one = astnode_one();
-                                $$ = new_astnode_binop('-', $2, one);
+                                $$ = new_astnode_binop(MINUSEQ, $2, one);
     }
     | unary_operator cast_expression {$$ = new_astnode_unop($1, $2);}
     | SIZEOF unary_expression {$$ = new_astnode_unop(SIZEOF, $2);}
@@ -269,13 +268,13 @@ void printIndents(int indent){
 void printBinop(int operator){
     if(operator == '=') {
         printf("ASSIGNMENT\n"); 
-    } else if(operator >= 265 && operator <= 266){
+    } else if(operator >= 263 && operator <= 264){
         printf("LOGICAL OP ");
-    } else if(operator >= 267 && operator <= 268){
+    } else if(operator >= 265 && operator <= 266){
         printf("BINARY OP ");
-    } else if(operator >= 269 && operator <= 272){
+    } else if(operator >= 267 && operator <= 270){
         printf("COMPARISON OP ");
-    } else if(operator >= 273 && operator <= 284){
+    } else if(operator >= 271 && operator <= 282){
         printf("ASSIGNMENT COMPOUND (");
     } 
     switch(operator){
@@ -335,31 +334,31 @@ void printBinop(int operator){
             break;
     }
 
-    if(operator >= 269 && operator <= 272){
+    if(operator >= 267 && operator <= 270){
         printf("=\n");
-    } else if(operator >= 273 && operator <= 282){
+    } else if(operator >= 271 && operator <= 282){
         printf(")\n");
     }
 }
 
 void printNum(struct numinfo numInfo){
     switch(numInfo.meta) {
-            case(0):
-            case(1):
+            case(UNSIGNED_INT):
+            case(SIGNED_INT):
                 printf("int)");
                 printf("%lld\n", numInfo.value.int_val);
                 break;
-            case(2):
-            case(3):
+            case(UNSIGNED_LONG):
+            case(SIGNED_LONG):
                 printf("long)");
                 printf("%lld\n", numInfo.value.int_val);
                 break;
-            case(4):
-            case(5):
+            case(UNSIGNED_LONGLONG):
+            case(SIGNED_LONGLONG):
                 printf("long long)");
                 printf("%lld\n", numInfo.value.int_val);
                 break;
-            case(6):
+            case(DOUBLE_NUM):
                 printf("double)");
                 if (numInfo.value.float_val >= 10) {
                     printf("%.2Le\n", numInfo.value.float_val);
@@ -367,7 +366,7 @@ void printNum(struct numinfo numInfo){
                     printf("%.2Lf\n", numInfo.value.float_val);
                 }
                 break;
-            case(7):
+            case(FLOAT_NUM):
                 printf("float)");
                 if (numInfo.value.float_val >= 10) {
                     printf("%.2Le\n", numInfo.value.float_val);
@@ -375,7 +374,7 @@ void printNum(struct numinfo numInfo){
                     printf("%.2Lf\n", numInfo.value.float_val);
                 }
                 break;
-            case(8):
+            case(LONG_DOUBLE):
                 printf("long double)");
                 if (numInfo.value.float_val >= 10) {
                     printf("%.2Le\n", numInfo.value.float_val);
@@ -396,24 +395,29 @@ void printAST(union astnode* node, int indent) {
                 printf("SIZEOF\n");
             } else if (node->unop.operator == '&') {
                 printf("ADDRESSOF\n");
+            } else if (node->unop.operator == '*') {
+                printf("DEREF\n");
             } else if (node->unop.operator == PLUSPLUS) {
                 printf("UNARY OP POSTINC\n");
-            }  else if (node->unop.operator == MINUSMINUS) {
+            } else if (node->unop.operator == MINUSMINUS) {
                 printf("UNARY OP POSTDEC\n");
-            }   else{
+            } else{
                 printf("UNARY OP %c\n", node->unop.operator);
             }
             printAST(node->unop.operand, indent+1); 
             break;
         case BINOP_NODE:
-            if ((node->binop.operator >= 265 && node->binop.operator <= 282) || node->binop.operator == '=') {
+            if ((node->binop.operator >= LOGAND && node->binop.operator <= XOREQ) || node->binop.operator == '=') {
                 printBinop(node->binop.operator); 
             } else if (node->binop.operator == '.') {
                 if ((node->binop.left)->unop.operator && (node->binop.left)->unop.operator == '*') {
-                    printf("INDIRECT SELECT, member ");
-                    printAST(node->binop.right, indent);
+                    printf("INDIRECT SELECT, member %s\n", (node->binop.right)->id.ident);
                     printAST((node->binop.left)->unop.operand, indent+1);  
-                }  
+                } else {
+                    printf("SELECT, member %s\n", (node->binop.right)->id.ident);
+                    //printAST(node->binop.right, indent);
+                    printAST(node->binop.left, indent+1);  
+                }
                 break;
             } else {
                 printf("BINARY OP %c\n", node->binop.operator);
@@ -437,10 +441,10 @@ void printAST(union astnode* node, int indent) {
             printf("IDENT %s\n", node->id.ident);
             break;
         case STRING_NODE:
-            printf("STRING %s\n", node->str.string_literal);
+            printf("STRING\t%s\n", node->str.string_literal);
             break;
         case CHARLIT_NODE:
-            printf("CHARLIT %c\n", node->charlit.char_literal);
+            printf("CHARLIT\t%c\n", node->charlit.char_literal);
             break;
         case ARGLIST_NODE:
             printIndents(indent + 1);
@@ -456,7 +460,9 @@ void printAST(union astnode* node, int indent) {
         case FUNCTION_NODE:
             printf("FNCALL, %d arguments\n", node->func.num_args);
             printAST(node->func.function_name, indent+1);
-            printAST(node->func.arg_head, indent-1);
+            if (node->func.arg_head) {
+                printAST(node->func.arg_head, indent-1);
+            }
             break;
         case ARGUMENT_NODE:
         break; 
@@ -467,7 +473,6 @@ int main(){
   //yydebug = 1;
   int t;
   while(!(t = yyparse())){
-
   };
 }
 

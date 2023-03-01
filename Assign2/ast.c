@@ -139,14 +139,16 @@ union astnode* new_astnode_func(union astnode *function_name, union astnode *arg
     
     node_ptr->generic.type = FUNCTION_NODE;
     node_ptr->func.function_name = function_name;
-    node_ptr->func.arg_head = arg_list;
+    // default is no arguments
+    node_ptr->func.arg_head = NULL; 
     node_ptr->func.num_args = 0;
 
-
+    // if there are arguments..
     union astnode *current = arg_list;
-    // iterate through list setting current to the next argument until the next arg is NULL
-    if (arg_list->list.arg_head) {
+    if (arg_list) {
+        node_ptr->func.arg_head = arg_list;
         (node_ptr->func.num_args)++; //count head as arg 1
+        // iterate through list setting current to the next argument until the next arg is NULL
         while(current->list.arg_next) {
             (node_ptr->func.num_args)++; //count every subsequent arg
             current = current->list.arg_next;

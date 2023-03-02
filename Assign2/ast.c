@@ -1,6 +1,6 @@
 #include "ast-manual.h"
 
-union astnode* new_astnode_char(nodetype type, char charlit){
+/*union astnode* new_astnode_char(nodetype type, char charlit){
 	// allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
@@ -9,7 +9,7 @@ union astnode* new_astnode_char(nodetype type, char charlit){
     node_ptr->charlit.char_literal = charlit;
 
     return node_ptr;
-}
+} */
 
 union astnode* new_astnode_string(nodetype type, char *string){
 	// allocate memory

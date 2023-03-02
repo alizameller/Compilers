@@ -99,7 +99,11 @@ primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal)
     }
     | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1);
     }
-    | CHARLIT {$$ = new_astnode_char(CHARLIT_NODE, $1); 
+    | CHARLIT { 
+                struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
+                temp->meta = UNSIGNED_INT;
+                temp->value.int_val = $1;
+                $$ = new_astnode_num(NUMBER_NODE, *temp); 
     }
     | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);
     }
@@ -135,9 +139,13 @@ argument_expression_list: assignment_expression {
                                                 $$ = init_list(head);
                                                 }
     | argument_expression_list ',' assignment_expression {$$ = append_arg($1, $3);}
-    ;  
+    ;      
 
-type_name: CHAR {$$ = new_astnode_char(CHARLIT_NODE, 1);}
+type_name: CHAR {
+            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
+            temp->meta = UNSIGNED_INT;
+            temp->value.int_val = 1;
+            $$ = new_astnode_num(NUMBER_NODE, *temp);}
     | INT { 
             struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
             temp->meta = UNSIGNED_INT;
@@ -443,9 +451,9 @@ void printAST(union astnode* node, int indent) {
         case STRING_NODE:
             printf("STRING\t%s\n", node->str.string_literal);
             break;
-        case CHARLIT_NODE:
+        /*case CHARLIT_NODE:
             printf("CHARLIT\t%c\n", node->charlit.char_literal);
-            break;
+            break; */
         case ARGLIST_NODE:
             printIndents(indent + 1);
             printf("arg #%d=\n", count);

@@ -1,6 +1,6 @@
 /*-----------------------------------------------------------------------------------------------------------------\
 |      TO DO:                                                                                                      |
-|                                                                                                                  |
+|      Figure out how to free the string_literals now that the "free" from the print message is gone               |
 \-----------------------------------------------------------------------------------------------------------------*/
 /* Definition Section */
 %option noyywrap
@@ -219,8 +219,6 @@ L?\" {buf_ptr = buf; BEGIN(STR);}
 \> {return '>';}
 = {return '=';}
 , {return ',';}
-# {return '#';}
-## {return 900;} /* I do not know */
 \<\: {return '[';} 
 \:\>  {return ']';}
 \<%  {return '{';}

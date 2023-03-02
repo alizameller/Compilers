@@ -1,5 +1,5 @@
 parse: parse.tab.c ast.c lex.yy.c 
-		gcc -o parse lex.yy.c parse.tab.c ast.c
+		gcc -std=c99 -o parse lex.yy.c parse.tab.c ast.c
 
 parse.tab.c: parse.y
 		bison -d parse.y

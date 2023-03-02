@@ -11,7 +11,7 @@ typedef enum nodetype {
     NUMBER_NODE,
     IDENT_NODE, 
     STRING_NODE,
-    CHARLIT_NODE,
+    //CHARLIT_NODE,
     FUNCTION_NODE,
     ARGUMENT_NODE,
     ARGLIST_NODE,
@@ -102,13 +102,13 @@ struct astnode_string {
 
 union astnode* new_astnode_string(nodetype type, char* string);
 
-// Char
+/*// Char
 struct astnode_char {
     enum nodetype type;
     char char_literal;
 };
 
-union astnode* new_astnode_char(nodetype type, char charlit); 
+union astnode* new_astnode_char(nodetype type, char charlit); */
 
 // Argument Node
 struct astnode_argument {
@@ -149,7 +149,7 @@ typedef union astnode {
     struct astnode_num num;
     struct astnode_ident id;
     struct astnode_string str;
-    struct astnode_char charlit;
+    //struct astnode_char charlit;
     struct astnode_function func;
     struct astnode_argument arg;
     struct astnode_arglist list;   

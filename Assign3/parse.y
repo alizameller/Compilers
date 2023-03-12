@@ -1,5 +1,9 @@
 /*-----------------------------------------------------------------------------------------------------------------\
 |      TO DO:                                                                                                      |
+|       - Symbol Table                                                                                             |
+|       - AST nodes representing scalar types, pointers, arrays and functions                                      |
+|       - "mini symbol table" for representing structure and union types                                           |
+|       - system of "dumping" a given AST or portion of an AST to plain text (build on printAST)                   |
 |                                                                                                                  |
 \-----------------------------------------------------------------------------------------------------------------*/
 
@@ -58,8 +62,38 @@ void yyerror(char *s);
 %type<operator> assignment_operator
 %type<astnode_p> expression 
                 constant_expression
-                type_name
 
+/* Declarations */
+%type<astnode_p> declaration_or_fndef 
+                function_definition
+                compound_statement
+                decl_or_stmt_list
+                decl_or_stmt
+                declaration 
+                statement
+                declaration_specifiers 
+                init_declarator_list 
+                init_declarator
+                storage_class_specifier 
+                type_specifier 
+                struct_or_union_specifier
+                struct_or_union 
+                struct_declaration_list 
+                struct_declaration 
+                specifier_qualifier_list 
+                struct_declarator_list 
+                struct_declarator  
+                type_qualifier
+                function_specifier 
+                declarator 
+                direct_declarator 
+                pointer 
+                type_qualifier_list
+                type_name 
+                abstract_declarator 
+                direct_abstract_declarator 
+                typedef_name
+                initializer
 %left <operator> ','
 %right '=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
 %right <operator> '?' ":"
@@ -85,8 +119,8 @@ start: statement
     | start statement
     ;
 
-statement: expression ';' {printAST($1, 0);}
-;
+/*statement: expression ';' {printAST($1, 0);}
+; */
 expression: assignment_expression {$$ = $1;}
     | expression ',' assignment_expression {$$ = new_astnode_binop(',', $1, $3);}
     ;
@@ -262,8 +296,32 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration: declaration_specifiers ';'
+declaration_or_fndef: declaration
+    |  function_definition
+    ;
+
+function_definition: declaration_specifiers 
+    | declarator 
+    | compound_statement
+    ;
+
+compound_statement: '{' decl_or_stmt_list '}'
+    ;
+
+decl_or_stmt_list: decl_or_stmt
+    | decl_or_stmt_list ',' decl_or_stmt
+    ;
+
+decl_or_stmt: declaration
+    | statement 
+    ;
+
+declaration: declaration_specifiers //';'
     | declaration_specifiers  init_declarator_list ';'
+    ;
+
+statement: compound_statement
+    | expression ';' {printAST($1, 0);}
     ;
 
 declaration_specifiers: storage_class_specifier 
@@ -294,22 +352,17 @@ storage_class_specifier: TYPEDEF
 type_specifier: VOID
     | CHAR
     | SHORT
-    | SHORT INT
     | INT
     | LONG
-    | LONG INT
-    | LONG LONG
-    | LONG LONG INT
     | FLOAT
     | DOUBLE
-    | LONG DOUBLE
     | SIGNED
     | UNSIGNED
     | _BOOL
     | _COMPLEX
     | struct_or_union_specifier 
-    //| enum_specifier
-    //| typedef_name
+    /*| enum_specifier */
+    /*| typedef_name */
     ;
 
 struct_or_union_specifier: struct_or_union '{' struct_declaration_list '}' 
@@ -347,7 +400,8 @@ type_qualifier: CONST
     | VOLATILE
     ;
 
-function_specifier: INLINE;
+function_specifier: INLINE
+    ;
 
 declarator: direct_declarator
     | pointer direct_declarator
@@ -355,13 +409,15 @@ declarator: direct_declarator
 
 direct_declarator: IDENT
     | '(' declarator ')'
-    | direct_declarator '[' assignment_expression ']'
-    | direct_declarator '[' type_qualifier_list assignment_expression ']'
-    | direct_declarator '[' STATIC type_qualifier_list assignment_expression ']' 
-    | direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' 
-    | direct_declarator '[' type_qualifier_list '*' ']'
+    //| direct_declarator '[' assignment_expression ']'
+    //| direct_declarator '[' type_qualifier_list assignment_expression ']'
+    //| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']' 
+    //| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' 
+    //| direct_declarator '[' type_qualifier_list '*' ']'
     //| direct_declarator '(' parameter_type_list ')'
     //| direct_declarator '(' identifier_list ')'
+    | direct_declarator '[' ']'
+    | direct_declarator '[' NUMBER ']'
     | direct_declarator '(' ')'
     ;
 
@@ -377,7 +433,7 @@ type_qualifier_list: type_qualifier
 
 type_name: specifier_qualifier_list                       
          | specifier_qualifier_list abstract_declarator      
-         ;
+         ; 
 
 /* 
 parameter_type_list: parameter_list
@@ -404,17 +460,20 @@ abstract_declarator: pointer
 
 direct_abstract_declarator: '(' abstract_declarator ')'
     | '[' ']'
-    //| '[' assignment_expression ']' 
-    | direct_abstract_declarator '[' assignment_expression ']' 
-    | '[' '*' ']' 
-    | direct_abstract_declarator '[' '*' ']' 
+    | direct_abstract_declarator '[' ']' 
+    | '[' NUMBER ']' 
+    | direct_abstract_declarator '[' NUMBER ']' 
     | '(' ')'
-   // | '(' parameter_type_list ')'
-   // | direct_abstract_declarator '(' parameter_type_list ')'
     | direct_abstract_declarator '(' ')'
+    // | '[' assignment_expression ']' 
+    // | direct_abstract_declarator '[' assignment_expression ']' 
+    // | '[' '*' ']' 
+    // | direct_abstract_declarator '[' '*' ']' 
+    // | '(' parameter_type_list ')'
+    // | direct_abstract_declarator '(' parameter_type_list ')'
     ;
 
-//typedef_name: IDENT;
+typedef_name: IDENT;
 
 initializer: assignment_expression
    // | '{' initializer_list '}' 
@@ -428,7 +487,6 @@ initializer: assignment_expression
     ;
 
 designation: designator_list '=';
-
 designator_list: designator
     | designator_list designator
     ;

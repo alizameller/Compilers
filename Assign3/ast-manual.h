@@ -14,6 +14,10 @@ typedef enum nodetype {
     FUNCTION_NODE,
     ARGUMENT_NODE,
     ARGLIST_NODE,
+    SCALAR_NODE,
+    POINTER_NODE,
+    ARRAY_NODE,
+    FUNCTION_DEF_NODE
 } nodetype;
 
 struct info {
@@ -48,11 +52,14 @@ struct stringinfo {
 };
 struct stringinfo stringInfo; 
 
+/* Expressions Nodes */
+
 // Generic
 struct astnode_generic {
     enum nodetype type;
 };
 
+// Unary Operators
 struct astnode_unop {
     enum nodetype type;
     int operator;
@@ -61,6 +68,7 @@ struct astnode_unop {
 
 union astnode* new_astnode_unop(int operator, union astnode *operand);
 
+// Binary Operators
 struct astnode_binop {
     enum nodetype type;
     int operator;
@@ -69,6 +77,7 @@ struct astnode_binop {
 
 union astnode* new_astnode_binop(int operator, union astnode *left, union astnode *right);
 
+// Ternary Operators
 struct astnode_ternop {
     enum nodetype type;
     int operator1;
@@ -90,7 +99,6 @@ struct astnode_ident {
     enum nodetype type;
     char* ident;
 };
-
 union astnode* new_astnode_ident(nodetype type, char* ident);
 
 // String
@@ -98,7 +106,6 @@ struct astnode_string {
     enum nodetype type;
     char *string_literal;
 };
-
 union astnode* new_astnode_string(nodetype type, char* string);
 
 // Argument Node
@@ -130,6 +137,51 @@ struct astnode_function {
 union astnode* new_astnode_func(union astnode *function_name, union astnode *arg_list);
 union astnode* astnode_one(); 
 
+/* Declarations Nodes */
+typedef enum scalar_type {
+    VOID_TYPE,
+    CHAR_TYPE,
+    SHORT_TYPE,
+    INT_TYPE,
+    LONG_TYPE,
+    FLOAT_TYPE,
+    DOUBLE_TYPE,
+    BOOL_TYPE
+} scalar_type;
+
+typedef enum scalar_sign {
+    SIGNED_SIGN,
+    UNSIGNED_SIGN
+} scalar_sign;
+
+// Scalar Node
+struct astnode_scalar {
+    enum nodetype type;
+    enum scalar_type scalarType;
+    enum scalar_sign scalarSign;
+};
+
+union astnode* new_astnode_scalar(nodetype type, union astnode *name);
+
+
+// Pointer Node
+struct astnode_pointer {
+    enum nodetype type;
+};
+union astnode* new_astnode_pointer(nodetype type, union astnode *name);
+
+// Array Node
+struct astnode_array {
+    enum nodetype type;
+};
+union astnode* new_astnode_array(nodetype type, union astnode *name);
+
+// Function Definition Node
+struct astnode_fndef {
+    enum nodetype type;
+};
+union astnode* new_astnode_fndef(nodetype type, union astnode *name);
+
 void printAST(union astnode* node, int indent); 
 
 typedef union astnode {
@@ -143,6 +195,10 @@ typedef union astnode {
     struct astnode_function func;
     struct astnode_argument arg;
     struct astnode_arglist list;   
+    struct astnode_scalar scalar; 
+    struct astnode_pointer ptr; 
+    struct astnode_array arr; 
+    struct astnode_fndef fndef; 
     /* etc.*/
 } astnode; 
 

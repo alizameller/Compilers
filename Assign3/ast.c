@@ -1,5 +1,6 @@
 #include "ast-manual.h"
 
+// Expression Functions
 union astnode* new_astnode_string(nodetype type, char *string){
 	// allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
@@ -105,7 +106,7 @@ union astnode *init_list(union astnode *arg_head) {
     return node_ptr;
 }
 
-union astnode * append_arg(union astnode *arg_head, union astnode *arg_entry) {
+union astnode *append_arg(union astnode *arg_head, union astnode *arg_entry) {
     // make arg_entry an astnode_arg
     union astnode *entry = new_astnode_arg(arg_entry); 
     // create a temp astnode called current
@@ -122,7 +123,7 @@ union astnode * append_arg(union astnode *arg_head, union astnode *arg_entry) {
     return arg_head; //return the head
 }
 
-union astnode* new_astnode_func(union astnode *function_name, union astnode *arg_list) {
+union astnode*new_astnode_func(union astnode *function_name, union astnode *arg_list) {
    // allocate memory
     union astnode *node_ptr = (union astnode*) malloc (sizeof (union astnode));
     
@@ -147,4 +148,16 @@ union astnode* new_astnode_func(union astnode *function_name, union astnode *arg
     return node_ptr;
 }
 
+// Declaration Functions
+union astnode* new_astnode_scalar(nodetype type, union astnode *name){
 
+}
+union astnode* new_astnode_pointer(nodetype type, union astnode *name){
+
+}
+union astnode* new_astnode_array(nodetype type, union astnode *name){
+
+}
+union astnode* new_astnode_fndef(nodetype type, union astnode *name){
+    
+}

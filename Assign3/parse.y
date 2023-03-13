@@ -113,11 +113,11 @@ void yyerror(char *s);
 %left ELSE
 
 %%
+start: declaration_or_fndef
+    | start declaration_or_fndef
+    ;
 
 /* Expression Grammar */
-start: statement
-    | start statement
-    ;
 
 /*statement: expression ';' {printAST($1, 0);}
 ; */
@@ -316,12 +316,12 @@ decl_or_stmt: declaration
     | statement 
     ;
 
-declaration: declaration_specifiers //';'
+declaration: declaration_specifiers ';' {printAST($1, 0);}
     | declaration_specifiers  init_declarator_list ';'
     ;
 
 statement: compound_statement
-    | expression ';' {printAST($1, 0);}
+    | expression //';' {printAST($1, 0);}
     ;
 
 declaration_specifiers: storage_class_specifier 
@@ -349,17 +349,17 @@ storage_class_specifier: TYPEDEF
     | REGISTER
     ;
 
-type_specifier: VOID
-    | CHAR
-    | SHORT
-    | INT
-    | LONG
-    | FLOAT
-    | DOUBLE
-    | SIGNED
-    | UNSIGNED
-    | _BOOL
-    | _COMPLEX
+type_specifier: VOID {$$ = new_astnode_scalar(SCALAR_NODE, VOID_TYPE);}
+    | CHAR {$$ = new_astnode_scalar(SCALAR_NODE, CHAR_TYPE);} /* THIS ONE DOES NOT WORK */
+    | SHORT {$$ = new_astnode_scalar(SCALAR_NODE, SHORT_TYPE);}
+    | INT {$$ = new_astnode_scalar(SCALAR_NODE, INT_TYPE);}
+    | LONG {$$ = new_astnode_scalar(SCALAR_NODE, LONG_TYPE);}
+    | FLOAT {$$ = new_astnode_scalar(SCALAR_NODE, FLOAT_TYPE);}
+    | DOUBLE {$$ = new_astnode_scalar(SCALAR_NODE, DOUBLE_TYPE);}
+    | SIGNED {$$ = new_astnode_scalar(SCALAR_NODE, SIGNED_TYPE);}
+    | UNSIGNED {$$ = new_astnode_scalar(SCALAR_NODE, UNSIGNED_TYPE);}
+    | _BOOL {$$ = new_astnode_scalar(SCALAR_NODE, BOOL_TYPE);} 
+    //| _COMPLEX
     | struct_or_union_specifier 
     /*| enum_specifier */
     /*| typedef_name */
@@ -701,13 +701,15 @@ void printAST(union astnode* node, int indent) {
             }
             break;
         case ARGUMENT_NODE:
+        case SCALAR_NODE:
+            printf("SCALAR DECLARATION, TYPE: %d\n", node->scalar.scalarType);
         break; 
     }
     free(node); 
 }
 
 int main(){
-  //yydebug = 1;
+  yydebug = 1;
   int t;
   while(!(t = yyparse())){
   };

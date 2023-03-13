@@ -149,9 +149,17 @@ union astnode*new_astnode_func(union astnode *function_name, union astnode *arg_
 }
 
 // Declaration Functions
-union astnode* new_astnode_scalar(nodetype type, union astnode *name){
+union astnode* new_astnode_scalar(nodetype type, scalar_type s_type){
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
+	// set entries
+    node_ptr->scalar.type = type; 
+    node_ptr->scalar.scalarType = s_type;
+
+    return node_ptr;
 }
+
 union astnode* new_astnode_pointer(nodetype type, union astnode *name){
 
 }
@@ -159,5 +167,5 @@ union astnode* new_astnode_array(nodetype type, union astnode *name){
 
 }
 union astnode* new_astnode_fndef(nodetype type, union astnode *name){
-    
+
 }

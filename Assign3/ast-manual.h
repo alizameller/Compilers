@@ -146,23 +146,18 @@ typedef enum scalar_type {
     LONG_TYPE,
     FLOAT_TYPE,
     DOUBLE_TYPE,
+    SIGNED_TYPE,
+    UNSIGNED_TYPE,
     BOOL_TYPE
 } scalar_type;
-
-typedef enum scalar_sign {
-    SIGNED_SIGN,
-    UNSIGNED_SIGN
-} scalar_sign;
 
 // Scalar Node
 struct astnode_scalar {
     enum nodetype type;
     enum scalar_type scalarType;
-    enum scalar_sign scalarSign;
 };
 
-union astnode* new_astnode_scalar(nodetype type, union astnode *name);
-
+union astnode* new_astnode_scalar(nodetype type, scalar_type s_type);
 
 // Pointer Node
 struct astnode_pointer {

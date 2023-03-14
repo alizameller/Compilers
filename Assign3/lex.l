@@ -25,7 +25,7 @@ FLOAT                         {DFC}|{HFC}
 %x INTEGER_SUFFIX
 %x FLOAT_SUFFIX
 %x STR
-%x CHAR
+%x CHARACTER
 
 /* Rule Section  */
 
@@ -128,9 +128,9 @@ char *buf_ptr;
             return NUMBER;
         }
 }
-L?\' {buf_ptr = buf; BEGIN(CHAR);}
+L?\' {buf_ptr = buf; BEGIN(CHARACTER);}
 L?\" {buf_ptr = buf; BEGIN(STR);}
-<CHAR,STR>{
+<CHARACTER,STR>{
        \" {   
             BEGIN(INITIAL);
             *buf_ptr = '\0'; 
@@ -183,7 +183,7 @@ L?\" {buf_ptr = buf; BEGIN(STR);}
             fprintf(stderr, "%s:%d:Error:Unterminated string constant", report.fileName, report.lineNum);
       }
 }
-<CHAR>{
+<CHARACTER>{
       \' {  
             BEGIN(INITIAL);
             if ((buf_ptr - buf) > 1) {

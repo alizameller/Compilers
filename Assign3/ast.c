@@ -160,9 +160,25 @@ union astnode* new_astnode_scalar(nodetype type, scalar_type s_type){
     return node_ptr;
 }
 
-union astnode* new_astnode_pointer(nodetype type, union astnode *name){
+union astnode* new_astnode_pointer(nodetype type, t_qualifier type_qual, union astnode *pointer){
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
-}
+    // set entries
+    node_ptr->ptr.type = type; 
+    node_ptr->ptr.parent = NULL;
+    node_ptr->ptr.type_qualifier = NONE_TYPE; 
+    
+    // if pointer is not NULL
+    if (pointer) {
+        node_ptr->ptr.parent = pointer;
+    }
+    if (type_qual) {
+        node_ptr->ptr.type_qualifier = type_qual; 
+    }
+    return node_ptr;
+}  
+
 union astnode* new_astnode_array(nodetype type, union astnode *name){
 
 }

@@ -151,6 +151,13 @@ typedef enum scalar_type {
     BOOL_TYPE
 } scalar_type;
 
+typedef enum t_qualifier {
+    CONST_TYPE,
+    RESTRICT_TYPE,
+    VOLATILE_TYPE,
+    NONE_TYPE
+} t_qualifier;
+
 // Scalar Node
 struct astnode_scalar {
     enum nodetype type;
@@ -162,8 +169,10 @@ union astnode* new_astnode_scalar(nodetype type, scalar_type s_type);
 // Pointer Node
 struct astnode_pointer {
     enum nodetype type;
+    union astnode* parent;
+    enum t_qualifier type_qualifier;
 };
-union astnode* new_astnode_pointer(nodetype type, union astnode *name);
+union astnode* new_astnode_pointer(nodetype type, t_qualifier type_qual, union astnode *pointer);
 
 // Array Node
 struct astnode_array {

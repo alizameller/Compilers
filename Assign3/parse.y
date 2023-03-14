@@ -115,12 +115,17 @@ void yyerror(char *s);
 %%
 start: declaration_or_fndef
     | start declaration_or_fndef
-    ;
+    ; 
 
 /* Expression Grammar */
 
-/*statement: expression ';' {printAST($1, 0);}
+/*start: statement
+    | start statement
+    ;
+
+statement: expression ';' {printAST($1, 0);}
 ; */
+
 expression: assignment_expression {$$ = $1;}
     | expression ',' assignment_expression {$$ = new_astnode_binop(',', $1, $3);}
     ;
@@ -300,9 +305,7 @@ declaration_or_fndef: declaration
     |  function_definition
     ;
 
-function_definition: declaration_specifiers 
-    | declarator 
-    | compound_statement
+function_definition: declaration_specifiers declarator compound_statement ';' {printAST($1, 0);}
     ;
 
 compound_statement: '{' decl_or_stmt_list '}'
@@ -317,11 +320,11 @@ decl_or_stmt: declaration
     ;
 
 declaration: declaration_specifiers ';' {printAST($1, 0);}
-    | declaration_specifiers  init_declarator_list ';'
+    | declaration_specifiers init_declarator_list ';'
     ;
 
 statement: compound_statement
-    | expression //';' {printAST($1, 0);}
+    | expression ';' 
     ;
 
 declaration_specifiers: storage_class_specifier 
@@ -359,7 +362,7 @@ type_specifier: VOID {$$ = new_astnode_scalar(SCALAR_NODE, VOID_TYPE);}
     | SIGNED {$$ = new_astnode_scalar(SCALAR_NODE, SIGNED_TYPE);}
     | UNSIGNED {$$ = new_astnode_scalar(SCALAR_NODE, UNSIGNED_TYPE);}
     | _BOOL {$$ = new_astnode_scalar(SCALAR_NODE, BOOL_TYPE);} 
-    //| _COMPLEX
+    //| _COMPLEX {}
     | struct_or_union_specifier 
     /*| enum_specifier */
     /*| typedef_name */
@@ -421,13 +424,13 @@ direct_declarator: IDENT
     | direct_declarator '(' ')'
     ;
 
-pointer: '*'
-    | '*' type_qualifier_list
-    | '*' pointer
-    | '*' type_qualifier_list pointer
+pointer: '*' {$$ = new_astnode_pointer(POINTER_NODE, NULL, NULL);}
+    | '*' type_qualifier_list {$$ = new_astnode_pointer(POINTER_NODE, $2, NULL);}
+    | '*' pointer {$$ = new_astnode_pointer(POINTER_NODE, NULL, $2);}
+    | '*' type_qualifier_list pointer {$$ = new_astnode_pointer(POINTER_NODE, $2, $3);}
     ;
 
-type_qualifier_list: type_qualifier
+type_qualifier_list: type_qualifier {$$ = $1;}
     | type_qualifier_list type_qualifier
     ;
 
@@ -703,13 +706,22 @@ void printAST(union astnode* node, int indent) {
         case ARGUMENT_NODE:
         case SCALAR_NODE:
             printf("SCALAR DECLARATION, TYPE: %d\n", node->scalar.scalarType);
-        break; 
+            break; 
+        case POINTER_NODE:
+            printf("POINTER\n");
+            if (node->ptr.parent) {
+                printAST(node->ptr.parent, indent+1);
+            }
+            if (node->ptr.type_qualifier) {
+                printf("%d", node->ptr.type_qualifier);
+            }
+            break; 
     }
     free(node); 
 }
 
 int main(){
-  yydebug = 1;
+  //yydebug = 1;
   int t;
   while(!(t = yyparse())){
   };

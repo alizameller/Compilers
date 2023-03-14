@@ -2,9 +2,7 @@
 |      TO DO:                                                                                                      |
 |                                                                                                                  |
 \-----------------------------------------------------------------------------------------------------------------*/
-
 /* Definition Section */
-
 %{
 #include "tokens-manual.h"
 #include <limits.h>
@@ -24,8 +22,8 @@ FLOAT                         {DFC}|{HFC}
 %s ENDL
 %x INTEGER_SUFFIX
 %x FLOAT_SUFFIX
-%x STRING
-%x CHAR
+%x STR
+%x CHARACTER
 
 /* Rule Section  */
 
@@ -128,9 +126,9 @@ char *buf_ptr;
             return NUMBER;
         }
 }
-L?\' {buf_ptr = buf; BEGIN(CHAR);}
-L?\" {buf_ptr = buf; BEGIN(STRING);}
-<CHAR,STRING>{
+L?\' {buf_ptr = buf; BEGIN(CHARACTER);}
+L?\" {buf_ptr = buf; BEGIN(STR);}
+<CHARACTER,STR>{
        \" {   
             BEGIN(INITIAL);
             *buf_ptr = '\0'; 
@@ -141,6 +139,7 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
 		}
             
 		memcpy(yylval.stringInfo.string_literal, buf, (yylval.stringInfo.length + 1)*sizeof(char));
+
             return STRING; 
          }
       [^\"\'\\\n]+ {
@@ -182,7 +181,7 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
             fprintf(stderr, "%s:%d:Error:Unterminated string constant", report.fileName, report.lineNum);
       }
 }
-<CHAR>{
+<CHARACTER>{
       \' {  
             BEGIN(INITIAL);
             if ((buf_ptr - buf) > 1) {
@@ -192,7 +191,7 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
             return CHARLIT; 
          }
 }
-<STRING>\' {*buf_ptr++ = '\'';} 
+<STR>\' {*buf_ptr++ = '\'';} 
 \[ {return '[';}
 \] {return ']';}
 \( {return '(';}
@@ -218,8 +217,6 @@ L?\" {buf_ptr = buf; BEGIN(STRING);}
 \> {return '>';}
 = {return '=';}
 , {return ',';}
-# {return '#';}
-## {return 900;} /* I do not know */
 \<\: {return '[';} 
 \:\>  {return ']';}
 \<%  {return '{';}
@@ -678,4 +675,4 @@ int main(){
             }
       }
       return 0;
-}
+} 

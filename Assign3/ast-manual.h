@@ -14,6 +14,7 @@ typedef enum nodetype {
     FUNCTION_NODE,
     ARGUMENT_NODE,
     ARGLIST_NODE,
+    DECSPEC_NODE,
     SCALAR_NODE,
     POINTER_NODE,
     ARRAY_NODE,
@@ -138,7 +139,8 @@ union astnode* new_astnode_func(union astnode *function_name, union astnode *arg
 union astnode* astnode_one(); 
 
 /* Declarations Nodes */
-typedef enum scalar_type {
+
+typedef enum specifier_type {
     VOID_TYPE,
     CHAR_TYPE,
     SHORT_TYPE,
@@ -148,37 +150,49 @@ typedef enum scalar_type {
     DOUBLE_TYPE,
     SIGNED_TYPE,
     UNSIGNED_TYPE,
-    BOOL_TYPE
-} scalar_type;
+    BOOL_TYPE,
+    UNKNOWN_TYPE
+} specifier_type;
 
-typedef enum t_qualifier {
+typedef enum qualifier_type {
     CONST_TYPE,
     RESTRICT_TYPE,
     VOLATILE_TYPE,
     NONE_TYPE
-} t_qualifier;
+} qualifier_type;
+
+// Declaration Specifier Node
+struct astnode_declaration_spec {
+    enum nodetype type;
+    enum specifier_type s_type;
+    enum qualifier_type q_type; 
+};
+
+union astnode* new_astnode_declaration_spec(nodetype type, specifier_type s_type, qualifier_type q_type);
 
 // Scalar Node
 struct astnode_scalar {
     enum nodetype type;
-    enum scalar_type scalarType;
+    enum specifier_type scalarType;
 };
 
-union astnode* new_astnode_scalar(nodetype type, scalar_type s_type);
+union astnode* new_astnode_scalar(nodetype type, specifier_type s_type);
 
 // Pointer Node
 struct astnode_pointer {
     enum nodetype type;
     union astnode* parent;
-    enum t_qualifier type_qualifier;
+    enum qualifier_type q_type;
 };
-union astnode* new_astnode_pointer(nodetype type, t_qualifier type_qual, union astnode *pointer);
+union astnode* new_astnode_pointer(nodetype type, union astnode *type_qual, union astnode *pointer);
 
 // Array Node
 struct astnode_array {
     enum nodetype type;
+    int size;
+    union astnode* element_type;
 };
-union astnode* new_astnode_array(nodetype type, union astnode *name);
+union astnode* new_astnode_array(nodetype type, union astnode *element_type, int size);
 
 // Function Definition Node
 struct astnode_fndef {
@@ -198,7 +212,8 @@ typedef union astnode {
     struct astnode_string str;
     struct astnode_function func;
     struct astnode_argument arg;
-    struct astnode_arglist list;   
+    struct astnode_arglist list; 
+    struct astnode_declaration_spec decspec;  
     struct astnode_scalar scalar; 
     struct astnode_pointer ptr; 
     struct astnode_array arr; 

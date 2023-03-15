@@ -1,6 +1,6 @@
 #include "ast-manual.h"
 
-// Expression Functions
+/* Expression Functions */
 union astnode* new_astnode_string(nodetype type, char *string){
 	// allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
@@ -149,7 +149,19 @@ union astnode*new_astnode_func(union astnode *function_name, union astnode *arg_
 }
 
 // Declaration Functions
-union astnode* new_astnode_scalar(nodetype type, scalar_type s_type){
+union astnode* new_astnode_declaration_spec(nodetype type, enum specifier_type s_type, enum qualifier_type q_type){
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+    // set entries
+    node_ptr->decspec.type = type; 
+    node_ptr->decspec.s_type = s_type;
+    node_ptr->decspec.q_type = q_type; 
+    
+    return node_ptr;
+}
+
+union astnode* new_astnode_scalar(nodetype type, enum specifier_type s_type){
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
@@ -160,28 +172,37 @@ union astnode* new_astnode_scalar(nodetype type, scalar_type s_type){
     return node_ptr;
 }
 
-union astnode* new_astnode_pointer(nodetype type, t_qualifier type_qual, union astnode *pointer){
+union astnode* new_astnode_pointer(nodetype type, union astnode *type_qual, union astnode *pointer){
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
     // set entries
     node_ptr->ptr.type = type; 
     node_ptr->ptr.parent = NULL;
-    node_ptr->ptr.type_qualifier = NONE_TYPE; 
+    node_ptr->ptr.q_type = NONE_TYPE; 
     
     // if pointer is not NULL
     if (pointer) {
         node_ptr->ptr.parent = pointer;
     }
     if (type_qual) {
-        node_ptr->ptr.type_qualifier = type_qual; 
+        node_ptr->ptr.q_type = type_qual->decspec.q_type; 
     }
     return node_ptr;
 }  
 
-union astnode* new_astnode_array(nodetype type, union astnode *name){
+union astnode* new_astnode_array(nodetype type, union astnode *element_type, int size){
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
+	// set entries
+    node_ptr->arr.type = type; 
+    node_ptr->arr.size = size;
+    node_ptr->arr.element_type = element_type;
+
+    return node_ptr;
 }
+
 union astnode* new_astnode_fndef(nodetype type, union astnode *name){
 
 }

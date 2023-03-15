@@ -45,7 +45,7 @@ void yyerror(char *s);
                 argument_expression_list
                 unary_expression
 %type<operator> unary_operator
-%type<astnode_p> function_call 
+%type<astnode_p>function_call 
                 cast_expression
                 multiplicative_expression
                 additive_expression
@@ -60,11 +60,11 @@ void yyerror(char *s);
                 conditional_expression
                 assignment_expression
 %type<operator> assignment_operator
-%type<astnode_p> expression 
+%type<astnode_p>expression 
                 constant_expression
 
 /* Declarations */
-%type<astnode_p> declaration_or_fndef 
+%type<astnode_p>declaration_or_fndef 
                 function_definition
                 compound_statement
                 decl_or_stmt_list
@@ -77,14 +77,14 @@ void yyerror(char *s);
                 storage_class_specifier 
                 type_specifier 
                 struct_or_union_specifier
-                struct_or_union 
-                struct_declaration_list 
+%type<operator> struct_or_union 
+%type<astnode_p>struct_declaration_list 
                 struct_declaration 
                 specifier_qualifier_list 
                 struct_declarator_list 
                 struct_declarator  
-                type_qualifier
-                function_specifier 
+%type<operator> type_qualifier
+%type<astnode_p>function_specifier 
                 declarator 
                 direct_declarator 
                 pointer 
@@ -398,9 +398,9 @@ struct_declarator_list: struct_declarator
 struct_declarator: declarator
     ;
 
-type_qualifier: CONST
-    | RESTRICT
-    | VOLATILE
+type_qualifier: CONST {$$ = CONST_TYPE;}
+    | RESTRICT {$$ = RESTRICT_TYPE;}
+    | VOLATILE {$$ = VOLATILE_TYPE;}
     ;
 
 function_specifier: INLINE
@@ -430,7 +430,7 @@ pointer: '*' {$$ = new_astnode_pointer(POINTER_NODE, NULL, NULL);}
     | '*' type_qualifier_list pointer {$$ = new_astnode_pointer(POINTER_NODE, $2, $3);}
     ;
 
-type_qualifier_list: type_qualifier {$$ = $1;}
+type_qualifier_list: type_qualifier {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, $1);}
     | type_qualifier_list type_qualifier
     ;
 
@@ -461,11 +461,11 @@ abstract_declarator: pointer
     | pointer direct_abstract_declarator
     ;
 
-direct_abstract_declarator: '(' abstract_declarator ')'
-    | '[' ']'
-    | direct_abstract_declarator '[' ']' 
-    | '[' NUMBER ']' 
-    | direct_abstract_declarator '[' NUMBER ']' 
+direct_abstract_declarator: '(' abstract_declarator ')' {$$ = $2;}
+    | '[' ']' {$$ = new_astnode_array(ARRAY_NODE, NULL, 0);}
+    | direct_abstract_declarator '[' ']' {$$ = new_astnode_array(ARRAY_NODE, $1, 0);}
+    | '[' NUMBER ']' {$$ = new_astnode_array(ARRAY_NODE, NULL, $2.value.int_val);}
+    | direct_abstract_declarator '[' NUMBER ']' {$$ = new_astnode_array(ARRAY_NODE, $1, $3.value.int_val);}
     | '(' ')'
     | direct_abstract_declarator '(' ')'
     // | '[' assignment_expression ']' 
@@ -712,8 +712,8 @@ void printAST(union astnode* node, int indent) {
             if (node->ptr.parent) {
                 printAST(node->ptr.parent, indent+1);
             }
-            if (node->ptr.type_qualifier) {
-                printf("%d", node->ptr.type_qualifier);
+            if (node->ptr.q_type) {
+                printf("%d", node->ptr.q_type);
             }
             break; 
     }

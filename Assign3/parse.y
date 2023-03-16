@@ -119,10 +119,7 @@ start: declaration_or_fndef
 
 /* Expression Grammar */
 
-/*start: statement
-    | start statement
-    ;
-
+/*
 statement: expression ';' {printAST($1, 0);}
 ; */
 
@@ -302,7 +299,7 @@ constant_expression: conditional_expression;
 
 /* Declarations Grammar */
 declaration_or_fndef: declaration
-    |  function_definition
+    | function_definition
     ;
 
 function_definition: declaration_specifiers declarator compound_statement ';' {printAST($1, 0);}
@@ -708,13 +705,8 @@ void printAST(union astnode* node, int indent) {
             printf("SCALAR DECLARATION, TYPE: %d\n", node->scalar.scalarType);
             break; 
         case POINTER_NODE:
-            printf("POINTER\n");
-            if (node->ptr.parent) {
-                printAST(node->ptr.parent, indent+1);
-            }
-            if (node->ptr.q_type) {
-                printf("%d", node->ptr.q_type);
-            }
+            printf("pointer to\n");
+            printAST(node->ptr.parent, indent+1);
             break; 
     }
     free(node); 

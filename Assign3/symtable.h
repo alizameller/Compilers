@@ -1,6 +1,7 @@
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 
+#include "ast.c"
 /* 
 
     Stack
@@ -17,6 +18,14 @@ _____________
 the symbols
 
 */
+
+// Top should point to the top of the scope stack,
+// which is the most recent scope pushed
+
+scope *top;
+
+int scopeDepth;
+
 enum scope_name {
     FILE_SCOPE,
     BLOCK_SCOPE,
@@ -93,7 +102,7 @@ struct typedef_symbol {
 // Generic Symbol
 typedef struct symbol {
     //int key;              // hash value?
-    struct astnode *sym;    // pointer to ast node (to get value of symbol)
+    astnode *sym;    // pointer to ast node (to get value of symbol)
     int sym_type;           // type of symbol
 
     // possible types of IDENT symbols
@@ -113,7 +122,7 @@ typedef struct symbol {
 typedef struct symbol_table {
     enum name_space nameSpace;
     int size; 
-    symbol* symbolTable;
+    int capacity;
 } symbol_table;
 
 // Scope Struct -- Implemented as a stack (linked list)
@@ -123,11 +132,21 @@ typedef struct scope {
     scope *parent;
 } scope;
 
+// creates new scope and returns a pointer to the new scope
+scope *new_scope();
+
+// delete a scope and all its contents
+void deleteScope(scope *scopeName);
+
 // creates new symbol table and returns the symbol table 
-scope new_scope(void);
+symbol_table *new_symbol_table();
 
 // delete a symbol table and all its contents
-void deleteTable(scope scopeName, symbol_table symTable);
+void deleteTable(scope *scopeName, enum name_space nameSpace);
+
+
+// hash the ident and return hash value
+int hash(char *ident, int capacity);
 
 // get the number of symbols in a symbol table –– error checking purposes?
 int getLength(symbol_table symTable);

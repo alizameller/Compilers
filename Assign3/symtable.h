@@ -22,9 +22,6 @@ the symbols
 // Top should point to the top of the scope stack,
 // which is the most recent scope pushed
 
-scope *top;
-int scopeDepth;
-
 enum scope_name {
     FILE_SCOPE,
     BLOCK_SCOPE,
@@ -70,20 +67,20 @@ struct member_symbol {
 // Struct/Union Tag Symbol
 struct su_tag_symbol {
     char *name;
-    symbol *su_symbol_table; // array of symbols (of type member_symbol)
+    struct symbol **su_symbol_table; // array of symbols (of type member_symbol)
 } su_tag_symbol;
 
 // Enum Tag Symbol
 struct enum_tag_symbol {
     char *name;
-    symbol *constant; // pointer to enum constant?
+    struct symbol *constant; // pointer to enum constant?
 } enum_tag_symbol;
 
 // Enum Symbol
 struct enum_symbol {
     char *name;
     int value;
-    symbol *tag; // pointer to enum tag?
+    struct symbol *tag; // pointer to enum tag?
 } enum_symbol;
 
 // Label Symbol
@@ -129,13 +126,17 @@ typedef struct symbol_table {
 typedef struct scope {
     enum scope_name name;
     symbol_table *symbolTables[4];
-    scope *parent;
+    struct scope *parent;
 } scope;
+
+
+scope *top;
+int scopeDepth;
 
 // scope stack struct?
 
 // create symbol
-symbol *new_symbol();
+symbol *new_symbol(char *key);
 
 // free symbol 
 void free_symbol(symbol *sym);
@@ -159,16 +160,16 @@ int hash(char *ident, int capacity);
 //      symbol and return 1 (TRUE)
 // else, no changes should be made and insert should return 0 (FALSE)
 // - calls hash
-int insert(symbol_table *symTable, symbol *sym);
+int insert(symbol_table *symTable, char *ident);
 
 // if a binding with the key (pKey) exists, remove that binding from the 
 //      symbol table and return 1 (TRUE)
-// else, no chnages should be made and remove should return 0 (FALSE) 
-int remove(symbol_table symTable, char *ident);
+// else, no changes should be made and remove should return 0 (FALSE) 
+int remove_symbol(symbol_table *symTable, char *ident);
 
 // returns 1 (TRUE) if inputted symTable conrains a binding whose key is pKey
 // else, returns 0 (FALSE)
-int contains(symbol_table symTable, char *ident);
+int contains(symbol_table *symTable, char *ident);
 
 // return the symbol with the key (pKey) if it exists
 // else, return NULL

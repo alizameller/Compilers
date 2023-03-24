@@ -23,7 +23,6 @@ the symbols
 // which is the most recent scope pushed
 
 scope *top;
-
 int scopeDepth;
 
 enum scope_name {
@@ -101,8 +100,8 @@ struct typedef_symbol {
 
 // Generic Symbol
 typedef struct symbol {
-    //int key;              // hash value?
-    astnode *sym;    // pointer to ast node (to get value of symbol)
+    char *key;              // hash value?
+    astnode *value;    // pointer to ast node (to get value of symbol)
     int sym_type;           // type of symbol
 
     // possible types of IDENT symbols
@@ -121,8 +120,9 @@ typedef struct symbol {
 // Symbol Table Struct -- Implemented as a hashtable 
 typedef struct symbol_table {
     enum name_space nameSpace;
-    int size; 
+    int filled; 
     int capacity;
+    symbol **data; 
 } symbol_table;
 
 // Scope Struct -- Implemented as a stack (linked list)
@@ -132,56 +132,62 @@ typedef struct scope {
     scope *parent;
 } scope;
 
+// scope stack struct?
+
+// create symbol
+symbol *new_symbol();
+
+// free symbol 
+void free_symbol(symbol *sym);
+
+// create symbol table 
+symbol_table *new_symbol_table();
+
+// free symbol table 
+void free_symbol_table(symbol_table *symTable);
+
 // creates new scope and returns a pointer to the new scope
 scope *new_scope();
 
 // delete a scope and all its contents
-void deleteScope(scope *scopeName);
+void free_scope(scope *scopeName);
 
-// creates new symbol table and returns the symbol table 
-symbol_table *new_symbol_table();
-
-// delete a symbol table and all its contents
-void deleteTable(scope *scopeName, enum name_space nameSpace);
-
-
-// hash the ident and return hash value
+// hash the ident and return hash value (position in array of pointers to symbols)
 int hash(char *ident, int capacity);
-
-// get the number of symbols in a symbol table –– error checking purposes?
-int getLength(symbol_table symTable);
 
 // if a symbol with the name does not already exist, insert a new 
 //      symbol and return 1 (TRUE)
 // else, no changes should be made and insert should return 0 (FALSE)
-// Note: make a copy of the name and store the address of that copy within the 
-// new binding
-int insert(scope scopeName, symbol_table symTable, char *name, int type);
+// - calls hash
+int insert(symbol_table *symTable, symbol *sym);
 
 // if a binding with the key (pKey) exists, remove that binding from the 
 //      symbol table and return 1 (TRUE)
 // else, no chnages should be made and remove should return 0 (FALSE) 
-int remove(scope scopeName, symbol_table symTable, const char *pKey);
+int remove(symbol_table symTable, char *ident);
 
 // returns 1 (TRUE) if inputted symTable conrains a binding whose key is pKey
 // else, returns 0 (FALSE)
-int contains(scope scopeName, symbol_table symTable, const char *pKey);
+int contains(symbol_table symTable, char *ident);
 
 // return the symbol with the key (pKey) if it exists
 // else, return NULL
-symbol *get(scope scopeName, symbol_table symTable, const char *pKey);
+symbol *get(symbol_table symTable, char *ident);
+
+// get the number of symbols in a symbol table –– error checking purposes?
+// int getLength(symbol_table *symTable);
 
 // functions pertaining to bindings in symbol table
-unsigned int hash(char * &key); //get hash value for specific key
+//unsigned int hash(char * &key); //get hash value for specific key
 
-int findPos(char * &key);
+//int findPos(char * &key);
 
-void *getPointer(char * &key, int *b); // int b = bool
+//void *getPointer(char * &key, int *b); // int b = bool
 
-int setPointer(char * &key, void *pv);
+//int setPointer(char * &key, void *pv);
 
-int rehash(); // returns 1 if success, 0 if fail
+//int rehash(); // returns 1 if success, 0 if fail
 
-static unsigned int getPrime(int size);
+//static unsigned int getPrime(int size);
 
 #endif //SYMTABLE_H

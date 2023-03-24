@@ -63,6 +63,8 @@ int hash(char *ident, int capacity) {
     if (hashVal < 0)
         hashVal += capacity;
 
+    hashVal = 1302;
+
     return hashVal;
 }
 
@@ -75,29 +77,44 @@ int insert(symbol_table *symTable, char *ident) {
 
     symbol* current_symbol = symTable->data[index];
 
-    if (current_symbol == NULL) {
-        // Key does not exist.
-        if (symTable->filled == symTable->capacity) {
-            // HashTable is full.
-            printf("Insert Error: Hash Table is full\n");
-            free_symbol(sym);
+    // check for attempted redeclaration
+    if (current_symbol != NULL) {
+        if (!strcmp(current_symbol->key, ident)) { // strcmp returns 0 if same
+            printf("error cannot re-declare %s\n", ident);
             return 0;
         }
 
-        // Insert directly.
-        symTable->data[index] = sym;
-        symTable->filled++;
-        return 1;
-    } else {
-        // Scenario 1: trying to hash same value -- ERROR cannot redeclare same ident
-        if (!strcmp(current_symbol->key, ident)) { // if they are the same
-            return 1;
-        } else { 
-        // Handle collision
-        
-            return 0;
+        while (strcmp(current_symbol->key, ident)) { // ident is not the same as key
+            // HashTable is full
+            if (symTable->filled == symTable->capacity) {
+                printf("Insert Error: Hash Table is full\n");
+                free_symbol(sym);
+                return 0;
+            }
+
+            // Linear Probing
+            index++; 
+            symbol* current_symbol = symTable->data[index];
+
+            if (current_symbol == NULL) { // check if symbol at new index is NULL
+                //printf("%d\n", index);
+                break;
+            }
         }
-    }
+    } 
+
+    if (symTable->filled == symTable->capacity) {
+        // HashTable is full.
+        printf("Insert Error: Hash Table is full\n");
+        free_symbol(sym);
+        return 0;
+        }
+
+    // Insert
+    symTable->data[index] = sym;
+    symTable->filled++;
+
+    return 1;
 }
 
 int contains(symbol_table *symTable, char *ident) {
@@ -105,13 +122,21 @@ int contains(symbol_table *symTable, char *ident) {
     int index = hash(ident, CAPACITY);
     symbol* sym = symTable->data[index];
 
-    // Provide only non-NULL values.
-    if (sym != NULL) {
-        if (strcmp(sym->key, ident) == 0)
-            return 1;
+    if (sym == NULL) {
+        return 0; 
+    } else {
+        while (strcmp(sym->key, ident)){ // key is not the same as ident
+            index++;
+            symbol* sym = symTable->data[index];
+            if (sym == NULL) {
+                return 0; // cannot find symbol in symbol table
+            } else {
+                break;
+            }
+        }
     }
 
-    return 0;
+    return 1;
 
 }
 
@@ -153,9 +178,20 @@ void free_scope(scope *scopeName) {
 int main() {
     symbol_table *table = new_symbol_table();
     char *ident = "hello";
-    insert(table, ident);
-    int index = hash(ident, CAPACITY);
-    printf("%s\n", (table->data[index])->key);
+
+    if (insert(table, ident)) {
+        printf("%s was inserted\n", ident);
+    } else {
+        printf("%s was not inserted\n", ident);
+    }
+
+    ident = "new";
+    
+    if (insert(table, ident)) {
+        printf("%s was inserted\n", ident);
+    } else {
+        printf("%s was not inserted\n", ident);
+    }
 
     if (contains(table, "hello")) {
         printf("table contains hello\n");
@@ -165,11 +201,11 @@ int main() {
 
     remove_symbol(table, "hello");
 
-     if (contains(table, "hello")) {
+    if (contains(table, "hello")) {
         printf("table contains hello\n");
     } else {
         printf("table does not contain hello\n");
-    }
+    } 
 
     return 0;
 }

@@ -98,7 +98,7 @@ struct typedef_symbol {
 // Generic Symbol
 typedef struct symbol {
     char *key;              // hash value?
-    astnode *value;    // pointer to ast node (to get value of symbol)
+    astnode *value;         // pointer to ast node (to get value of symbol)
     int sym_type;           // type of symbol
 
     // possible types of IDENT symbols
@@ -128,7 +128,6 @@ typedef struct scope {
     symbol_table *symbolTables[4];
     struct scope *parent;
 } scope;
-
 
 scope *top;
 int scopeDepth;

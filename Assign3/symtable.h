@@ -23,6 +23,7 @@ the symbols
 // which is the most recent scope pushed
 
 enum scope_name {
+    GLOBAL,
     FILE_SCOPE,
     BLOCK_SCOPE,
     FUNCTION_SCOPE,
@@ -129,10 +130,8 @@ typedef struct scope {
     struct scope *parent;
 } scope;
 
-scope *top;
-int scopeDepth;
-
-// scope stack struct?
+// initialize global variables for scope list (or scope stack struct?)
+scope *current = NULL;
 
 // create symbol
 symbol *new_symbol(char *key);
@@ -146,12 +145,6 @@ symbol_table *new_symbol_table();
 // free symbol table 
 void free_symbol_table(symbol_table *symTable);
 
-// creates new scope and returns a pointer to the new scope
-scope *new_scope();
-
-// delete a scope and all its contents
-void free_scope(scope *scopeName);
-
 // hash the ident and return hash value (position in array of pointers to symbols)
 int hash(char *ident, int capacity);
 
@@ -159,7 +152,7 @@ int hash(char *ident, int capacity);
 //      symbol and return 1 (TRUE)
 // else, no changes should be made and insert should return 0 (FALSE)
 // - calls hash
-int insert(symbol_table *symTable, char *ident);
+int insert_symbol(symbol_table *symTable, char *ident);
 
 // if a binding with the key (pKey) exists, remove that binding from the 
 //      symbol table and return 1 (TRUE)
@@ -168,11 +161,40 @@ int remove_symbol(symbol_table *symTable, char *ident);
 
 // returns 1 (TRUE) if inputted symTable conrains a binding whose key is pKey
 // else, returns 0 (FALSE)
-int contains(symbol_table *symTable, char *ident);
+// FIX RETURN TYPE TO BE A POINTER TO A SYMBOL
+int contains_symbol(symbol_table *symTable, char *ident);
 
+// get symbol attribute
+//void *get_symbol_attribute(symbol_table *symTable, char *ident, void *attribute);
+
+// set symbol attribute
+//void *set_symbol_attribute(symbol_table *symTable, char *ident, void *attribute);
+
+// creates new scope and returns a pointer to the new scope
+scope *new_scope();
+
+// delete a scope and all its contents
+void free_scope(scope *scopeName);
+
+// initialize scope list (make global)
+void init();
+
+// push scope to stack
+// calls new scope, sets parent pointers and updates current 
+int push_scope(enum scope_name scopeType);
+
+// pop current scope from stack by calling free_scope
+// updates current to parent
+int pop_scope();
+
+// starts in current scope calling contains_symbol() in the specific namespace symbol table
+// linearlly moves upwards until global is searched
+symbol *find_symbol(enum name_space varName);
+
+/* Hash Table functions */
 // return the symbol with the key (pKey) if it exists
 // else, return NULL
-symbol *get(symbol_table symTable, char *ident);
+// symbol *get(symbol_table symTable, char *ident);
 
 // get the number of symbols in a symbol table –– error checking purposes?
 // int getLength(symbol_table *symTable);

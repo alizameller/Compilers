@@ -68,7 +68,7 @@ int hash(char *ident, int capacity) {
     return hashVal;
 }
 
-int insert(symbol_table *symTable, char *ident) {
+int insert_symbol(symbol_table *symTable, char *ident) {
     // Creates the symbol.
     symbol* sym = new_symbol(ident);
 
@@ -117,7 +117,7 @@ int insert(symbol_table *symTable, char *ident) {
     return 1;
 }
 
-int contains(symbol_table *symTable, char *ident) {
+int contains_symbol(symbol_table *symTable, char *ident) {
     // Searches for the key in the HashTable.
     int index = hash(ident, CAPACITY);
     symbol* sym = symTable->data[index];
@@ -157,7 +157,7 @@ int remove_symbol(symbol_table *symTable, char *ident) {
 scope *new_scope(enum scope_name s_name, scope *s_parent) {
     // Creates scope struct
     scope *scope_ptr;
-    if(!(scope_ptr = calloc(1, sizeof(scope)))) { // if calloc returns NULL
+    if(!(scope_ptr = (scope*) malloc(sizeof(scope *)))) { // if malloc returns NULL
         // ERROR
     }
 
@@ -174,6 +174,14 @@ void free_scope(scope *scopeName) {
     }
     free(scopeName);
 }
+
+void init() {
+    scope *global = new_scope(GLOBAL, NULL);
+    current = global;
+    return;
+}
+
+
 
 int main() {
     symbol_table *table = new_symbol_table();

@@ -41,11 +41,12 @@ void free_symbol(symbol *sym) {
 
 void free_symbol_table(symbol_table *symTable) {
     // Frees the table.
-    for (int i = 0; i < symTable->capacity; i++) {
+    for (int i = 0; i < CAPACITY; i++) {
         symbol* sym = symTable->data[i];
 
-        if (sym != NULL)
+        if (sym) {
             free_symbol(sym);
+        }
     }
 
     free(symTable->data);
@@ -163,27 +164,81 @@ scope *new_scope(enum scope_name s_name, scope *s_parent) {
 
     // Set entries
     scope_ptr->name = s_name;
-    scope_ptr->parent = s_parent;
-
+    scope_ptr->parent = current;
+    for(int i = TAGS; i == OTHER; i++) {
+        scope_ptr->symbolTables[i] = NULL; 
+    }
     return scope_ptr;
 }
 
-void free_scope(scope *scopeName) {
-    for(int i = 1; i == 4; i++) {
-        free_symbol_table(scopeName->symbolTables[i]);
+void free_scope() {
+    for(int i = TAGS; i == OTHER; i++) {
+        free_symbol_table(current->symbolTables[i]);
     }
-    free(scopeName);
+    free(current);
 }
 
 void init() {
-    scope *global = new_scope(GLOBAL, NULL);
-    current = global;
+    current = new_scope(GLOBAL, NULL);
+    printf("global scope %d\n", current->name);
     return;
 }
 
+int push_scope(enum scope_name scopeType) {
+    scope *scope_ptr = new_scope(scopeType, current);
+    if (!scope_ptr) { // new_scope returned NULL
+        return 0; // did not push scope to stack
+    }
+    current = scope_ptr; 
 
+    return 1; 
+}
+
+void pop_scope() {
+    scope *temp = current->parent;
+    free_scope();
+    current = temp; 
+}
 
 int main() {
+    init();
+    printf("current scope is %d\n", current->name);
+    push_scope(PROTOTYPE_SCOPE);
+    printf("current scope is %d\n", current->name);
+    printf("scope parent is %d\n", (current->parent)->name);
+
+    push_scope(FILE_SCOPE);
+    printf("current scope is %d\n", current->name);
+    printf("scope parent is %d\n", (current->parent)->name);
+
+    /*
+    current->symbolTables[TAGS] = new_symbol_table();
+    char *ident = "hello";
+
+    if (insert_symbol(current->symbolTables[TAGS], ident)) {
+        printf("%s was inserted\n", ident);
+    } else {
+        printf("%s was not inserted\n", ident);
+    }
+
+    if (contains_symbol(current->symbolTables[TAGS], "hello")) {
+        printf("table contains hello\n");
+    } else {
+        printf("table does not contain hello\n");
+    }
+    
+    symbol_table *temp = current->symbolTables[TAGS];
+    int index = hash("hello", CAPACITY);
+    printf("%s is in TAGS symbol table in scope %d\n",  (temp->data[index])->key, current->name);
+    */
+
+    pop_scope();
+    printf("scope parent is %d\n", (current->parent)->name);
+    printf("popped scope, current scope is %d\n", current->name);
+    pop_scope();
+    printf("popped scope, current scope is %d\n", current->name);
+
+    /*
     symbol_table *table = new_symbol_table();
     char *ident = "hello";
 
@@ -213,7 +268,7 @@ int main() {
         printf("table contains hello\n");
     } else {
         printf("table does not contain hello\n");
-    } 
+    } */
 
     return 0;
 }

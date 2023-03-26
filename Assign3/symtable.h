@@ -171,21 +171,21 @@ int contains_symbol(symbol_table *symTable, char *ident);
 //void *set_symbol_attribute(symbol_table *symTable, char *ident, void *attribute);
 
 // creates new scope and returns a pointer to the new scope
-scope *new_scope();
+scope *new_scope(enum scope_name s_name, scope *s_parent);
 
 // delete a scope and all its contents
-void free_scope(scope *scopeName);
+void free_scope();
 
 // initialize scope list (make global)
 void init();
 
 // push scope to stack
-// calls new scope, sets parent pointers and updates current 
+// calls new scope and updates current 
 int push_scope(enum scope_name scopeType);
 
 // pop current scope from stack by calling free_scope
 // updates current to parent
-int pop_scope();
+void pop_scope();
 
 // starts in current scope calling contains_symbol() in the specific namespace symbol table
 // linearlly moves upwards until global is searched

@@ -189,7 +189,7 @@ void pop_scope();
 
 // starts in current scope calling contains_symbol() in the specific namespace symbol table
 // linearlly moves upwards until global is searched
-symbol *find_symbol(enum name_space varName);
+symbol *find_symbol(enum name_space nameSpace, char *ident);
 
 /* Hash Table functions */
 // return the symbol with the key (pKey) if it exists

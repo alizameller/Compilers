@@ -160,6 +160,7 @@ scope *new_scope(enum scope_name s_name, scope *s_parent) {
     for(int i = 0; i <= 3; i++) {
         scope_ptr->symbolTables[i] = new_symbol_table(); 
     }
+
     return scope_ptr;
 }
 
@@ -169,11 +170,6 @@ void free_scope() {
     }
     free(current);
 }
-
-/* void init() {
-    current = new_scope(GLOBAL, current);
-    return;
-} */
 
 int push_scope(enum scope_name scopeType) {
     scope *scope_ptr = new_scope(scopeType, current);
@@ -191,14 +187,30 @@ void pop_scope() {
     current = temp; 
 }
 
+symbol *find_symbol(enum name_space nameSpace, char *ident) {
+    if (!current) { // current is NULL, have yet to push any scopes
+        fprintf(stderr, "Error: Cannot find symbol because there is no scope to search\n");
+        return NULL; 
+    }
+
+    scope *ptr = current; 
+    symbol *sym;
+    
+    while (ptr) {
+        sym = contains_symbol(ptr->symbolTables[nameSpace], ident);
+        if (sym) {
+            printf("Symbol %s found in scope %d\n", sym->key, ptr->name);
+            break;
+        }
+        ptr = ptr->parent;
+    }
+
+    return sym; // returns null if symbol is not found in any scope
+}
+
 int main() {
     push_scope(GLOBAL);
     printf("current scope is %d\n", current->name);
-    push_scope(PROTOTYPE_SCOPE);
-    printf("current scope is %d\n", current->name);
-    push_scope(FILE_SCOPE);
-    printf("current scope is %d\n", current->name);
-
     char *ident = "hello";
     
     if (insert_symbol(current->symbolTables[TAGS], ident)) {
@@ -206,12 +218,17 @@ int main() {
     } else {
         printf("%s was not inserted\n", ident);
     }
+
+    push_scope(PROTOTYPE_SCOPE);
+    printf("current scope is %d\n", current->name);
+    push_scope(FILE_SCOPE);
+    printf("current scope is %d\n", current->name);
     
-    symbol *temp;
-    if ((temp = contains_symbol(current->symbolTables[TAGS], "hello"))) {
-        printf("table contains %s\n", temp->key);
-    } else {
-        printf("table does not contain %s\n", temp->key);
+    if (!find_symbol(TAGS, ident)) {
+        printf("symbol %s not found in TAGS\n", ident);
+    }
+    if (!find_symbol(LABELS, ident)) {
+        printf("symbol %s not found in LABELS\n", ident);
     }
 
     printf("Popping current scope, scope %d\n", current->name);

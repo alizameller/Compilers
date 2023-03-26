@@ -91,10 +91,10 @@ struct label_symbol {
 } label_symbol;
 
 //  Typedef Symbol
-struct typedef_symbol {
+struct type_def_symbol {
     char *name; 
     int type;
-} typedef_symbol;
+} type_def_symbol;
 
 // Generic Symbol
 typedef struct symbol {
@@ -106,18 +106,18 @@ typedef struct symbol {
     union {
         struct variable_symbol var;
         struct function_symbol func;
-        struct typedef_symbol tdef;
+        struct type_def_symbol tdef;
         struct su_tag_symbol suTag;
         struct member_symbol mem;
         struct enum_tag_symbol enumTag;
         struct enum_symbol eNum;
         struct label_symbol label;
-    };
+    }; 
 } symbol;
 
 // Symbol Table Struct -- Implemented as a hashtable 
 typedef struct symbol_table {
-    enum name_space nameSpace;
+    //enum name_space nameSpace;
     int filled; 
     int capacity;
     symbol **data; 
@@ -162,7 +162,7 @@ int remove_symbol(symbol_table *symTable, char *ident);
 // returns 1 (TRUE) if inputted symTable conrains a binding whose key is pKey
 // else, returns 0 (FALSE)
 // FIX RETURN TYPE TO BE A POINTER TO A SYMBOL
-int contains_symbol(symbol_table *symTable, char *ident);
+symbol *contains_symbol(symbol_table *symTable, char *ident);
 
 // get symbol attribute
 //void *get_symbol_attribute(symbol_table *symTable, char *ident, void *attribute);

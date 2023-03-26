@@ -3,12 +3,14 @@
 #include <stdio.h>
 #include <string.h>
 
-symbol *new_symbol(char *key) {
+symbol *new_symbol(char *ident) {
     // Creates a pointer to a new HashTable item.
     symbol* sym = (symbol*) malloc(sizeof(symbol));
-    sym->key = (char*) malloc(strlen(key) + 1);
-    strcpy(sym->key, key);
 
+    if (!sym) {
+        printf("Error mallocing symbol for %s failed\n", ident);
+    }
+    sym->key = strdup(ident);
     return sym;
 }
 
@@ -25,9 +27,9 @@ symbol_table *new_symbol_table() {
     table_ptr->capacity = CAPACITY;
     table_ptr->data = (symbol**) calloc(table_ptr->capacity, sizeof(symbol*));
 
-    for (int i = 0; i < table_ptr->capacity; i++)
+    for (int i = 0; i < table_ptr->capacity; i++) {
         table_ptr->data[i] = NULL;
-
+    }
 
     return table_ptr;
 }
@@ -35,7 +37,6 @@ symbol_table *new_symbol_table() {
 void free_symbol(symbol *sym) {
     // Frees a symbol
     free(sym->key);
-    free(sym->value);
     free(sym);
 }
 
@@ -70,6 +71,12 @@ int hash(char *ident, int capacity) {
 }
 
 int insert_symbol(symbol_table *symTable, char *ident) {
+    // HashTable is full
+    if (symTable->filled == symTable->capacity) {
+        printf("Insert Error: Hash Table is full\n");
+        return 0;
+    }
+
     // Creates the symbol.
     symbol* sym = new_symbol(ident);
 
@@ -81,18 +88,11 @@ int insert_symbol(symbol_table *symTable, char *ident) {
     // check for attempted redeclaration
     if (current_symbol != NULL) {
         if (!strcmp(current_symbol->key, ident)) { // strcmp returns 0 if same
-            printf("error cannot re-declare %s\n", ident);
+            printf("Error: Cannot Re-declare %s\n", ident);
             return 0;
         }
 
         while (strcmp(current_symbol->key, ident)) { // ident is not the same as key
-            // HashTable is full
-            if (symTable->filled == symTable->capacity) {
-                printf("Insert Error: Hash Table is full\n");
-                free_symbol(sym);
-                return 0;
-            }
-
             // Linear Probing
             index++; 
             symbol* current_symbol = symTable->data[index];
@@ -104,13 +104,6 @@ int insert_symbol(symbol_table *symTable, char *ident) {
         }
     } 
 
-    if (symTable->filled == symTable->capacity) {
-        // HashTable is full.
-        printf("Insert Error: Hash Table is full\n");
-        free_symbol(sym);
-        return 0;
-        }
-
     // Insert
     symTable->data[index] = sym;
     symTable->filled++;
@@ -118,26 +111,26 @@ int insert_symbol(symbol_table *symTable, char *ident) {
     return 1;
 }
 
-int contains_symbol(symbol_table *symTable, char *ident) {
+symbol *contains_symbol(symbol_table *symTable, char *ident) {
     // Searches for the key in the HashTable.
     int index = hash(ident, CAPACITY);
     symbol* sym = symTable->data[index];
 
     if (sym == NULL) {
-        return 0; 
+        return NULL; 
     } else {
         while (strcmp(sym->key, ident)){ // key is not the same as ident
             index++;
             symbol* sym = symTable->data[index];
             if (sym == NULL) {
-                return 0; // cannot find symbol in symbol table
+                return NULL; // cannot find symbol in symbol table
             } else {
                 break;
             }
         }
     }
 
-    return 1;
+    return sym;
 
 }
 
@@ -158,31 +151,31 @@ int remove_symbol(symbol_table *symTable, char *ident) {
 scope *new_scope(enum scope_name s_name, scope *s_parent) {
     // Creates scope struct
     scope *scope_ptr;
-    if(!(scope_ptr = (scope*) malloc(sizeof(scope *)))) { // if malloc returns NULL
-        // ERROR
+    if(!(scope_ptr = (scope*) malloc(sizeof(scope)))) { // if malloc returns NULL
+        fprintf(stderr, "Error: cannot malloc scope\n");
+        exit(1);
     }
 
     // Set entries
     scope_ptr->name = s_name;
-    scope_ptr->parent = current;
-    for(int i = TAGS; i == OTHER; i++) {
-        scope_ptr->symbolTables[i] = NULL; 
+    scope_ptr->parent = s_parent;
+    for(int i = 0; i <= 3; i++) {
+        scope_ptr->symbolTables[i] = new_symbol_table(); 
     }
     return scope_ptr;
 }
 
 void free_scope() {
-    for(int i = TAGS; i == OTHER; i++) {
+    for(int i = 0; i <= 3; i++) {
         free_symbol_table(current->symbolTables[i]);
     }
     free(current);
 }
 
-void init() {
-    current = new_scope(GLOBAL, NULL);
-    printf("global scope %d\n", current->name);
+/* void init() {
+    current = new_scope(GLOBAL, current);
     return;
-}
+} */
 
 int push_scope(enum scope_name scopeType) {
     scope *scope_ptr = new_scope(scopeType, current);
@@ -201,42 +194,35 @@ void pop_scope() {
 }
 
 int main() {
-    init();
+    push_scope(GLOBAL);
     printf("current scope is %d\n", current->name);
     push_scope(PROTOTYPE_SCOPE);
     printf("current scope is %d\n", current->name);
-    printf("scope parent is %d\n", (current->parent)->name);
-
     push_scope(FILE_SCOPE);
     printf("current scope is %d\n", current->name);
-    printf("scope parent is %d\n", (current->parent)->name);
 
-    /*
-    current->symbolTables[TAGS] = new_symbol_table();
     char *ident = "hello";
-
+    
     if (insert_symbol(current->symbolTables[TAGS], ident)) {
         printf("%s was inserted\n", ident);
     } else {
         printf("%s was not inserted\n", ident);
     }
-
-    if (contains_symbol(current->symbolTables[TAGS], "hello")) {
-        printf("table contains hello\n");
-    } else {
-        printf("table does not contain hello\n");
-    }
     
-    symbol_table *temp = current->symbolTables[TAGS];
-    int index = hash("hello", CAPACITY);
-    printf("%s is in TAGS symbol table in scope %d\n",  (temp->data[index])->key, current->name);
-    */
+    symbol *temp;
+    if ((temp = contains_symbol(current->symbolTables[TAGS], "hello"))) {
+        printf("table contains %s\n", temp->key);
+    } else {
+        printf("table does not contain %s\n", temp->key);
+    }
 
+    printf("Popping current scope, scope %d\n", current->name);
     pop_scope();
-    printf("scope parent is %d\n", (current->parent)->name);
-    printf("popped scope, current scope is %d\n", current->name);
+    printf("Scope popped\n");
+    printf("Popping current scope, scope %d\n", current->name);
     pop_scope();
-    printf("popped scope, current scope is %d\n", current->name);
+    printf("Scope popped\n");
+    printf("Current scope is %d\n", current->name);
 
     /*
     symbol_table *table = new_symbol_table();

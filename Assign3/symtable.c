@@ -65,8 +65,6 @@ int hash(char *ident, int capacity) {
     if (hashVal < 0)
         hashVal += capacity;
 
-    hashVal = 1302;
-
     return hashVal;
 }
 
@@ -223,38 +221,6 @@ int main() {
     pop_scope();
     printf("Scope popped\n");
     printf("Current scope is %d\n", current->name);
-
-    /*
-    symbol_table *table = new_symbol_table();
-    char *ident = "hello";
-
-    if (insert(table, ident)) {
-        printf("%s was inserted\n", ident);
-    } else {
-        printf("%s was not inserted\n", ident);
-    }
-
-    ident = "new";
-    
-    if (insert(table, ident)) {
-        printf("%s was inserted\n", ident);
-    } else {
-        printf("%s was not inserted\n", ident);
-    }
-
-    if (contains(table, "hello")) {
-        printf("table contains hello\n");
-    } else {
-        printf("table does not contain hello\n");
-    }
-
-    remove_symbol(table, "hello");
-
-    if (contains(table, "hello")) {
-        printf("table contains hello\n");
-    } else {
-        printf("table does not contain hello\n");
-    } */
 
     return 0;
 }

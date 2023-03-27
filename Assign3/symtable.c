@@ -195,7 +195,7 @@ symbol *find_symbol(enum name_space nameSpace, char *ident) {
 
     scope *ptr = current; 
     symbol *sym;
-    
+
     while (ptr) {
         sym = contains_symbol(ptr->symbolTables[nameSpace], ident);
         if (sym) {
@@ -209,7 +209,7 @@ symbol *find_symbol(enum name_space nameSpace, char *ident) {
 }
 
 int main() {
-    push_scope(GLOBAL);
+    push_scope(GLOBAL_SCOPE);
     printf("current scope is %d\n", current->name);
     char *ident = "hello";
     

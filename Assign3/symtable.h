@@ -23,7 +23,7 @@ the symbols
 // which is the most recent scope pushed
 
 enum scope_name {
-    GLOBAL,
+    GLOBAL_SCOPE,
     FILE_SCOPE,
     BLOCK_SCOPE,
     FUNCTION_SCOPE,

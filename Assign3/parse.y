@@ -298,7 +298,7 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration
+declaration_or_fndef: declaration  {printAST($1, 0);}
     | function_definition
     ;
 
@@ -308,27 +308,27 @@ function_definition: declaration_specifiers declarator compound_statement ';' {p
 compound_statement: '{' decl_or_stmt_list '}'
     ;
 
-decl_or_stmt_list: decl_or_stmt
+decl_or_stmt_list: decl_or_stmt  {$$ = $1;}
     | decl_or_stmt_list ',' decl_or_stmt
     ;
 
-decl_or_stmt: declaration
-    | statement 
+decl_or_stmt: declaration  {$$ = $1;}
+    | statement  {$$ = $1;}
     ;
 
-declaration: declaration_specifiers ';' {printAST($1, 0);}
+declaration: declaration_specifiers ';' {$$ = $1;}
     | declaration_specifiers init_declarator_list ';'
     ;
 
-statement: compound_statement
+statement: compound_statement {$$ = $1;}
     | expression ';' 
     ;
 
 declaration_specifiers: storage_class_specifier 
     | storage_class_specifier declaration_specifiers
-    | type_specifier 
+    | type_specifier {$$ = new_astnode_declaration_spec(DECSPEC_NODE, $1, NONE_TYPE);}
     | type_specifier declaration_specifiers 
-    | type_qualifier 
+    | type_qualifier {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, $1);}
     | type_qualifier declaration_specifiers
     | function_specifier 
     | function_specifier declaration_specifiers
@@ -342,15 +342,15 @@ init_declarator: declarator
     | declarator '=' initializer
     ;
 
-storage_class_specifier: TYPEDEF
-    | EXTERN
-    | STATIC
-    | AUTO
-    | REGISTER
+storage_class_specifier: TYPEDEF {$$ = TYPEDEF;}
+    | EXTERN {$$ = EXTERN;}
+    | STATIC {$$ = STATIC;}
+    | AUTO {$$ = AUTO;}
+    | REGISTER {$$ = REGISTER;}
     ;
 
 type_specifier: VOID {$$ = new_astnode_scalar(SCALAR_NODE, VOID_TYPE);}
-    | CHAR {$$ = new_astnode_scalar(SCALAR_NODE, CHAR_TYPE);} /* THIS ONE DOES NOT WORK */
+    | CHAR {$$ = new_astnode_scalar(SCALAR_NODE, CHAR_TYPE);} 
     | SHORT {$$ = new_astnode_scalar(SCALAR_NODE, SHORT_TYPE);}
     | INT {$$ = new_astnode_scalar(SCALAR_NODE, INT_TYPE);}
     | LONG {$$ = new_astnode_scalar(SCALAR_NODE, LONG_TYPE);}
@@ -407,8 +407,8 @@ declarator: direct_declarator
     | pointer direct_declarator
     ;
 
-direct_declarator: IDENT
-    | '(' declarator ')'
+direct_declarator: IDENT {$$ = new_symbol($1.string_literal);} 
+    | '(' declarator ')' {$$ = $2;}
     //| direct_declarator '[' assignment_expression ']'
     //| direct_declarator '[' type_qualifier_list assignment_expression ']'
     //| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']' 

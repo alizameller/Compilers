@@ -2,7 +2,7 @@
 #define SYMTABLE_H
 
 #include "ast.c"
-/* 
+/* Data Structure of Symbol Table:
 
     Stack
 |           |
@@ -19,11 +19,7 @@ the symbols
 
 */
 
-// Top should point to the top of the scope stack,
-// which is the most recent scope pushed
-
 enum scope_name {
-    GLOBAL_SCOPE,
     FILE_SCOPE,
     BLOCK_SCOPE,
     FUNCTION_SCOPE,
@@ -37,27 +33,31 @@ enum name_space {
     OTHER
 };
 
+typedef enum symbolType {
+    VARIABLE_SYMBOL,
+    FUNCTION_SYMBOL,
+    TYPEDEF_SYMBOL,
+    SUTAG_SYMBOL,
+    MEMBER_SYMBOL, 
+    ENUMTAG_SYMBOL,
+    ENUM_SYMBOL,
+    LABEL_SYMBOL
+} symbolType;
+
 // Variable Symbol
 struct variable_symbol {
-    char *name; // key for hashing?
-    int type;
-    int storageClass;
+    astnode *type;
     int offset;
-    int in; //inline 
 } variable_symbol;
 
 // Function Symbol
 struct function_symbol {
-    char *name; 
-    int returnType;
+    astnode *type; // return type
     int argType;
-    int storageClass;
-    int in;
 } function_symbol;
 
 // Struct/Union Member Symbol
 struct member_symbol {
-    char *name; 
     int isStruct; // 0 = is Union, 1 = is Struct
     int type;
     int offset; // in struct only
@@ -67,41 +67,39 @@ struct member_symbol {
 
 // Struct/Union Tag Symbol
 struct su_tag_symbol {
-    char *name;
     struct symbol **su_symbol_table; // array of symbols (of type member_symbol)
 } su_tag_symbol;
 
 // Enum Tag Symbol
 struct enum_tag_symbol {
-    char *name;
     struct symbol *constant; // pointer to enum constant?
 } enum_tag_symbol;
 
 // Enum Symbol
 struct enum_symbol {
-    char *name;
     int value;
     struct symbol *tag; // pointer to enum tag?
 } enum_symbol;
 
 // Label Symbol
 struct label_symbol {
-    char *name;
     char *assembly_label;
 } label_symbol;
 
 //  Typedef Symbol
 struct type_def_symbol {
-    char *name; 
-    int type;
+    // type of symbol
 } type_def_symbol;
 
 // Generic Symbol
 typedef struct symbol {
-    char *key;              // hash value?
-    astnode *value;         // pointer to ast node (to get value of symbol)
-    int sym_type;           // type of symbol
-
+    char *key;    // hash value/ident
+    int line;     // line number
+    symbolType sym_type; // enum for type of symbol
+    
+    enum name_space nameSpace;
+    astnode *dec_specs; // declaration specifiers
+    
     // possible types of IDENT symbols
     union {
         struct variable_symbol var;
@@ -134,8 +132,7 @@ typedef struct scope {
 scope *current = NULL;
 
 // create symbol
-symbol *new_symbol(char *key);
-
+symbol *new_symbol(char *ident, enum name_space ns, astnode *type_ptr, symbolType symType);
 // free symbol 
 void free_symbol(symbol *sym);
 
@@ -152,8 +149,7 @@ int hash(char *ident, int capacity);
 //      symbol and return 1 (TRUE)
 // else, no changes should be made and insert should return 0 (FALSE)
 // - calls hash
-int insert_symbol(symbol_table *symTable, char *ident);
-
+int insert_symbol(symbol_table *symTable, symbol *sym);
 // if a binding with the key (pKey) exists, remove that binding from the 
 //      symbol table and return 1 (TRUE)
 // else, no changes should be made and remove should return 0 (FALSE) 

@@ -3,14 +3,20 @@
 #include <stdio.h>
 #include <string.h>
 
-symbol *new_symbol(char *ident) {
+symbol *new_symbol(char *ident, enum name_space ns, astnode *type_ptr, symbolType symType) {
     // Creates a pointer to a new HashTable item.
     symbol* sym = (symbol*) malloc(sizeof(symbol));
 
     if (!sym) {
         printf("Error mallocing symbol for %s failed\n", ident);
     }
+
     sym->key = strdup(ident);
+    sym->nameSpace = ns;
+    sym->sym_type = symType;
+    sym->dec_specs = type_ptr; // contains info on storage class, type spec, type qualifier  
+    // line of declaration?
+
     return sym;
 }
 
@@ -68,29 +74,26 @@ int hash(char *ident, int capacity) {
     return hashVal;
 }
 
-int insert_symbol(symbol_table *symTable, char *ident) {
+int insert_symbol(symbol_table *symTable, symbol *sym) {
     // HashTable is full
     if (symTable->filled == symTable->capacity) {
         printf("Insert Error: Hash Table is full\n");
         return 0;
     }
 
-    // Creates the symbol.
-    symbol* sym = new_symbol(ident);
-
     // Computes the index using the hash function.
-    int index = hash(ident, CAPACITY);
+    int index = hash(sym->key, CAPACITY);
 
     symbol* current_symbol = symTable->data[index];
 
     // check for attempted redeclaration
     if (current_symbol != NULL) {
-        if (!strcmp(current_symbol->key, ident)) { // strcmp returns 0 if same
-            printf("Error: Cannot Re-declare %s\n", ident);
+        if (!strcmp(current_symbol->key, sym->key)) { // strcmp returns 0 if same
+            printf("Error: Cannot Re-declare %s\n", sym->key);
             return 0;
         }
 
-        while (strcmp(current_symbol->key, ident)) { // ident is not the same as key
+        while (strcmp(current_symbol->key, sym->key)) { // ident is not the same as key
             // Linear Probing
             index++; 
             symbol* current_symbol = symTable->data[index];
@@ -165,7 +168,7 @@ scope *new_scope(enum scope_name s_name, scope *s_parent) {
 }
 
 void free_scope() {
-    for(int i = 0; i <= 3; i++) {
+    for(int i = 0; i <= 3; i++) { // TAGS to OTHER
         free_symbol_table(current->symbolTables[i]);
     }
     free(current);
@@ -209,11 +212,12 @@ symbol *find_symbol(enum name_space nameSpace, char *ident) {
 }
 
 int main() {
-    push_scope(GLOBAL_SCOPE);
+    push_scope(FILE_SCOPE);
     printf("current scope is %d\n", current->name);
     char *ident = "hello";
-    
-    if (insert_symbol(current->symbolTables[TAGS], ident)) {
+    symbol *sym = new_symbol(ident, OTHER, NULL, VARIABLE_SYMBOL);
+    symbol *symbol = new_symbol("hola", OTHER, NULL, VARIABLE_SYMBOL);
+    if (insert_symbol(current->symbolTables[sym->nameSpace], sym)) {
         printf("%s was inserted\n", ident);
     } else {
         printf("%s was not inserted\n", ident);
@@ -221,11 +225,11 @@ int main() {
 
     push_scope(PROTOTYPE_SCOPE);
     printf("current scope is %d\n", current->name);
-    push_scope(FILE_SCOPE);
+    push_scope(FUNCTION_SCOPE);
     printf("current scope is %d\n", current->name);
     
-    if (!find_symbol(TAGS, ident)) {
-        printf("symbol %s not found in TAGS\n", ident);
+    if (find_symbol(OTHER, ident)) {
+        printf("symbol %s found in OTHER\n", ident);
     }
     if (!find_symbol(LABELS, ident)) {
         printf("symbol %s not found in LABELS\n", ident);
@@ -237,7 +241,7 @@ int main() {
     printf("Popping current scope, scope %d\n", current->name);
     pop_scope();
     printf("Scope popped\n");
-    printf("Current scope is %d\n", current->name);
+    printf("Current scope is %d\n", current->name); 
 
     return 0;
 }

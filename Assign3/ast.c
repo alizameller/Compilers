@@ -149,7 +149,7 @@ union astnode*new_astnode_func(union astnode *function_name, union astnode *arg_
 }
 
 // Declaration Functions
-union astnode* new_astnode_declaration_spec(nodetype type, specifier_type s_type, qualifier_type q_type, storage_class s_class){
+union astnode* new_astnode_declaration_spec(nodetype type, union astnode* s_type, qualifier_type q_type, storage_class s_class){
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
@@ -162,7 +162,7 @@ union astnode* new_astnode_declaration_spec(nodetype type, specifier_type s_type
     return node_ptr;
 }
 
-union astnode* modify_astnode_declaration_spec(union astnode *node_ptr, specifier_type s_type, qualifier_type q_type, storage_class s_class){
+union astnode* modify_astnode_declaration_spec(union astnode *node_ptr, union astnode* s_type, qualifier_type q_type, storage_class s_class){
    // if decspec field has no value and parameter has value, set decspec field
     if (!node_ptr->decspec.s_type && s_type) { 
         node_ptr->decspec.s_type = s_type; // specifier type modification
@@ -191,8 +191,17 @@ union astnode* new_astnode_scalar(nodetype type, enum specifier_type s_type){
 	// set entries
     node_ptr->scalar.type = type; 
     node_ptr->scalar.scalarType = s_type;
+    // initialize astnode scalar as a singular type spec
+    node_ptr->scalar.next = NULL;
+    node_ptr->scalar.prev = NULL;
 
     return node_ptr;
+}
+
+union astnode* append_astnode_list(union astnode *previous, union astnode *addition){
+    previous->scalar.next = addition; 
+    addition->scalar.prev = previous; 
+    return previous; 
 }
 
 union astnode* new_astnode_pointer(nodetype type, union astnode *type_qual, union astnode *pointer){

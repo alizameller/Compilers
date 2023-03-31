@@ -211,36 +211,13 @@ symbol *find_symbol(enum name_space nameSpace, char *ident) {
 
 /*
 int main() {
+    current = NULL;
     push_scope(FILE_SCOPE);
     printf("current scope is %d\n", current->name);
     char *ident = "hello";
     symbol *sym = new_symbol(ident, OTHER, NULL, VARIABLE_SYMBOL);
-    symbol *symbol = new_symbol("hola", OTHER, NULL, VARIABLE_SYMBOL);
-    if (insert_symbol(current->symbolTables[sym->nameSpace], sym)) {
-        printf("%s was inserted\n", ident);
-    } else {
-        printf("%s was not inserted\n", ident);
-    }
-
-    push_scope(PROTOTYPE_SCOPE);
-    printf("current scope is %d\n", current->name);
-    push_scope(FUNCTION_SCOPE);
-    printf("current scope is %d\n", current->name);
-    
-    if (find_symbol(OTHER, ident)) {
-        printf("symbol %s found in OTHER\n", ident);
-    }
-    if (!find_symbol(LABELS, ident)) {
-        printf("symbol %s not found in LABELS\n", ident);
-    }
-
-    printf("Popping current scope, scope %d\n", current->name);
-    pop_scope();
-    printf("Scope popped\n");
-    printf("Popping current scope, scope %d\n", current->name);
-    pop_scope();
-    printf("Scope popped\n");
-    printf("Current scope is %d\n", current->name); 
+    printf("symbol created, key is %s\n", sym->key);
+    insert_symbol(current->symbolTables[OTHER], sym);
 
     return 0;
 } */

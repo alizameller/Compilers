@@ -14,7 +14,7 @@ void yyerror(char *s);
 %}
 
 %code requires {
-  #include "ast-manual.h"
+    #include "symtable.h"
 }
 
 /* YYSTYPE union */
@@ -24,6 +24,7 @@ void yyerror(char *s);
     char char_literal; 
     union astnode *astnode_p; 
     int operator; 
+    symbol *symbol_p;
 }
 
 /* Tokens */
@@ -64,31 +65,31 @@ void yyerror(char *s);
                 constant_expression
 
 /* Declarations */
-%type<astnode_p>declaration_or_fndef 
-                function_definition
+%type<symbol_p> declaration_or_fndef 
+%type<astnode_p>function_definition
                 compound_statement
-                decl_or_stmt_list
-                decl_or_stmt
-                declaration 
-                statement
-                declaration_specifiers 
-                init_declarator_list 
-                init_declarator
-                storage_class_specifier 
-                type_specifier 
-                struct_or_union_specifier
+%type<symbol_p> decl_or_stmt_list
+%type<symbol_p> decl_or_stmt
+%type<symbol_p> declaration 
+%type<astnode_p>statement
+%type<astnode_p>declaration_specifiers 
+%type<symbol_p> init_declarator_list 
+%type<symbol_p> init_declarator
+%type<astnode_p>storage_class_specifier 
+%type<astnode_p>type_specifier 
+%type<symbol_p>struct_or_union_specifier
 %type<operator> struct_or_union 
 %type<astnode_p>struct_declaration_list 
                 struct_declaration 
                 specifier_qualifier_list 
                 struct_declarator_list 
                 struct_declarator  
-%type<operator> type_qualifier
-%type<astnode_p>function_specifier 
-                declarator 
-                direct_declarator 
-                pointer 
-                type_qualifier_list
+%type<astnode_p>type_qualifier
+%type<operator>function_specifier 
+%type<symbol_p>declarator 
+%type<symbol_p>direct_declarator 
+%type<astnode_p>pointer 
+%type<astnode_p>type_qualifier_list
                 type_name 
                 abstract_declarator 
                 direct_abstract_declarator 
@@ -298,7 +299,7 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration  {printAST($1, 0);}
+declaration_or_fndef: declaration  
     | function_definition
     ;
 
@@ -313,22 +314,28 @@ decl_or_stmt_list: decl_or_stmt  {$$ = $1;}
     ;
 
 decl_or_stmt: declaration  {$$ = $1;}
-    | statement  {$$ = $1;}
+    | statement  
     ;
 
-declaration: declaration_specifiers ';' {$$ = $1;}
-    | declaration_specifiers init_declarator_list ';'
+declaration: declaration_specifiers ';' 
+    | declaration_specifiers init_declarator_list ';' { // change symbol elements (i.e. ast node elements of symbol)
+                                                        printf("storage class is %d\n", $1->decspec.s_class);
+                                                        //symbol *sym = $2;
+                                                        // add astnode declaration specifier to symbol
+                                                        //insert_symbol(current->symbolTables[OTHER],sym);
+
+                                                      }
     ;
 
 statement: compound_statement {$$ = $1;}
     | expression ';' 
     ;
 
-declaration_specifiers: storage_class_specifier 
-    | storage_class_specifier declaration_specifiers
-    | type_specifier {$$ = new_astnode_declaration_spec(DECSPEC_NODE, $1, NONE_TYPE);}
+declaration_specifiers: storage_class_specifier {$$ = $1;}
+    | storage_class_specifier declaration_specifiers 
+    | type_specifier {$$ = $1;}
     | type_specifier declaration_specifiers 
-    | type_qualifier {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, $1);}
+    | type_qualifier {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, $1, UNKNOWN_CLASS);}
     | type_qualifier declaration_specifiers
     | function_specifier 
     | function_specifier declaration_specifiers
@@ -342,11 +349,11 @@ init_declarator: declarator
     | declarator '=' initializer
     ;
 
-storage_class_specifier: TYPEDEF {$$ = TYPEDEF;}
-    | EXTERN {$$ = EXTERN;}
-    | STATIC {$$ = STATIC;}
-    | AUTO {$$ = AUTO;}
-    | REGISTER {$$ = REGISTER;}
+storage_class_specifier: TYPEDEF {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, NONE_TYPE, TYPEDEF_CLASS);}
+    | EXTERN {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, NONE_TYPE, EXTERN_CLASS);}
+    | STATIC {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, NONE_TYPE, STATIC_CLASS);}
+    | AUTO {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, NONE_TYPE, AUTO_CLASS);}
+    | REGISTER {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, NONE_TYPE, REGISTER_CLASS);}
     ;
 
 type_specifier: VOID {$$ = new_astnode_scalar(SCALAR_NODE, VOID_TYPE);}
@@ -395,19 +402,19 @@ struct_declarator_list: struct_declarator
 struct_declarator: declarator
     ;
 
-type_qualifier: CONST {$$ = CONST_TYPE;}
-    | RESTRICT {$$ = RESTRICT_TYPE;}
-    | VOLATILE {$$ = VOLATILE_TYPE;}
+type_qualifier: CONST {$$ = new_astnode_declaration_spec(DECSPEC_NODE, CONST_TYPE, NONE_TYPE, UNKNOWN_CLASS);}
+    | RESTRICT {$$ = new_astnode_declaration_spec(DECSPEC_NODE, RESTRICT_TYPE, NONE_TYPE, UNKNOWN_CLASS);}
+    | VOLATILE {$$ = new_astnode_declaration_spec(DECSPEC_NODE, VOLATILE_TYPE, NONE_TYPE, UNKNOWN_CLASS);}
     ;
 
 function_specifier: INLINE
     ;
 
-declarator: direct_declarator
+declarator: direct_declarator 
     | pointer direct_declarator
     ;
 
-direct_declarator: IDENT {$$ = new_symbol($1.string_literal);} 
+direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //no astnode * and symbol type defaults to VARIABLE
     | '(' declarator ')' {$$ = $2;}
     //| direct_declarator '[' assignment_expression ']'
     //| direct_declarator '[' type_qualifier_list assignment_expression ']'
@@ -427,7 +434,7 @@ pointer: '*' {$$ = new_astnode_pointer(POINTER_NODE, NULL, NULL);}
     | '*' type_qualifier_list pointer {$$ = new_astnode_pointer(POINTER_NODE, $2, $3);}
     ;
 
-type_qualifier_list: type_qualifier {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, $1);}
+type_qualifier_list: type_qualifier {$$ = new_astnode_declaration_spec(DECSPEC_NODE, UNKNOWN_TYPE, $1, UNKNOWN_CLASS);}
     | type_qualifier_list type_qualifier
     ;
 
@@ -714,6 +721,7 @@ void printAST(union astnode* node, int indent) {
 
 int main(){
   //yydebug = 1;
+  current = NULL;
   int t;
   while(!(t = yyparse())){
   };

@@ -149,7 +149,7 @@ union astnode*new_astnode_func(union astnode *function_name, union astnode *arg_
 }
 
 // Declaration Functions
-union astnode* new_astnode_declaration_spec(nodetype type, enum specifier_type s_type, enum qualifier_type q_type){
+union astnode* new_astnode_declaration_spec(nodetype type, specifier_type s_type, qualifier_type q_type, storage_class s_class){
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
@@ -157,9 +157,32 @@ union astnode* new_astnode_declaration_spec(nodetype type, enum specifier_type s
     node_ptr->decspec.type = type; 
     node_ptr->decspec.s_type = s_type;
     node_ptr->decspec.q_type = q_type; 
+    node_ptr->decspec.s_class = s_class; 
     
     return node_ptr;
 }
+
+union astnode* modify_astnode_declaration_spec(union astnode *node_ptr, specifier_type s_type, qualifier_type q_type, storage_class s_class){
+   // if decspec field has no value and parameter has value, set decspec field
+    if (!node_ptr->decspec.s_type && s_type) { 
+        node_ptr->decspec.s_type = s_type; // specifier type modification
+    } else if (node_ptr->decspec.s_type && s_type) { // both have values
+        fprintf(stderr, "ERROR: Cannot have two declaration specifiers\n");
+    }
+    if (!node_ptr->decspec.q_type && q_type) {
+        node_ptr->decspec.q_type = q_type; // qualifier type modification
+    } else if (node_ptr->decspec.q_type && q_type) { // both have values
+        fprintf(stderr, "ERROR: Cannot have two declaration specifiers\n");
+    }
+    if (!node_ptr->decspec.s_class && s_class) {
+        node_ptr->decspec.s_class = s_class; // storage class modification
+    } else if (node_ptr->decspec.q_type && s_class) { // both have values
+        fprintf(stderr, "ERROR: Cannot have two declaration specifiers\n");
+    }
+
+    return node_ptr;
+}
+
 
 union astnode* new_astnode_scalar(nodetype type, enum specifier_type s_type){
     // allocate memory
@@ -204,5 +227,8 @@ union astnode* new_astnode_array(nodetype type, union astnode *element_type, int
 }
 
 union astnode* new_astnode_fndef(nodetype type, union astnode *name){
-
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+    
+    return node_ptr;
 }

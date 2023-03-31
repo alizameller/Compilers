@@ -1,9 +1,7 @@
 #include "symtable.h"
 #define CAPACITY 1319 // random num
-#include <stdio.h>
-#include <string.h>
 
-symbol *new_symbol(char *ident, enum name_space ns, astnode *type_ptr, symbolType symType) {
+symbol *new_symbol(char *ident, enum name_space ns, union astnode *type_ptr, symbolType symType) {
     // Creates a pointer to a new HashTable item.
     symbol* sym = (symbol*) malloc(sizeof(symbol));
 
@@ -211,6 +209,7 @@ symbol *find_symbol(enum name_space nameSpace, char *ident) {
     return sym; // returns null if symbol is not found in any scope
 }
 
+/*
 int main() {
     push_scope(FILE_SCOPE);
     printf("current scope is %d\n", current->name);
@@ -244,4 +243,4 @@ int main() {
     printf("Current scope is %d\n", current->name); 
 
     return 0;
-}
+} */

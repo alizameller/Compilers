@@ -1,7 +1,9 @@
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 
-#include "ast.c"
+#include "ast-manual.h"
+#include <string.h>
+
 /* Data Structure of Symbol Table:
 
     Stack
@@ -46,13 +48,13 @@ typedef enum symbolType {
 
 // Variable Symbol
 struct variable_symbol {
-    astnode *type;
+    union astnode *type;
     int offset;
 } variable_symbol;
 
 // Function Symbol
 struct function_symbol {
-    astnode *type; // return type
+    union astnode *type; // return type
     int argType;
 } function_symbol;
 
@@ -98,8 +100,8 @@ typedef struct symbol {
     symbolType sym_type; // enum for type of symbol
     
     enum name_space nameSpace;
-    astnode *dec_specs; // declaration specifiers
-    
+    union astnode *dec_specs; // declaration specifiers
+    // union astnode *type_rep; // pointer to ast node, whether declaration is pointer, scalar, array, etc. 
     // possible types of IDENT symbols
     union {
         struct variable_symbol var;
@@ -129,10 +131,11 @@ typedef struct scope {
 } scope;
 
 // initialize global variables for scope list (or scope stack struct?)
-scope *current = NULL;
+scope *current;
 
 // create symbol
-symbol *new_symbol(char *ident, enum name_space ns, astnode *type_ptr, symbolType symType);
+symbol *new_symbol(char *ident, enum name_space ns, union astnode *type_ptr, symbolType symType);
+
 // free symbol 
 void free_symbol(symbol *sym);
 

@@ -141,6 +141,7 @@ union astnode* astnode_one();
 /* Declarations Nodes */
 
 typedef enum specifier_type {
+    UNKNOWN_TYPE,
     VOID_TYPE,
     CHAR_TYPE,
     SHORT_TYPE,
@@ -151,24 +152,35 @@ typedef enum specifier_type {
     SIGNED_TYPE,
     UNSIGNED_TYPE,
     BOOL_TYPE,
-    UNKNOWN_TYPE
 } specifier_type;
 
 typedef enum qualifier_type {
+    NONE_TYPE,
     CONST_TYPE,
     RESTRICT_TYPE,
     VOLATILE_TYPE,
-    NONE_TYPE
 } qualifier_type;
+
+typedef enum storage_class {
+    UNKNOWN_CLASS,
+    TYPEDEF_CLASS, 
+    EXTERN_CLASS, 
+    STATIC_CLASS, 
+    AUTO_CLASS, 
+    REGISTER_CLASS,
+} storage_class;
 
 // Declaration Specifier Node
 struct astnode_declaration_spec {
     enum nodetype type;
-    enum specifier_type s_type;
-    enum qualifier_type q_type; 
+    specifier_type s_type;
+    qualifier_type q_type; 
+    storage_class s_class; 
+    int function_specifier; // 1 = inline, 0 = not inline
 };
 
-union astnode* new_astnode_declaration_spec(nodetype type, specifier_type s_type, qualifier_type q_type);
+union astnode* new_astnode_declaration_spec(nodetype type, specifier_type s_type, qualifier_type q_type, storage_class s_class);
+union astnode* modify_astnode_declaration_spec(union astnode *node_ptr, specifier_type s_type, qualifier_type q_type, storage_class s_class);
 
 // Scalar Node
 struct astnode_scalar {

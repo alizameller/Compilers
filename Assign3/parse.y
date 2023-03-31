@@ -318,7 +318,8 @@ decl_or_stmt: declaration  {$$ = $1;}
     ;
 
 declaration: declaration_specifiers ';' 
-    | declaration_specifiers init_declarator_list ';' { // change symbol elements (i.e. ast node elements of symbol)
+    | declaration_specifiers init_declarator_list ';' { // update astnode *type_ptr in symbol $2 to be $1
+                                                        // check that if restrict is used it must be on a pointer types derived from object, else ERROR
                                                         if ($1->decspec.s_class) {
                                                             printf("storage class is %d\n", $1->decspec.s_class);
                                                         }
@@ -355,23 +356,24 @@ declaration_specifiers: storage_class_specifier {$$ = $1;}
                                                         }
                                                     }
     | type_specifier {$$ = $1;}
-    | type_specifier declaration_specifiers {append_astnode_list($1, $2); 
-                                              if ($1->scalar.prev) { // decspec gets created for first in list 
-                                                $$ = new_astnode_declaration_spec(DECSPEC_NODE, $1, NONE_TYPE, UNKNOWN_CLASS);
+    | type_specifier declaration_specifiers {
+                                                append_astnode_list($1, $2); 
+                                                if ($1->scalar.prev) { // decspec gets created for first in list 
+                                                    $$ = new_astnode_declaration_spec(DECSPEC_NODE, $1, NONE_TYPE, UNKNOWN_CLASS);
                                               }
                                             }
-    | type_qualifier {$$ = $1;}
+    | type_qualifier {$$ = $1;} 
     | type_qualifier declaration_specifiers
-    | function_specifier // NOT IMPLEMENTED YET
-    | function_specifier declaration_specifiers
+    | function_specifier                        // *** Optional -- Not Implemented ***
+    | function_specifier declaration_specifiers // *** Optional -- Not Implemented ***
     ;
 
-init_declarator_list: init_declarator
-    | init_declarator_list ',' init_declarator
+init_declarator_list: init_declarator {$$ = $1;}
+    | init_declarator_list ',' init_declarator // make a linked list of declarators
     ;
 
-init_declarator: declarator
-    | declarator '=' initializer
+init_declarator: declarator {$$ = $1;}
+    | declarator '=' initializer // *** Optional -- Not Implemented ***
     ;
 
 storage_class_specifier: TYPEDEF {$$ = new_astnode_declaration_spec(DECSPEC_NODE, NULL, NONE_TYPE, TYPEDEF_CLASS);}
@@ -391,7 +393,7 @@ type_specifier: VOID {$$ = new_astnode_scalar(SCALAR_NODE, VOID_TYPE);}
     | SIGNED {$$ = new_astnode_scalar(SCALAR_NODE, SIGNED_TYPE);}
     | UNSIGNED {$$ = new_astnode_scalar(SCALAR_NODE, UNSIGNED_TYPE);}
     | _BOOL {$$ = new_astnode_scalar(SCALAR_NODE, BOOL_TYPE);} 
-    //| _COMPLEX {}
+    //| _COMPLEX 
     | struct_or_union_specifier 
     /*| enum_specifier */
     /*| typedef_name */
@@ -432,22 +434,22 @@ type_qualifier: CONST {$$ = new_astnode_declaration_spec(DECSPEC_NODE, NULL, CON
     | VOLATILE {$$ = new_astnode_declaration_spec(DECSPEC_NODE, NULL, VOLATILE_TYPE, UNKNOWN_CLASS);}
     ;
 
-function_specifier: INLINE
+function_specifier: INLINE // *** Optional -- Not Implemented ***
     ;
 
 declarator: direct_declarator {$$ = $1;}
-    | pointer direct_declarator 
+    | pointer direct_declarator //{$$ = new_astnode_pointer(POINTER_NODE, NONE_TYPE, $2);} //assumes direct declarator has already been made as an astnode (but it is a symbol)
     ;
 
 direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //no astnode * and symbol type defaults to VARIABLE
-    | '(' declarator ')' {$$ = $2;} // do not know about this one
-    //| direct_declarator '[' assignment_expression ']'
-    //| direct_declarator '[' type_qualifier_list assignment_expression ']'
-    //| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']' 
-    //| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' 
-    //| direct_declarator '[' type_qualifier_list '*' ']'
-    //| direct_declarator '(' parameter_type_list ')'
-    //| direct_declarator '(' identifier_list ')'
+    | '(' declarator ')' {$$ = $2;} // Not sure how to handle this one
+    //| direct_declarator '[' assignment_expression ']'                             // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' type_qualifier_list assignment_expression ']'         // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'  // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'  // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' type_qualifier_list '*' ']'                           // *** Optional -- Not Implemented ***
+    //| direct_declarator '(' parameter_type_list ')'                               // *** Optional -- Not Implemented ***
+    //| direct_declarator '(' identifier_list ')'                                   // *** Optional -- Not Implemented ***
     | direct_declarator '[' ']'
     | direct_declarator '[' NUMBER ']'
     | direct_declarator '(' ')'
@@ -460,14 +462,14 @@ pointer: '*' {$$ = new_astnode_pointer(POINTER_NODE, NULL, NULL);}
     ;
 
 type_qualifier_list: type_qualifier {$$ = $1;}
-    | type_qualifier_list type_qualifier
+    | type_qualifier_list type_qualifier 
     ;
 
 type_name: specifier_qualifier_list                       
          | specifier_qualifier_list abstract_declarator      
          ; 
 
-/* 
+/* DO I NEED TO DO PARAMETERS?
 parameter_type_list: parameter_list
     | parameter_list ',' 
     ;
@@ -479,11 +481,11 @@ parameter_list: parameter_declaration
 parameter_declaration: declaration_specifiers  
     | declaration_specifiers declarator
     | declaration_specifiers abstract_declarator
-    ;
+    ; */
 
 identifier_list: IDENT
     | identifier_list ',' IDENT
-    ; */
+    ; 
 
 abstract_declarator: pointer
     | direct_abstract_declarator
@@ -497,15 +499,15 @@ direct_abstract_declarator: '(' abstract_declarator ')' {$$ = $2;}
     | direct_abstract_declarator '[' NUMBER ']' {$$ = new_astnode_array(ARRAY_NODE, $1, $3.value.int_val);}
     | '(' ')'
     | direct_abstract_declarator '(' ')'
-    // | '[' assignment_expression ']' 
-    // | direct_abstract_declarator '[' assignment_expression ']' 
-    // | '[' '*' ']' 
-    // | direct_abstract_declarator '[' '*' ']' 
-    // | '(' parameter_type_list ')'
-    // | direct_abstract_declarator '(' parameter_type_list ')'
+    // | '[' assignment_expression ']'                              // *** Optional -- Not Implemented ***
+    // | direct_abstract_declarator '[' assignment_expression ']'   // *** Optional -- Not Implemented ***
+    // | '[' '*' ']'                                                // *** Optional -- Not Implemented ***
+    // | direct_abstract_declarator '[' '*' ']'                     // *** Optional -- Not Implemented ***
+    // | '(' parameter_type_list ')'                                // *** Optional -- Not Implemented ***
+    // | direct_abstract_declarator '(' parameter_type_list ')'     // *** Optional -- Not Implemented ***
     ;
 
-typedef_name: IDENT;
+typedef_name: IDENT; // *** Optional -- Not Implemented ***
 
 initializer: assignment_expression
    // | '{' initializer_list '}' 
@@ -527,8 +529,6 @@ designator: '[' constant_expression ']'
     | '.' IDENT
     ;
  */
-
-
 %%
 
 void printIndents(int indent){

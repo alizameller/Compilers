@@ -177,7 +177,8 @@ struct astnode_declaration_spec {
     union astnode* s_type;
     qualifier_type q_type; 
     storage_class s_class; 
-    int function_specifier; // 1 = inline, 0 = not inline
+    // 1 = inline, 0 = not inline 
+    int function_specifier; // *** Optional -- Not Implemented ***
 };
 
 union astnode* new_astnode_declaration_spec(nodetype type, union astnode* s_type, qualifier_type q_type, storage_class s_class);

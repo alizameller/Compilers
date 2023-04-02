@@ -209,6 +209,15 @@ symbol *find_symbol(enum name_space nameSpace, char *ident) {
     return sym; // returns null if symbol is not found in any scope
 }
 
+symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
+    if (node->generic.type == DECSPEC_NODE) {
+        sym->dec_specs = node;
+    }
+    if (node->generic.type >= 10 && node->generic.type <= 13) { //SCALAR_NODE through FUNCTION_DEF_NODE
+        sym->type_rep = node;
+    }
+}
+
 /*
 int main() {
     current = NULL;

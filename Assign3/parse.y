@@ -299,7 +299,7 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration  
+declaration_or_fndef: declaration {$$ = $1;}
     | function_definition
     ;
 
@@ -318,14 +318,22 @@ decl_or_stmt: declaration  {$$ = $1;}
     ;
 
 declaration: declaration_specifiers ';' 
-    | declaration_specifiers init_declarator_list ';' { // update astnode *type_ptr in symbol $2 to be $1
-                                                        // check that if restrict is used it must be on a pointer types derived from object, else ERROR
+    | declaration_specifiers init_declarator_list ';' { 
+                                                        // check that if restrict is used it must be on a pointer types derived from object, else ERROR ?
+                                                        $$ = add_astnode_to_symbol($2, $1);
+
+                                                        if (insert_symbol(current->symbolTables[OTHER], $2)) {
+                                                            printf("symbol inserted, ident is %s\n", $2->key); 
+                                                        } else {
+                                                            printf("symbol for ident %s, was not inserted into symbol table\n", $2->key);
+                                                        } 
+
                                                         if ($1->decspec.s_class) {
-                                                            printf("storage class is %d\n", $1->decspec.s_class);
+                                                            printf("storage class is %d\n", ($2->dec_specs)->decspec.s_class);
                                                         }
                                                         if ($1->decspec.s_type) { // not NULL
                                                             printf("type specifier is ");
-                                                            union astnode *temp = $1->decspec.s_type;
+                                                            union astnode *temp = ($2->dec_specs)->decspec.s_type;
                                                             while(temp) {
                                                                 printf("%d ", temp->scalar.scalarType);
                                                                 temp = temp->scalar.next;
@@ -333,14 +341,8 @@ declaration: declaration_specifiers ';'
                                                             printf("\n");
                                                         }
                                                         if ($1->decspec.q_type) {
-                                                            printf("type qualifier is %d\n", $1->decspec.q_type);
+                                                            printf("type qualifier is %d\n", ($2->dec_specs)->decspec.q_type);
                                                         }
-                                                        // add astnode declaration specifier to symbol
-                                                        if (insert_symbol(current->symbolTables[OTHER], $2)) {
-                                                            printf("symbol inserted, ident is %s\n", $2->key); 
-                                                        } else {
-                                                            printf("symbol for ident %s, was not inserted into symbol table\n", $2->key);
-                                                        } 
                                                       }
     ;
 
@@ -350,20 +352,37 @@ statement: compound_statement {$$ = $1;}
 
 declaration_specifiers: storage_class_specifier {$$ = $1;}
     | storage_class_specifier declaration_specifiers { 
-                                                        if ($2->generic.type == SCALAR_NODE) {
-                                                            union astnode *s_type = $2;
-                                                            $$ = modify_astnode_declaration_spec($1, s_type, NONE_TYPE, UNKNOWN_CLASS);
+                                                        if ($2->generic.type == DECSPEC_NODE) {
+                                                            if ($2->decspec.s_class) { // if there is another storage class declared
+                                                                fprintf(stderr, "Error: cannot have declaration with more than one storage class\n");
+                                                            } else if ($2->decspec.q_type) {
+                                                                // Note: if there are already s_class and s_type, fields do not get overwritten
+                                                                modify_astnode_declaration_spec($2, NULL, NONE_TYPE, $1->decspec.s_class); // the second decspec node is returned because we want to continue parsing dec specs
+                                                                $$ = $2;
+                                                            }
+                                                        } else if ($2->generic.type == SCALAR_NODE) {
+                                                            $$ = modify_astnode_declaration_spec($1, $2, NONE_TYPE, UNKNOWN_CLASS); // see note above
                                                         }
                                                     }
     | type_specifier {$$ = $1;}
     | type_specifier declaration_specifiers {
                                                 append_astnode_list($1, $2); 
                                                 if ($1->scalar.prev) { // decspec gets created for first in list 
-                                                    $$ = new_astnode_declaration_spec(DECSPEC_NODE, $1, NONE_TYPE, UNKNOWN_CLASS);
+                                                    $$ = new_astnode_declaration_spec(DECSPEC_NODE, $1, NONE_TYPE, UNKNOWN_CLASS); 
                                               }
                                             }
     | type_qualifier {$$ = $1;} 
-    | type_qualifier declaration_specifiers
+    | type_qualifier declaration_specifiers {
+                                                if ($2->generic.type == SCALAR_NODE) {
+                                                    $$ = modify_astnode_declaration_spec($1, $2, NONE_TYPE, UNKNOWN_CLASS); // see note above
+                                                } else if ($2->generic.type == DECSPEC_NODE) {
+                                                    if ($2->decspec.s_class) { 
+                                                        fprintf(stderr, "Error:  must declare storage class before type qualifier\n");
+                                                    } else if ($2->decspec.q_type) {
+                                                        fprintf(stderr, "Error:  more than one type qualifier not implemented\n");
+                                                    }
+                                                }
+                                            }
     | function_specifier                        // *** Optional -- Not Implemented ***
     | function_specifier declaration_specifiers // *** Optional -- Not Implemented ***
     ;
@@ -438,7 +457,14 @@ function_specifier: INLINE // *** Optional -- Not Implemented ***
     ;
 
 declarator: direct_declarator {$$ = $1;}
-    | pointer direct_declarator //{$$ = new_astnode_pointer(POINTER_NODE, NONE_TYPE, $2);} //assumes direct declarator has already been made as an astnode (but it is a symbol)
+    | pointer direct_declarator {   printf("here\n");
+                                    //$$ = add_astnode_to_symbol($2, $1);
+                                    /*if ($$->type_rep) {
+                                        if (($$->type_rep)->generic.type == POINTER_NODE) {
+                                            printf("POINTER TO\n");
+                                        }
+                                    }    */
+                                }
     ;
 
 direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //no astnode * and symbol type defaults to VARIABLE
@@ -481,11 +507,11 @@ parameter_list: parameter_declaration
 parameter_declaration: declaration_specifiers  
     | declaration_specifiers declarator
     | declaration_specifiers abstract_declarator
-    ; */
-
-identifier_list: IDENT
-    | identifier_list ',' IDENT
     ; 
+
+identifier_list: IDENT 
+    | identifier_list ',' IDENT
+    ; */
 
 abstract_declarator: pointer
     | direct_abstract_declarator

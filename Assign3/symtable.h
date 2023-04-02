@@ -101,7 +101,7 @@ typedef struct symbol {
     
     enum name_space nameSpace;
     union astnode *dec_specs; // declaration specifiers
-    // union astnode *type_rep; // pointer to ast node, whether declaration is pointer, scalar, array, etc. 
+    union astnode *type_rep; // pointer to ast node, whether declaration is pointer, scalar, array, etc. 
     // possible types of IDENT symbols
     union {
         struct variable_symbol var;
@@ -189,6 +189,9 @@ void pop_scope();
 // starts in current scope calling contains_symbol() in the specific namespace symbol table
 // linearlly moves upwards until global is searched
 symbol *find_symbol(enum name_space nameSpace, char *ident);
+
+// adds astnode representing symbol type (pointer, scalar, function, array) as attribute of symbol
+symbol *add_astnode_to_symbol(symbol *sym, union astnode *node);
 
 /* Hash Table functions */
 // return the symbol with the key (pKey) if it exists

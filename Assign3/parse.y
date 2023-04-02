@@ -362,7 +362,7 @@ declaration: declaration_specifiers ';'
     ;
 
 statement: compound_statement {$$ = $1;}
-    | expression ';' 
+    | expression ';' {printAST($1, 0);}
     ;
 
 declaration_specifiers: storage_class_specifier {$$ = $1;}

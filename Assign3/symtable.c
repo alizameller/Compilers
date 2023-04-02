@@ -213,10 +213,11 @@ symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
     if (node->generic.type == DECSPEC_NODE) {
         sym->dec_specs = node;
     }
-    if (node->generic.type >= 10 && node->generic.type <= 13) { //SCALAR_NODE through FUNCTION_DEF_NODE
-        printf("here\n");
+    if (node->generic.type >= 11 && node->generic.type <= 13) { //POINTER_NODE through FUNCTION_DEF_NODE
         sym->type_rep = node;
     }
+
+    return sym; 
 }
 
 /*

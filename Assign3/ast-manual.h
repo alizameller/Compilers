@@ -177,23 +177,25 @@ struct astnode_declaration_spec {
     union astnode* s_type;
     qualifier_type q_type; 
     storage_class s_class; 
+
+    union astnode *next; // pointer to next astnode in list (for multiple type specifiers/qualifiers) 
+    union astnode *prev; // pointer to previous astnode in list
+
     // 1 = inline, 0 = not inline 
     int function_specifier; // *** Optional -- Not Implemented ***
 };
 
 union astnode* new_astnode_declaration_spec(nodetype type, union astnode* s_type, qualifier_type q_type, storage_class s_class);
 union astnode* modify_astnode_declaration_spec(union astnode *node_ptr, union astnode* s_type, qualifier_type q_type, storage_class s_class);
+union astnode* append_astnode_list(union astnode *prev, union astnode *addition);
 
 // Scalar Node
 struct astnode_scalar {
     enum nodetype type;
     enum specifier_type scalarType;
-    union astnode *next; // pointer to next astnode_scalar in list (for multiple type specifiers/qualifiers) 
-    union astnode *prev; // pointer to previous astnode_scalar in list
 };
 
 union astnode* new_astnode_scalar(nodetype type, specifier_type s_type);
-union astnode* append_astnode_list(union astnode *prev, union astnode *addition);
 
 // Pointer Node
 struct astnode_pointer {

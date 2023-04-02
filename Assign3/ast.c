@@ -158,6 +158,10 @@ union astnode* new_astnode_declaration_spec(nodetype type, union astnode* s_type
     node_ptr->decspec.s_type = s_type;
     node_ptr->decspec.q_type = q_type; 
     node_ptr->decspec.s_class = s_class; 
+
+    // initialize astnode scalar as a singular type spec
+    node_ptr->decspec.next = NULL;
+    node_ptr->decspec.prev = NULL;
     
     return node_ptr;
 }
@@ -191,16 +195,14 @@ union astnode* new_astnode_scalar(nodetype type, enum specifier_type s_type){
 	// set entries
     node_ptr->scalar.type = type; 
     node_ptr->scalar.scalarType = s_type;
-    // initialize astnode scalar as a singular type spec
-    node_ptr->scalar.next = NULL;
-    node_ptr->scalar.prev = NULL;
 
     return node_ptr;
 }
 
 union astnode* append_astnode_list(union astnode *previous, union astnode *addition){
-    previous->scalar.next = addition; 
-    addition->scalar.prev = previous; 
+    previous->decspec.next = addition; 
+    addition->decspec.prev = previous; 
+    
     return previous; 
 }
 

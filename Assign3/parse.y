@@ -303,10 +303,15 @@ declaration_or_fndef: declaration {$$ = $1;}
     | function_definition
     ;
 
-function_definition: declaration_specifiers declarator compound_statement ';' {printAST($1, 0);}
+function_definition: declaration_specifiers declarator compound_statement ';' {$$ = add_astnode_to_symbol($2, $1);}
     ;
 
-compound_statement: '{' decl_or_stmt_list '}'
+compound_statement: '{' { 
+                            // MAKE SCOPE
+                        }
+    decl_or_stmt_list '}' {
+                             // DO STUFF
+                          }
     ;
 
 decl_or_stmt_list: decl_or_stmt  {$$ = $1;}
@@ -321,6 +326,16 @@ declaration: declaration_specifiers ';'
     | declaration_specifiers init_declarator_list ';' { 
                                                         // check that if restrict is used it must be on a pointer types derived from object, else ERROR ?
                                                         $$ = add_astnode_to_symbol($2, $1);
+                                                        union astnode *temp = $$->type_rep;
+                                                        if (temp) {
+                                                            if (temp->generic.type == POINTER_NODE) {
+                                                                printf("POINTER TO\n");
+                                                                while (temp->ptr.parent) {
+                                                                    printf("POINTER TO\n");
+                                                                    temp = temp->ptr.parent;
+                                                                }
+                                                            }
+                                                        } 
 
                                                         if (insert_symbol(current->symbolTables[OTHER], $2)) {
                                                             printf("symbol inserted, ident is %s\n", $2->key); 
@@ -333,10 +348,10 @@ declaration: declaration_specifiers ';'
                                                         }
                                                         if ($1->decspec.s_type) { // not NULL
                                                             printf("type specifier is ");
-                                                            union astnode *temp = ($2->dec_specs)->decspec.s_type;
+                                                            union astnode *temp = $2->dec_specs;
                                                             while(temp) {
-                                                                printf("%d ", temp->scalar.scalarType);
-                                                                temp = temp->scalar.next;
+                                                                printf("%d ", (temp->decspec.s_type)->scalar.scalarType);
+                                                                temp = temp->decspec.next;
                                                             }
                                                             printf("\n");
                                                         }
@@ -352,37 +367,30 @@ statement: compound_statement {$$ = $1;}
 
 declaration_specifiers: storage_class_specifier {$$ = $1;}
     | storage_class_specifier declaration_specifiers { 
-                                                        if ($2->generic.type == DECSPEC_NODE) {
-                                                            if ($2->decspec.s_class) { // if there is another storage class declared
-                                                                fprintf(stderr, "Error: cannot have declaration with more than one storage class\n");
-                                                            } else if ($2->decspec.q_type) {
-                                                                // Note: if there are already s_class and s_type, fields do not get overwritten
-                                                                modify_astnode_declaration_spec($2, NULL, NONE_TYPE, $1->decspec.s_class); // the second decspec node is returned because we want to continue parsing dec specs
-                                                                $$ = $2;
-                                                            }
-                                                        } else if ($2->generic.type == SCALAR_NODE) {
-                                                            $$ = modify_astnode_declaration_spec($1, $2, NONE_TYPE, UNKNOWN_CLASS); // see note above
+                                                        if ($2->decspec.s_class) { // if there is another storage class declared
+                                                            fprintf(stderr, "Error: cannot have declaration with more than one storage class\n");
+                                                        } else {
+                                                            // Note: if there are already s_class and s_type, fields do not get overwritten
+                                                            $$ = modify_astnode_declaration_spec($2, NULL, NONE_TYPE, $1->decspec.s_class); // the second decspec node is returned because we want to continue parsing dec specs
                                                         }
                                                     }
     | type_specifier {$$ = $1;}
     | type_specifier declaration_specifiers {
                                                 append_astnode_list($1, $2); 
-                                                if ($1->scalar.prev) { // decspec gets created for first in list 
-                                                    $$ = new_astnode_declaration_spec(DECSPEC_NODE, $1, NONE_TYPE, UNKNOWN_CLASS); 
-                                              }
+                                                if ($1->decspec.prev) { // if first in list
+                                                    $$ = $1;
+                                                }
                                             }
     | type_qualifier {$$ = $1;} 
     | type_qualifier declaration_specifiers {
-                                                if ($2->generic.type == SCALAR_NODE) {
-                                                    $$ = modify_astnode_declaration_spec($1, $2, NONE_TYPE, UNKNOWN_CLASS); // see note above
-                                                } else if ($2->generic.type == DECSPEC_NODE) {
-                                                    if ($2->decspec.s_class) { 
-                                                        fprintf(stderr, "Error:  must declare storage class before type qualifier\n");
-                                                    } else if ($2->decspec.q_type) {
-                                                        fprintf(stderr, "Error:  more than one type qualifier not implemented\n");
-                                                    }
+                                                if ($2->decspec.s_type) {
+                                                    $$ = modify_astnode_declaration_spec($2, NULL, $1->decspec.q_type, UNKNOWN_CLASS); // see note above
+                                                } else if ($2->decspec.s_class) { 
+                                                    fprintf(stderr, "Error:  must declare storage class before type qualifier\n");
+                                                } else if ($2->decspec.q_type) {
+                                                    fprintf(stderr, "Error:  more than one type qualifier not implemented\n");
                                                 }
-                                            }
+                                                }
     | function_specifier                        // *** Optional -- Not Implemented ***
     | function_specifier declaration_specifiers // *** Optional -- Not Implemented ***
     ;
@@ -402,16 +410,46 @@ storage_class_specifier: TYPEDEF {$$ = new_astnode_declaration_spec(DECSPEC_NODE
     | REGISTER {$$ = new_astnode_declaration_spec(DECSPEC_NODE, NULL, NONE_TYPE, REGISTER_CLASS);}
     ;
 
-type_specifier: VOID {$$ = new_astnode_scalar(SCALAR_NODE, VOID_TYPE);}
-    | CHAR {$$ = new_astnode_scalar(SCALAR_NODE, CHAR_TYPE);} 
-    | SHORT {$$ = new_astnode_scalar(SCALAR_NODE, SHORT_TYPE);}
-    | INT {$$ = new_astnode_scalar(SCALAR_NODE, INT_TYPE);}
-    | LONG {$$ = new_astnode_scalar(SCALAR_NODE, LONG_TYPE);}
-    | FLOAT {$$ = new_astnode_scalar(SCALAR_NODE, FLOAT_TYPE);}
-    | DOUBLE {$$ = new_astnode_scalar(SCALAR_NODE, DOUBLE_TYPE);}
-    | SIGNED {$$ = new_astnode_scalar(SCALAR_NODE, SIGNED_TYPE);}
-    | UNSIGNED {$$ = new_astnode_scalar(SCALAR_NODE, UNSIGNED_TYPE);}
-    | _BOOL {$$ = new_astnode_scalar(SCALAR_NODE, BOOL_TYPE);} 
+type_specifier: VOID {
+                        union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, VOID_TYPE);
+                        $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS); 
+                     }
+    | CHAR {
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, CHAR_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS); 
+            } 
+    | SHORT {
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, SHORT_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS); 
+            }
+    | INT { 
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, INT_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS); 
+           }
+    | LONG {
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, LONG_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS); 
+           }
+    | FLOAT {
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, FLOAT_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS);
+            }
+    | DOUBLE {
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, DOUBLE_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS);
+             }
+    | SIGNED {
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, SIGNED_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS);
+             }
+    | UNSIGNED {
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, UNSIGNED_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS);
+               }
+    | _BOOL {
+                union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, BOOL_TYPE);
+                $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS);
+            } 
     //| _COMPLEX 
     | struct_or_union_specifier 
     /*| enum_specifier */
@@ -436,16 +474,26 @@ struct_declaration: specifier_qualifier_list ';'
     ;
 
 specifier_qualifier_list: type_specifier {$$ = $1;}
-    | type_specifier specifier_qualifier_list
+    | type_specifier specifier_qualifier_list {
+                                                append_astnode_list($1, $2);
+                                                if ($1->decspec.prev) { // if first in list
+                                                    $$ = $1;
+                                                }
+                                              }
     | type_qualifier {$$ = $1;}
-    | type_qualifier specifier_qualifier_list
+    | type_qualifier specifier_qualifier_list {
+                                                append_astnode_list($1, $2);
+                                                if ($1->decspec.prev) { // if first in list
+                                                    $$ = $1;
+                                                }
+                                              }
     ;
 
 struct_declarator_list: struct_declarator
     | struct_declarator_list ',' struct_declarator
     ;
 
-struct_declarator: declarator
+struct_declarator: declarator {$$ = $1;}
     ;
 
 type_qualifier: CONST {$$ = new_astnode_declaration_spec(DECSPEC_NODE, NULL, CONST_TYPE, UNKNOWN_CLASS);}
@@ -457,15 +505,7 @@ function_specifier: INLINE // *** Optional -- Not Implemented ***
     ;
 
 declarator: direct_declarator {$$ = $1;}
-    | pointer direct_declarator {  
-                                    printf("testing\n");
-                                    $$ = add_astnode_to_symbol($2, $1);
-                                    /*if ($$->type_rep) {
-                                        if (($$->type_rep)->generic.type == POINTER_NODE) {
-                                            printf("POINTER TO\n");
-                                        }
-                                    }    */
-                                }
+    | pointer direct_declarator {$$ = add_astnode_to_symbol($2, $1);}
     ;
 
 direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //no astnode * and symbol type defaults to VARIABLE
@@ -489,7 +529,7 @@ pointer: '*' {$$ = new_astnode_pointer(POINTER_NODE, NULL, NULL);}
     ;
 
 type_qualifier_list: type_qualifier {$$ = $1;}
-    | type_qualifier_list type_qualifier 
+    | type_qualifier_list type_qualifier  // *** Optional -- Not Implemented ***
     ;
 
 type_name: specifier_qualifier_list                       
@@ -536,7 +576,7 @@ direct_abstract_declarator: '(' abstract_declarator ')' {$$ = $2;}
 
 typedef_name: IDENT; // *** Optional -- Not Implemented ***
 
-initializer: assignment_expression
+initializer: assignment_expression  // *** Optional -- Not Implemented ***
    // | '{' initializer_list '}' 
    // | '{' initializer_list ',' '}'
     ;

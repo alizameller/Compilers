@@ -458,7 +458,6 @@ function_specifier: INLINE // *** Optional -- Not Implemented ***
 
 declarator: direct_declarator {$$ = $1;}
     | pointer direct_declarator {  
-                                    printf("testing\n");
                                     $$ = add_astnode_to_symbol($2, $1);
                                     /*if ($$->type_rep) {
                                         if (($$->type_rep)->generic.type == POINTER_NODE) {

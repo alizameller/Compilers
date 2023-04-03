@@ -303,11 +303,22 @@ declaration_or_fndef: declaration {$$ = $1;}
     | function_definition
     ;
 
-function_definition: declaration_specifiers declarator compound_statement ';' {$$ = add_astnode_to_symbol($2, $1);}
+function_definition: declaration_specifiers declarator compound_statement ';' { 
+                                                                                $$ = add_astnode_to_symbol($2, $1);
+                                                                                // if inserting symbol was successful
+                                                                                if (insert_symbol(current->symbolTables[OTHER], $$)) {
+                                                                                    union astnode *type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL);
+                                                                                    // change astnode type to function def
+                                                                                    add_astnode_to_symbol($$, )
+                                                                                }
+
+                                                                              }
     ;
 
 compound_statement: '{' { 
-                            // MAKE SCOPE
+                            if (!push_scope(FUNCTION_SCOPE)) { // if push_scope returns 0 -> ERROR
+                                fprintf(stderr, "Error: Cannot create function scope. Current scope is %d\n", current->name);
+                            }
                         }
     decl_or_stmt_list '}' {
                              // DO STUFF

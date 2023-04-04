@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------------------------------------------------------------\
 |      TO DO:                                                                                                      |
-|       - Symbol Table                                                                                             |
-|       - AST nodes representing scalar types, pointers, arrays and functions                                      |
+|       - S̶y̶m̶b̶o̶l̶ T̶a̶b̶l̶e̶                                                                                             |
+|       - A̶S̶T̶ n̶o̶d̶e̶s̶ r̶e̶p̶r̶e̶s̶e̶n̶t̶i̶n̶g̶ s̶c̶a̶l̶a̶r̶ t̶y̶p̶e̶s̶,̶ p̶o̶i̶n̶t̶e̶r̶s̶,̶ a̶r̶r̶a̶y̶s̶ a̶n̶d̶ f̶u̶n̶c̶t̶i̶o̶n̶s̶                                      |
 |       - "mini symbol table" for representing structure and union types                                           |
 |       - system of "dumping" a given AST or portion of an AST to plain text (build on printAST)                   |
 |                                                                                                                  |
@@ -128,18 +128,15 @@ expression: assignment_expression {$$ = $1;}
     | expression ',' assignment_expression {$$ = new_astnode_binop(',', $1, $3);}
     ;
 
-primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal); 
-    }
-    | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1);
-    }
+primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal);}
+    | NUMBER {$$ = new_astnode_num(NUMBER_NODE, $1);}
     | CHARLIT { 
                 struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
                 temp->meta = UNSIGNED_INT;
                 temp->value.int_val = $1;
                 $$ = new_astnode_num(NUMBER_NODE, *temp); 
-    }
-    | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);
-    }
+              }
+    | STRING {$$ = new_astnode_string(STRING_NODE, $1.string_literal);}
     | '('expression')' {$$ = $2;} 
     ;
 
@@ -172,34 +169,7 @@ argument_expression_list: assignment_expression {
                                                 $$ = init_list(head);
                                                 }
     | argument_expression_list ',' assignment_expression {$$ = append_arg($1, $3);}
-    ;      
-
-/* type_name: CHAR {
-            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
-            temp->meta = UNSIGNED_INT;
-            temp->value.int_val = 1;
-            $$ = new_astnode_num(NUMBER_NODE, *temp);}
-    | INT { 
-            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
-            temp->meta = UNSIGNED_INT;
-            temp->value.int_val = 1;
-            $$ = new_astnode_num(NUMBER_NODE, *temp);}
-    | LONG {
-            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
-            temp->meta = UNSIGNED_LONG;
-            temp->value.int_val = 1;
-            $$ = new_astnode_num(NUMBER_NODE, *temp);}
-    | DOUBLE {
-            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
-            temp->meta = DOUBLE_NUM;
-            temp->value.float_val = 1;
-            $$ = new_astnode_num(NUMBER_NODE, *temp);}
-    | FLOAT {
-            struct numinfo *temp = (struct numinfo*) malloc(sizeof (struct numinfo));
-            temp->meta = FLOAT_NUM;
-            temp->value.float_val = 1;
-            $$ = new_astnode_num(NUMBER_NODE, *temp);}
-    ; */
+    ; 
 
 unary_operator: '&' {$$ = '&';}
     | '*' {$$ = '*';}
@@ -299,57 +269,32 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration // printDeclarations()
-    | function_definition // printFunctions() // or make them the same?
+declaration_or_fndef: declaration {printDeclaration($1);}
+    | function_definition {printFunctions($1);} 
     ;
 
 function_definition: declaration_specifiers declarator compound_statement ';' { 
                                                                                 printf("***FUNCTION***\n");
+                                                                                // add decspecs to declaration symbol
                                                                                 $$ = add_astnode_to_symbol($2, $1);
                                                                                 // if inserting symbol was successful
                                                                                 if (insert_symbol(current->symbolTables[OTHER], $$)) {
                                                                                     union astnode *type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
                                                                                     // change astnode type to function def
                                                                                     add_astnode_to_symbol($$, type);
-                                                                                    printf("symbol inserted, ident is %s\n", $2->key); 
+                                                                                    printf("symbol inserted, ident is %s\n", $$->key); 
                                                                                 } else {
-                                                                                    printf("symbol for ident %s, was not inserted into symbol table\n", $2->key);
+                                                                                    printf("symbol for ident %s, was not inserted into symbol table\n", $$->key);
                                                                                 } 
-
-                                                                                if ($1->decspec.s_class) {
-                                                                                    printf("storage class is %d\n", ($2->dec_specs)->decspec.s_class);
-                                                                                }
-                                                                                if ($1->decspec.q_type) {
-                                                                                    printf("type qualifier is %d\n", ($2->dec_specs)->decspec.q_type);
-                                                                                }
-                                                                                union astnode *temp = $$->type_rep;
-                                                                                if (temp) {
-                                                                                    if (temp->generic.type == POINTER_NODE) {
-                                                                                        printf("POINTER TO\n");
-                                                                                        while (temp->ptr.parent) {
-                                                                                            printf("POINTER TO\n");
-                                                                                            temp = temp->ptr.parent;
-                                                                                        }
-                                                                                    }
-                                                                                } 
-                                                                                if ($1->decspec.s_type) { // not NULL
-                                                                                    printf("type specifier is ");
-                                                                                    union astnode *temp = $2->dec_specs;
-                                                                                    while(temp) {
-                                                                                        printf("%d ", (temp->decspec.s_type)->scalar.scalarType);
-                                                                                        temp = temp->decspec.next;
-                                                                                    }
-                                                                                    printf("\n");
-                                                                                }
-                                                                                find_symbol(OTHER, $2->key);
-                                                                                printf("\n");
-                                                                            }
+                                                                              }
     ;
 
 compound_statement: '{' {   
                             if (!push_scope(FUNCTION_SCOPE)) { // if push_scope returns 0 -> ERROR
                                 fprintf(stderr, "Error: Cannot create function scope. Current scope is %d\n", current->name);
                             }
+                            current->scope_fileName = report.fileName;
+                            current->scope_lineNum = report.lineNum;
                         }
     decl_or_stmt_list '}' {
                             $$ = $3;
@@ -368,42 +313,14 @@ decl_or_stmt: declaration  {$$ = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE,
 
 declaration: declaration_specifiers ';' 
     | declaration_specifiers init_declarator_list ';' {
-                                                        printf("***DECLARATION***\n");
+                                                        //printf("***DECLARATION***\n");
                                                         $$ = add_astnode_to_symbol($2, $1);
-                                                        printf("type is %d\n", $2->sym_type);
-
-                                                        if (insert_symbol(current->symbolTables[OTHER], $2)) {
-                                                            printf("symbol inserted, ident is %s\n", $2->key); 
-                                                        } else {
-                                                            printf("symbol for ident %s, was not inserted into symbol table\n", $2->key);
+                                                        if (!insert_symbol(current->symbolTables[OTHER], $$)) {
+                                                            fprintf(stderr, "Error: Symbol for ident %s, was not inserted into symbol table\n", $$->key);
                                                         } 
-
-                                                        if ($1->decspec.s_class) {
-                                                            printf("storage class is %d\n", ($2->dec_specs)->decspec.s_class);
+                                                        if (current->name == FUNCTION_SCOPE) {
+                                                            printDeclaration($$);
                                                         }
-                                                        if ($1->decspec.q_type) {
-                                                            printf("type qualifier is %d\n", ($2->dec_specs)->decspec.q_type);
-                                                        }
-                                                        union astnode *temp = $$->type_rep;
-                                                        if (temp) {
-                                                            if (temp->generic.type == POINTER_NODE) {
-                                                                printf("POINTER TO\n");
-                                                                while (temp->ptr.parent) {
-                                                                    printf("POINTER TO\n");
-                                                                    temp = temp->ptr.parent;
-                                                                }
-                                                            }
-                                                        } 
-                                                        if ($1->decspec.s_type) { // not NULL
-                                                            printf("type specifier is ");
-                                                            union astnode *temp = $2->dec_specs;
-                                                            while(temp) {
-                                                                printf("%d ", (temp->decspec.s_type)->scalar.scalarType);
-                                                                temp = temp->decspec.next;
-                                                            }
-                                                            printf("\n");
-                                                        }
-                                                        find_symbol(OTHER, $2->key);
                                                       }
     ;
 
@@ -554,7 +471,7 @@ declarator: direct_declarator {$$ = $1;}
     | pointer direct_declarator {$$ = add_astnode_to_symbol($2, $1);}
     ;
 
-direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //no astnode * and symbol type defaults to VARIABLE
+direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //symbol type defaults to VARIABLE
     | '(' declarator ')' {$$ = $2;}
     //| direct_declarator '[' assignment_expression ']'                             // *** Optional -- Not Implemented ***
     //| direct_declarator '[' type_qualifier_list assignment_expression ']'         // *** Optional -- Not Implemented ***
@@ -630,7 +547,7 @@ direct_abstract_declarator: '(' abstract_declarator ')' {$$ = $2;}
     // | direct_abstract_declarator '(' parameter_type_list ')'     // *** Optional -- Not Implemented ***
     ;
 
-typedef_name: IDENT; // *** Optional -- Not Implemented ***
+typedef_name: IDENT {$$ = $1;}; 
 
 initializer: assignment_expression  // *** Optional -- Not Implemented ***
    // | '{' initializer_list '}' 
@@ -654,223 +571,12 @@ designator: '[' constant_expression ']'
  */
 %%
 
-void printIndents(int indent){
-    for (int i = 0; i < indent; i++){
-        printf("\t");
-    }
-}
-
-void printBinop(int operator){
-    if(operator == '=') {
-        printf("ASSIGNMENT\n"); 
-    } else if(operator >= 263 && operator <= 264){
-        printf("LOGICAL OP ");
-    } else if(operator >= 265 && operator <= 266){
-        printf("BINARY OP ");
-    } else if(operator >= 267 && operator <= 270){
-        printf("COMPARISON OP ");
-    } else if(operator >= 271 && operator <= 282){
-        printf("ASSIGNMENT COMPOUND (");
-    } 
-    switch(operator){
-        case LTEQ:
-            printf("<");
-            break;
-        case GTEQ:
-            printf(">");
-            break;
-        case EQEQ:
-            printf("=");
-            break;
-        case NOTEQ:
-            printf("!");
-            break;
-        case LOGAND:
-            printf("&&\n");
-            break;
-        case LOGOR:
-            printf("||\n");
-            break;
-        case SHL:
-            printf("<<\n");
-            break;
-        case SHR:
-            printf(">>\n");
-            break;
-        case TIMESEQ:
-            printf("*");
-            break;
-        case DIVEQ:
-            printf("/");
-            break;
-        case MODEQ:
-            printf("%%");
-            break;
-        case PLUSEQ:
-            printf("+");
-            break;
-        case MINUSEQ:
-            printf("-");
-            break;
-        case SHLEQ:
-            printf("<<");
-            break;
-        case SHREQ:
-            printf(">>");
-            break;
-        case ANDEQ:
-            printf("&");
-            break;
-        case OREQ:
-            printf("|");
-            break;
-        case XOREQ:
-            printf("^");
-            break;
-    }
-
-    if(operator >= 267 && operator <= 270){
-        printf("=\n");
-    } else if(operator >= 271 && operator <= 282){
-        printf(")\n");
-    }
-}
-
-void printNum(struct numinfo numInfo){
-    switch(numInfo.meta) {
-            case(UNSIGNED_INT):
-            case(SIGNED_INT):
-                printf("int)");
-                printf("%lld\n", numInfo.value.int_val);
-                break;
-            case(UNSIGNED_LONG):
-            case(SIGNED_LONG):
-                printf("long)");
-                printf("%lld\n", numInfo.value.int_val);
-                break;
-            case(UNSIGNED_LONGLONG):
-            case(SIGNED_LONGLONG):
-                printf("long long)");
-                printf("%lld\n", numInfo.value.int_val);
-                break;
-            case(DOUBLE_NUM):
-                printf("double)");
-                if (numInfo.value.float_val >= 10) {
-                    printf("%.2Le\n", numInfo.value.float_val);
-                } else {
-                    printf("%.2Lf\n", numInfo.value.float_val);
-                }
-                break;
-            case(FLOAT_NUM):
-                printf("float)");
-                if (numInfo.value.float_val >= 10) {
-                    printf("%.2Le\n", numInfo.value.float_val);
-                } else {
-                    printf("%.2Lf\n", numInfo.value.float_val);
-                }
-                break;
-            case(LONG_DOUBLE):
-                printf("long double)");
-                if (numInfo.value.float_val >= 10) {
-                    printf("%.2Le\n", numInfo.value.float_val);
-                } else {
-                    printf("%.2Lf\n", numInfo.value.float_val);
-                }
-                break;
-    }
-}
-
-void printAST(union astnode* node, int indent) {
-    int count = 1; 
-    printIndents(indent);
-
-    switch(node->generic.type){
-        case UNOP_NODE: 
-            if (node->unop.operator == SIZEOF) {
-                printf("SIZEOF\n");
-            } else if (node->unop.operator == '&') {
-                printf("ADDRESSOF\n");
-            } else if (node->unop.operator == '*') {
-                printf("DEREF\n");
-            } else if (node->unop.operator == PLUSPLUS) {
-                printf("UNARY OP POSTINC\n");
-            } else if (node->unop.operator == MINUSMINUS) {
-                printf("UNARY OP POSTDEC\n");
-            } else{
-                printf("UNARY OP %c\n", node->unop.operator);
-            }
-            printAST(node->unop.operand, indent+1); 
-            break;
-        case BINOP_NODE:
-            if ((node->binop.operator >= LOGAND && node->binop.operator <= XOREQ) || node->binop.operator == '=') {
-                printBinop(node->binop.operator); 
-            } else if (node->binop.operator == '.') {
-                if ((node->binop.left)->unop.operator && (node->binop.left)->unop.operator == '*') {
-                    printf("INDIRECT SELECT, member %s\n", (node->binop.right)->id.ident);
-                    printAST((node->binop.left)->unop.operand, indent+1);  
-                } else {
-                    printf("SELECT, member %s\n", (node->binop.right)->id.ident);
-                    printAST(node->binop.left, indent+1);  
-                }
-                break;
-            } else {
-                printf("BINARY OP %c\n", node->binop.operator);
-            }
-            printAST(node->binop.left, indent+1); 
-            printAST(node->binop.right, indent+1); 
-            break;
-        case TERNOP_NODE:
-            printf("TERNARY OP, IF:\n");
-	        printAST(node->ternop.left, indent+1);
-            printf("THEN:\n");
-            printAST(node->ternop.middle, indent+1);
-	        printf("ELSE:\n");
-            printAST(node->ternop.right, indent+1);
-            break;
-        case NUMBER_NODE:
-            printf("CONSTANT: (type=");
-            printNum(node->num.numInfo);
-            break;
-        case IDENT_NODE:
-            printf("IDENT %s\n", node->id.ident);
-            break;
-        case STRING_NODE:
-            printf("STRING\t%s\n", node->str.string_literal);
-            break;
-        case ARGLIST_NODE:
-            printIndents(indent + 1);
-            printf("arg #%d=\n", count);
-            printAST((node->list.arg_head)->arg.argument, indent+1);
-            while(node->list.arg_next != NULL) {
-                printIndents(indent + 1);
-                printf("arg #%d=\n", ++count);
-                printAST((node->list.arg_next)->arg.argument, indent+1);
-                node = node->list.arg_next;
-            }
-            break;
-        case FUNCTION_NODE:
-            printf("FNCALL, %d arguments\n", node->func.num_args);
-            printAST(node->func.function_name, indent+1);
-            if (node->func.arg_head) {
-                printAST(node->func.arg_head, indent-1);
-            }
-            break;
-        case ARGUMENT_NODE:
-        case SCALAR_NODE:
-            printf("SCALAR DECLARATION, TYPE: %d\n", node->scalar.scalarType);
-            break; 
-        case POINTER_NODE:
-            printf("pointer to\n");
-            printAST(node->ptr.parent, indent+1);
-            break; 
-    }
-    free(node); 
-}
-
 int main(){
   //yydebug = 1;
   current = NULL;
   push_scope(FILE_SCOPE);
+  current->scope_fileName = NULL;
+  current->scope_lineNum = NULL;
   int t;
   while(!(t = yyparse())){
   };

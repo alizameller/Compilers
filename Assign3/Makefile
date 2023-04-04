@@ -1,5 +1,8 @@
-parse: parse.tab.o symtable.o ast.o lex.yy.o
-		gcc -o parse parse.tab.o symtable.o ast.o lex.yy.o
+parse: parse.tab.o symtable.o ast.o lex.yy.o printing.o
+		gcc -o parse parse.tab.o printing.o symtable.o ast.o lex.yy.o
+
+printing.o: ast.o parse.tab.h printing.c
+		gcc -c -o printing.o printing.c
 
 symtable.o: ast.o symtable.h symtable.c 
 		gcc -c -o symtable.o symtable.c
@@ -20,4 +23,7 @@ parse.tab.o: parse.y
 		gcc -c -o parse.tab.o parse.tab.c
 
 clean:
-		rm -f lex.yy.* parse.tab.* parse ast.o symtable.o
+		rm -f lex.yy.* parse.tab.* parse *.o
+
+outs:
+		rm -f *.out *.output *.err

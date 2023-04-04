@@ -180,7 +180,9 @@ int push_scope(enum scope_name scopeType) {
         return 0; // did not push scope to stack
     }
     current = scope_ptr; 
-
+    current->scope_fileName = report.fileName;
+    current->scope_lineNum = report.lineNum;
+    
     return 1; 
 }
 

@@ -129,6 +129,8 @@ typedef struct symbol_table {
 // Scope Struct -- Implemented as a stack (linked list)
 typedef struct scope {
     enum scope_name name;
+    char *scope_fileName;
+    int scope_lineNum;
     symbol_table *symbolTables[4];
     struct scope *parent;
 } scope;

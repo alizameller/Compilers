@@ -231,8 +231,6 @@ struct astnode_symbol_p {
 };
 union astnode* new_astnode_symbol_pointer(nodetype type, struct symbol *sym);
 
-void printAST(union astnode* node, int indent); 
-
 typedef union astnode {
     struct astnode_generic generic;
     struct astnode_unop unop;
@@ -252,5 +250,29 @@ typedef union astnode {
     struct astnode_symbol_p sym_p;
     /* etc.*/
 } astnode; 
+
+// Printing Functions
+void printIndents(int indent);
+
+void printBinop(int op);
+
+void printNum(struct numinfo numInfo);
+
+void printAST(union astnode* node, int indent);
+
+void printFunctions(struct symbol *sym);
+
+void printDeclaration(struct symbol *sym);
+
+char *printScopeName(void);
+
+char *printSymType(struct symbol *sym);
+
+char *printStorageClass(struct symbol *sym);
+
+char *printScalarType(union astnode *node);
+
+char *printTypeQualifier(struct symbol *sym);
+
 
 #endif //AST_H

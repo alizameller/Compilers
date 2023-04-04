@@ -99,9 +99,12 @@ typedef struct symbol {
     int line;     // line number
     symbolType sym_type; // enum for type of symbol
     
-    enum name_space nameSpace;
+    enum name_space nameSpace; // name space of symbol
     union astnode *dec_specs; // declaration specifiers
     union astnode *type_rep; // pointer to ast node, whether declaration is pointer, scalar, array, etc. 
+    
+   struct symbol *next; // 
+
     // possible types of IDENT symbols
     union {
         struct variable_symbol var;
@@ -192,6 +195,12 @@ symbol *find_symbol(enum name_space nameSpace, char *ident);
 
 // adds astnode representing symbol type (pointer, scalar, function, array) as attribute of symbol
 symbol *add_astnode_to_symbol(symbol *sym, union astnode *node);
+
+// modify symbol type 
+symbol *modify_symbol_type(symbol *sym, symbolType type);
+
+// append to symbol list -> linked list of symbols
+symbol *append_symbol_list(symbol *sym, symbol *addition);
 
 /* Hash Table functions */
 // return the symbol with the key (pKey) if it exists

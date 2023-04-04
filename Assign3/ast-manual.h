@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include "symtable.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -18,7 +19,8 @@ typedef enum nodetype {
     SCALAR_NODE,
     POINTER_NODE,
     ARRAY_NODE,
-    FUNCTION_DEF_NODE
+    FUNCTION_DEF_NODE,
+    SYMBOL_POINTER_NODE
 } nodetype;
 
 struct info {
@@ -216,8 +218,18 @@ union astnode* new_astnode_array(nodetype type, union astnode *element_type, int
 // Function Definition Node
 struct astnode_fndef {
     enum nodetype type;
+    union astnode *arg_type;
+    union astnode *ret_type;
 };
-union astnode* new_astnode_fndef(nodetype type, union astnode *name);
+union astnode* new_astnode_fndef(nodetype type, union astnode *arg, union astnode *ret);
+
+// Symbol Pointer Node
+struct astnode_symbol_p {
+    enum nodetype type;
+    struct symbol *sym;
+    union astnode *next; // for lists
+};
+union astnode* new_astnode_symbol_pointer(nodetype type, struct symbol *sym);
 
 void printAST(union astnode* node, int indent); 
 
@@ -237,6 +249,7 @@ typedef union astnode {
     struct astnode_pointer ptr; 
     struct astnode_array arr; 
     struct astnode_fndef fndef; 
+    struct astnode_symbol_p sym_p;
     /* etc.*/
 } astnode; 
 

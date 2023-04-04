@@ -200,10 +200,16 @@ union astnode* new_astnode_scalar(nodetype type, enum specifier_type s_type){
 }
 
 union astnode* append_astnode_list(union astnode *previous, union astnode *addition){
+    if (previous->generic.type == SYMBOL_POINTER_NODE && addition->generic.type == SYMBOL_POINTER_NODE) {
+        previous->sym_p.next = addition;
+
+        return addition;
+    }
+    // ELSE
     previous->decspec.next = addition; 
     addition->decspec.prev = previous; 
-    
-    return previous; 
+
+    return previous;
 }
 
 union astnode* new_astnode_pointer(nodetype type, union astnode *type_qual, union astnode *pointer){
@@ -237,9 +243,24 @@ union astnode* new_astnode_array(nodetype type, union astnode *element_type, int
     return node_ptr;
 }
 
-union astnode* new_astnode_fndef(nodetype type, union astnode *name){
+union astnode* new_astnode_fndef(nodetype type, union astnode *arg, union astnode *ret){
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+    node_ptr->fndef.type = type;
+    node_ptr->fndef.arg_type = arg;
+    node_ptr->fndef.ret_type = ret;
     
+    return node_ptr;
+}
+
+union astnode* new_astnode_symbol_pointer(nodetype type, symbol *sym){
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->sym_p.type = type; 
+    node_ptr->sym_p.sym = sym;
+
     return node_ptr;
 }

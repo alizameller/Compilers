@@ -66,10 +66,10 @@ void yyerror(char *s);
 
 /* Declarations */
 %type<symbol_p> declaration_or_fndef 
-%type<astnode_p>function_definition
-                compound_statement
-%type<symbol_p> decl_or_stmt_list
-%type<symbol_p> decl_or_stmt
+%type<symbol_p> function_definition
+%type<astnode_p>compound_statement
+%type<astnode_p> decl_or_stmt_list
+%type<astnode_p> decl_or_stmt
 %type<symbol_p> declaration 
 %type<astnode_p>statement
 %type<astnode_p>declaration_specifiers 
@@ -77,15 +77,15 @@ void yyerror(char *s);
 %type<symbol_p> init_declarator
 %type<astnode_p>storage_class_specifier 
 %type<astnode_p>type_specifier 
-%type<symbol_p>struct_or_union_specifier
-%type<operator> struct_or_union 
+%type<astnode_p> struct_or_union_specifier
+%type<astnode_p>struct_or_union 
 %type<astnode_p>struct_declaration_list 
                 struct_declaration 
                 specifier_qualifier_list 
                 struct_declarator_list 
-                struct_declarator  
+%type<symbol_p> struct_declarator  
 %type<astnode_p>type_qualifier
-%type<operator>function_specifier 
+%type<astnode_p>function_specifier 
 %type<symbol_p>declarator 
 %type<symbol_p>direct_declarator 
 %type<astnode_p>pointer 
@@ -299,54 +299,78 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration {$$ = $1;}
-    | function_definition
+declaration_or_fndef: declaration // printDeclarations()
+    | function_definition // printFunctions() // or make them the same?
     ;
 
 function_definition: declaration_specifiers declarator compound_statement ';' { 
+                                                                                printf("***FUNCTION***\n");
                                                                                 $$ = add_astnode_to_symbol($2, $1);
                                                                                 // if inserting symbol was successful
                                                                                 if (insert_symbol(current->symbolTables[OTHER], $$)) {
-                                                                                    union astnode *type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL);
+                                                                                    union astnode *type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
                                                                                     // change astnode type to function def
-                                                                                    add_astnode_to_symbol($$, )
-                                                                                }
+                                                                                    add_astnode_to_symbol($$, type);
+                                                                                    printf("symbol inserted, ident is %s\n", $2->key); 
+                                                                                } else {
+                                                                                    printf("symbol for ident %s, was not inserted into symbol table\n", $2->key);
+                                                                                } 
 
-                                                                              }
+                                                                                if ($1->decspec.s_class) {
+                                                                                    printf("storage class is %d\n", ($2->dec_specs)->decspec.s_class);
+                                                                                }
+                                                                                if ($1->decspec.q_type) {
+                                                                                    printf("type qualifier is %d\n", ($2->dec_specs)->decspec.q_type);
+                                                                                }
+                                                                                union astnode *temp = $$->type_rep;
+                                                                                if (temp) {
+                                                                                    if (temp->generic.type == POINTER_NODE) {
+                                                                                        printf("POINTER TO\n");
+                                                                                        while (temp->ptr.parent) {
+                                                                                            printf("POINTER TO\n");
+                                                                                            temp = temp->ptr.parent;
+                                                                                        }
+                                                                                    }
+                                                                                } 
+                                                                                if ($1->decspec.s_type) { // not NULL
+                                                                                    printf("type specifier is ");
+                                                                                    union astnode *temp = $2->dec_specs;
+                                                                                    while(temp) {
+                                                                                        printf("%d ", (temp->decspec.s_type)->scalar.scalarType);
+                                                                                        temp = temp->decspec.next;
+                                                                                    }
+                                                                                    printf("\n");
+                                                                                }
+                                                                                find_symbol(OTHER, $2->key);
+                                                                                printf("\n");
+                                                                            }
     ;
 
-compound_statement: '{' { 
+compound_statement: '{' {   
                             if (!push_scope(FUNCTION_SCOPE)) { // if push_scope returns 0 -> ERROR
                                 fprintf(stderr, "Error: Cannot create function scope. Current scope is %d\n", current->name);
                             }
                         }
     decl_or_stmt_list '}' {
-                             // DO STUFF
+                            $$ = $3;
+                            pop_scope();
                           }
     ;
 
+
 decl_or_stmt_list: decl_or_stmt  {$$ = $1;}
-    | decl_or_stmt_list ',' decl_or_stmt
+    | decl_or_stmt_list decl_or_stmt {append_astnode_list($1, $2);}
     ;
 
-decl_or_stmt: declaration  {$$ = $1;}
-    | statement  
+decl_or_stmt: declaration  {$$ = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);}
+    | statement {$$ = $1;}
     ;
 
 declaration: declaration_specifiers ';' 
-    | declaration_specifiers init_declarator_list ';' { 
-                                                        // check that if restrict is used it must be on a pointer types derived from object, else ERROR ?
+    | declaration_specifiers init_declarator_list ';' {
+                                                        printf("***DECLARATION***\n");
                                                         $$ = add_astnode_to_symbol($2, $1);
-                                                        union astnode *temp = $$->type_rep;
-                                                        if (temp) {
-                                                            if (temp->generic.type == POINTER_NODE) {
-                                                                printf("POINTER TO\n");
-                                                                while (temp->ptr.parent) {
-                                                                    printf("POINTER TO\n");
-                                                                    temp = temp->ptr.parent;
-                                                                }
-                                                            }
-                                                        } 
+                                                        printf("type is %d\n", $2->sym_type);
 
                                                         if (insert_symbol(current->symbolTables[OTHER], $2)) {
                                                             printf("symbol inserted, ident is %s\n", $2->key); 
@@ -357,6 +381,19 @@ declaration: declaration_specifiers ';'
                                                         if ($1->decspec.s_class) {
                                                             printf("storage class is %d\n", ($2->dec_specs)->decspec.s_class);
                                                         }
+                                                        if ($1->decspec.q_type) {
+                                                            printf("type qualifier is %d\n", ($2->dec_specs)->decspec.q_type);
+                                                        }
+                                                        union astnode *temp = $$->type_rep;
+                                                        if (temp) {
+                                                            if (temp->generic.type == POINTER_NODE) {
+                                                                printf("POINTER TO\n");
+                                                                while (temp->ptr.parent) {
+                                                                    printf("POINTER TO\n");
+                                                                    temp = temp->ptr.parent;
+                                                                }
+                                                            }
+                                                        } 
                                                         if ($1->decspec.s_type) { // not NULL
                                                             printf("type specifier is ");
                                                             union astnode *temp = $2->dec_specs;
@@ -366,9 +403,7 @@ declaration: declaration_specifiers ';'
                                                             }
                                                             printf("\n");
                                                         }
-                                                        if ($1->decspec.q_type) {
-                                                            printf("type qualifier is %d\n", ($2->dec_specs)->decspec.q_type);
-                                                        }
+                                                        find_symbol(OTHER, $2->key);
                                                       }
     ;
 
@@ -401,13 +436,13 @@ declaration_specifiers: storage_class_specifier {$$ = $1;}
                                                 } else if ($2->decspec.q_type) {
                                                     fprintf(stderr, "Error:  more than one type qualifier not implemented\n");
                                                 }
-                                                }
+                                            }
     | function_specifier                        // *** Optional -- Not Implemented ***
     | function_specifier declaration_specifiers // *** Optional -- Not Implemented ***
     ;
 
 init_declarator_list: init_declarator {$$ = $1;}
-    | init_declarator_list ',' init_declarator // make a linked list of declarators
+    | init_declarator_list ',' init_declarator {$$ = append_symbol_list($1, $3);}
     ;
 
 init_declarator: declarator {$$ = $1;}
@@ -520,7 +555,7 @@ declarator: direct_declarator {$$ = $1;}
     ;
 
 direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //no astnode * and symbol type defaults to VARIABLE
-    | '(' declarator ')' {$$ = $2;} // Not sure how to handle this one
+    | '(' declarator ')' {$$ = $2;}
     //| direct_declarator '[' assignment_expression ']'                             // *** Optional -- Not Implemented ***
     //| direct_declarator '[' type_qualifier_list assignment_expression ']'         // *** Optional -- Not Implemented ***
     //| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'  // *** Optional -- Not Implemented ***
@@ -528,9 +563,19 @@ direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIAB
     //| direct_declarator '[' type_qualifier_list '*' ']'                           // *** Optional -- Not Implemented ***
     //| direct_declarator '(' parameter_type_list ')'                               // *** Optional -- Not Implemented ***
     //| direct_declarator '(' identifier_list ')'                                   // *** Optional -- Not Implemented ***
-    | direct_declarator '[' ']'
-    | direct_declarator '[' NUMBER ']'
-    | direct_declarator '(' ')'
+    | direct_declarator '[' ']' {
+                                    union astnode *arr = new_astnode_array(ARRAY_NODE, $1->dec_specs, -1); // -1 = no size specified
+                                    $$ = add_astnode_to_symbol($1, arr);
+                                }
+    | direct_declarator '[' NUMBER ']' {
+                                            union astnode *arr = new_astnode_array(ARRAY_NODE, $1->dec_specs, $3.value.int_val);
+                                            $$ = add_astnode_to_symbol($1, arr);
+                                       }
+    | direct_declarator '(' ')' {   
+                                    if ($1->sym_type == VARIABLE_SYMBOL) {
+                                        $$ = modify_symbol_type($1, FUNCTION_SYMBOL);
+                                    }
+                                }
     ;
 
 pointer: '*' {$$ = new_astnode_pointer(POINTER_NODE, NULL, NULL);}
@@ -543,7 +588,7 @@ type_qualifier_list: type_qualifier {$$ = $1;}
     | type_qualifier_list type_qualifier  // *** Optional -- Not Implemented ***
     ;
 
-type_name: specifier_qualifier_list                       
+type_name: specifier_qualifier_list {$$ = $1;}                    
          | specifier_qualifier_list abstract_declarator      
          ; 
 
@@ -565,18 +610,18 @@ identifier_list: IDENT
     | identifier_list ',' IDENT
     ; */
 
-abstract_declarator: pointer
-    | direct_abstract_declarator
-    | pointer direct_abstract_declarator
+abstract_declarator: pointer {$$ = $1;}
+    | direct_abstract_declarator {$$ = $1;}
+    | pointer direct_abstract_declarator 
     ;
 
 direct_abstract_declarator: '(' abstract_declarator ')' {$$ = $2;}
-    | '[' ']' {$$ = new_astnode_array(ARRAY_NODE, NULL, 0);}
-    | direct_abstract_declarator '[' ']' {$$ = new_astnode_array(ARRAY_NODE, $1, 0);}
-    | '[' NUMBER ']' {$$ = new_astnode_array(ARRAY_NODE, NULL, $2.value.int_val);}
-    | direct_abstract_declarator '[' NUMBER ']' {$$ = new_astnode_array(ARRAY_NODE, $1, $3.value.int_val);}
-    | '(' ')'
-    | direct_abstract_declarator '(' ')'
+    | '[' ']'                                           {$$ = new_astnode_array(ARRAY_NODE, NULL, 0);}
+    | direct_abstract_declarator '[' ']'                {$$ = new_astnode_array(ARRAY_NODE, $1, 0);}
+    | '[' NUMBER ']'                                    {$$ = new_astnode_array(ARRAY_NODE, NULL, $2.value.int_val);}
+    | direct_abstract_declarator '[' NUMBER ']'         {$$ = new_astnode_array(ARRAY_NODE, $1, $3.value.int_val);}
+    | '(' ')'                                           {$$ = new_astnode_fndef(FUNCTION_NODE, NULL, NULL);}
+    | direct_abstract_declarator '(' ')'                
     // | '[' assignment_expression ']'                              // *** Optional -- Not Implemented ***
     // | direct_abstract_declarator '[' assignment_expression ']'   // *** Optional -- Not Implemented ***
     // | '[' '*' ']'                                                // *** Optional -- Not Implemented ***

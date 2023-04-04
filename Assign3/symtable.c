@@ -13,7 +13,9 @@ symbol *new_symbol(char *ident, enum name_space ns, union astnode *type_ptr, sym
     sym->nameSpace = ns;
     sym->sym_type = symType;
     sym->dec_specs = type_ptr; // contains info on storage class, type spec, type qualifier  
-    // line of declaration?
+    // do I need this?
+    sym->next = NULL;
+    sym->line = report.lineNum;
 
     return sym;
 }
@@ -218,6 +220,18 @@ symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
     }
 
     return sym; 
+}
+
+symbol *modify_symbol_type(symbol *sym, symbolType type) {
+    sym->sym_type = type; 
+
+    return sym;
+}
+
+symbol *append_symbol_list(symbol *sym, symbol *addition) {
+    sym->next = addition; 
+
+    return addition;
 }
 
 /*

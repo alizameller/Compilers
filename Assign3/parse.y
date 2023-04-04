@@ -273,7 +273,7 @@ declaration_or_fndef: declaration {printDeclaration($1);}
     | function_definition {printFunctions($1);} 
     ;
 
-function_definition: declaration_specifiers declarator compound_statement ';' { 
+function_definition: declaration_specifiers declarator compound_statement { 
                                                                                 printf("***FUNCTION***\n");
                                                                                 // add decspecs to declaration symbol
                                                                                 $$ = add_astnode_to_symbol($2, $1);

@@ -269,12 +269,17 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration {printDeclaration($1, 0);}
+declaration_or_fndef: declaration {
+                                    union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);
+                                    //printFunctions(temp, 0);
+                                    printAST(ptr, 0);
+                                    //printDeclaration($1, 0);
+                                    }
     | function_definition {} 
     ;
 
 function_definition: declaration_specifiers declarator  { 
-                                                            printf("***FUNCTION***\n");
+                                                            //printf("***FUNCTION***\n");
                                                             modify_symbol_type($2, FUNCTION_SYMBOL);
                                                             if ($1->decspec.s_class == UNKNOWN_CLASS) {
                                                                 $1->decspec.s_class = EXTERN_CLASS;
@@ -290,8 +295,9 @@ function_definition: declaration_specifiers declarator  {
                                                             } else {
                                                                 printf("symbol for ident %s, was not inserted into symbol table\n", temp->key);
                                                             } 
-                                                            //$$ = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
-                                                            printFunctions(temp, 0);
+                                                            union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
+                                                            //printFunctions(temp, 0);
+                                                            printAST(ptr, 0);
                                                         }
      compound_statement //{$$ = $4;}
     ;
@@ -329,7 +335,10 @@ declaration: declaration_specifiers ';'
                                                             fprintf(stderr, "Error: Symbol for ident %s, was not inserted into symbol table\n", $$->key);
                                                         } 
                                                         if (current->name == FUNCTION_SCOPE) {
-                                                            printDeclaration($$, 0);
+                                                            union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $$);
+                                                            //printFunctions(temp, 0);
+                                                            printAST(ptr, 0);
+                                                            //printDeclaration($$, 0);
                                                         }
                                                       }
     ;

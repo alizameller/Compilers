@@ -210,40 +210,50 @@ void printAST(union astnode* node, int indent) {
             printf("pointer to\n");
             if (node->ptr.parent) {
                 printAST(node->ptr.parent, indent+1);
-            } else {
+            } else { 
                 printIndents(indent+1);
             }
             break; 
         case SYMBOL_POINTER_NODE:
+            printf("%s is defined at ", (node->sym_p).sym->key);
+            printf("%s:%d ", report.fileName, report.lineNum);
+            if (!current->scope_fileName) {
+                current->scope_fileName = report.fileName;
+            }
+            if (!current->scope_lineNum) {
+                current->scope_lineNum = report.lineNum;
+            }
+            printf("[in %s starting at %s:%d]\n", printScopeName(), current->scope_fileName, current->scope_lineNum);
             if ((node->sym_p).sym->sym_type == FUNCTION_SYMBOL) {
-                printFunctions((node->sym_p).sym, indent);
+                printFunctions((node->sym_p).sym, ++indent);
             } else if ((node->sym_p).sym->sym_type == VARIABLE_SYMBOL) {
-                printDeclaration((node->sym_p).sym, indent);
+                printDeclaration((node->sym_p).sym, ++indent);
             }
     }
     free(node); 
 }
 
 void printFunctions(struct symbol *sym, int indent) {
+    printIndents(indent);
     printf("%s is a %s function returning\n", sym->key, printStorageClass(sym));
-
     union astnode *temp = sym->type_rep;
     if (temp) {
         if ((temp)->generic.type == POINTER_NODE) {
-            printAST(temp, indent);
+            printAST(temp, indent+1);
+            indent = indent - 2;
         }
         if ((temp)->generic.type == ARRAY_NODE) { //add this to printAST instead
-            printIndents(indent++);
+            printIndents(indent);
             printf("array ");
         }
     }
     if ((sym->dec_specs)->decspec.q_type) {
-        printIndents(indent++);
+        printIndents(indent+1);
         printf("%s ", printTypeQualifier(sym));
     }
 
     if ((sym->dec_specs)->decspec.s_type) {
-        printIndents(indent);
+        printIndents(indent+1);
         while(sym->dec_specs) {
             printf("%s ", printScalarType(sym->dec_specs));
             sym->dec_specs = (sym->dec_specs)->decspec.next;
@@ -258,46 +268,39 @@ variable with stgclass extern  of type:
  */
 
 void printDeclaration(struct symbol *sym, int indent) {
-    printf("%s is defined at ", sym->key);
-    printf("%s:%d ", report.fileName, report.lineNum);
-    if (!current->scope_fileName) {
-        current->scope_fileName = report.fileName;
-    }
-    if (!current->scope_lineNum) {
-        current->scope_lineNum = report.lineNum;
-    }
-    printf("[in %s starting at %s:%d]\n", printScopeName(), current->scope_fileName, current->scope_lineNum);
-    if (sym->sym_type == VARIABLE_SYMBOL) {
-        printf("\t%s is a %s ", sym->key, printSymType(sym));
-        printf("with storage class %s of type:\n\t", printStorageClass(sym)); 
-
-        if (sym->type_rep) {
-            if ((sym->type_rep)->generic.type == POINTER_NODE) {
-                union astnode *temp = sym->type_rep;
-                printAST(temp, indent+1);
-            }
-            if ((sym->type_rep)->generic.type == ARRAY_NODE) { //add this to printAST instead
-                printIndents(indent+1);
-                printf("array ");
-            }
-        }
-
-        if ((sym->dec_specs)->decspec.q_type) {
-            printf("%s ", printTypeQualifier(sym));
-        }
-
-        if ((sym->dec_specs)->decspec.s_type) {
-            while(sym->dec_specs) {
-                printf("%s ", printScalarType(sym->dec_specs));
-                sym->dec_specs = (sym->dec_specs)->decspec.next;
-            }
-        }
-        printf("\n");
-    } else if (sym->sym_type == FUNCTION_SYMBOL) {
-        printIndents(++indent);
+    if (sym->sym_type == FUNCTION_SYMBOL) {
         printFunctions(sym, indent);
         return;
     }
+    printIndents(indent);
+    printf("%s is a %s ", sym->key, printSymType(sym));
+    printf("with storage class %s of type:\n", printStorageClass(sym)); 
+
+    union astnode *temp = sym->type_rep;
+    if (temp) {
+        if ((temp)->generic.type == POINTER_NODE) {
+            printAST(temp, indent+1);
+            indent--;
+            indent--;
+        }
+        if ((temp)->generic.type == ARRAY_NODE) { //add this to printAST instead
+            printIndents(indent);
+            printf("array ");
+        }
+    }
+    if ((sym->dec_specs)->decspec.q_type) {
+        printIndents(indent+1);
+        printf("%s ", printTypeQualifier(sym));
+    }
+
+    if ((sym->dec_specs)->decspec.s_type) {
+        printIndents(indent+1);
+        while(sym->dec_specs) {
+            printf("%s ", printScalarType(sym->dec_specs));
+            sym->dec_specs = (sym->dec_specs)->decspec.next;
+        }
+    }
+    printf("\n");
 }
 
 char *printScopeName(void){

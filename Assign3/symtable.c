@@ -74,6 +74,23 @@ int hash(char *ident, int capacity) {
     return hashVal;
 }
 
+int compare_symbols(symbol *sym, symbol *current) {
+    if (current->dec_specs && sym->dec_specs) {
+        if ((current->dec_specs)->decspec.q_type != (sym->dec_specs)->decspec.q_type &&
+            (current->dec_specs)->decspec.s_type != (sym->dec_specs)->decspec.s_type && 
+            (current->dec_specs)->decspec.s_class != (sym->dec_specs)->decspec.s_class) {
+                return 1;
+            }
+    }
+    if (current->type_rep) {
+        if ((current->type_rep)->generic.type != (sym->type_rep)->generic.type) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int insert_symbol(symbol_table *symTable, symbol *sym) {
     // HashTable is full
     if (symTable->filled == symTable->capacity) {
@@ -89,8 +106,14 @@ int insert_symbol(symbol_table *symTable, symbol *sym) {
     // check for attempted redeclaration
     if (current_symbol != NULL) {
         if (!strcmp(current_symbol->key, sym->key)) { // strcmp returns 0 if same
-            printf("Error: Cannot Re-declare %s\n", sym->key);
-            return 0;
+            if (current_symbol->sym_type != sym->sym_type &&
+                current_symbol->nameSpace != sym->nameSpace &&
+                compare_symbols(sym, current_symbol)) {
+                    printf("Error: Cannot Re-declare %s\n", sym->key);
+                    return 0;
+            }
+            printf("***Declaration of %s is compatible with previous declaration***\n", current_symbol->key);
+            return 1;
         }
 
         while (strcmp(current_symbol->key, sym->key)) { // ident is not the same as key

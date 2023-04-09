@@ -269,24 +269,31 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration {printDeclaration($1);}
-    | function_definition {printFunctions($1);} 
+declaration_or_fndef: declaration {printDeclaration($1, 0);}
+    | function_definition {} 
     ;
 
-function_definition: declaration_specifiers declarator compound_statement { 
-                                                                                printf("***FUNCTION***\n");
-                                                                                // add decspecs to declaration symbol
-                                                                                $$ = add_astnode_to_symbol($2, $1);
-                                                                                // if inserting symbol was successful
-                                                                                if (insert_symbol(current->symbolTables[OTHER], $$)) {
-                                                                                    union astnode *type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
-                                                                                    // change astnode type to function def
-                                                                                    add_astnode_to_symbol($$, type);
-                                                                                    printf("symbol inserted, ident is %s\n", $$->key); 
-                                                                                } else {
-                                                                                    printf("symbol for ident %s, was not inserted into symbol table\n", $$->key);
-                                                                                } 
-                                                                              }
+function_definition: declaration_specifiers declarator  { 
+                                                            printf("***FUNCTION***\n");
+                                                            modify_symbol_type($2, FUNCTION_SYMBOL);
+                                                            if ($1->decspec.s_class == UNKNOWN_CLASS) {
+                                                                $1->decspec.s_class = EXTERN_CLASS;
+                                                            }
+                                                            // add decspecs to declaration symbol
+                                                            symbol *temp = add_astnode_to_symbol($2, $1);
+                                                            // if inserting symbol was successful
+                                                            if (insert_symbol(current->symbolTables[OTHER], temp)) {
+                                                                union astnode *type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
+                                                                // change astnode type to function def
+                                                                add_astnode_to_symbol(temp, type);
+                                                                printf("symbol inserted, ident is %s\n", temp->key); 
+                                                            } else {
+                                                                printf("symbol for ident %s, was not inserted into symbol table\n", temp->key);
+                                                            } 
+                                                            //$$ = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
+                                                            printFunctions(temp, 0);
+                                                        }
+     compound_statement //{$$ = $4;}
     ;
 
 compound_statement: '{' {   
@@ -314,12 +321,15 @@ decl_or_stmt: declaration  {$$ = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE,
 declaration: declaration_specifiers ';' 
     | declaration_specifiers init_declarator_list ';' {
                                                         //printf("***DECLARATION***\n");
+                                                        if ($1->decspec.s_class == UNKNOWN_CLASS) {
+                                                            $1->decspec.s_class = EXTERN_CLASS;
+                                                        }
                                                         $$ = add_astnode_to_symbol($2, $1);
                                                         if (!insert_symbol(current->symbolTables[OTHER], $$)) {
                                                             fprintf(stderr, "Error: Symbol for ident %s, was not inserted into symbol table\n", $$->key);
                                                         } 
                                                         if (current->name == FUNCTION_SCOPE) {
-                                                            printDeclaration($$);
+                                                            printDeclaration($$, 0);
                                                         }
                                                       }
     ;
@@ -473,13 +483,13 @@ declarator: direct_declarator {$$ = $1;}
 
 direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //symbol type defaults to VARIABLE
     | '(' declarator ')' {$$ = $2;}
-    //| direct_declarator '[' assignment_expression ']'                             // *** Optional -- Not Implemented ***
-    //| direct_declarator '[' type_qualifier_list assignment_expression ']'         // *** Optional -- Not Implemented ***
-    //| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'  // *** Optional -- Not Implemented ***
-    //| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'  // *** Optional -- Not Implemented ***
-    //| direct_declarator '[' type_qualifier_list '*' ']'                           // *** Optional -- Not Implemented ***
-    //| direct_declarator '(' parameter_type_list ')'                               // *** Optional -- Not Implemented ***
-    //| direct_declarator '(' identifier_list ')'                                   // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' assignment_expression ']'                                             // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' type_qualifier_list assignment_expression ']'                         // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'                  // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'                  // *** Optional -- Not Implemented ***
+    //| direct_declarator '[' type_qualifier_list '*' ']'                                           // *** Optional -- Not Implemented ***
+    | direct_declarator '(' parameter-type-list')' {$$ = modify_symbol_type($1, FUNCTION_SYMBOL);}  // *** Optional -- Not Implemented ***
+    | direct_declarator '(' identifier-list ')' {$$ = modify_symbol_type($1, FUNCTION_SYMBOL);}     // *** Optional -- Not Implemented ***
     | direct_declarator '[' ']' {
                                     union astnode *arr = new_astnode_array(ARRAY_NODE, $1->dec_specs, -1); // -1 = no size specified
                                     $$ = add_astnode_to_symbol($1, arr);
@@ -504,6 +514,16 @@ pointer: '*' {$$ = new_astnode_pointer(POINTER_NODE, NULL, NULL);}
 type_qualifier_list: type_qualifier {$$ = $1;}
     | type_qualifier_list type_qualifier  // *** Optional -- Not Implemented ***
     ;
+
+parameter-type-list: parameter-list
+    | parameter-list ',' ELLIPSIS
+parameter-list: parameter-declaration
+    | parameter-list ',' parameter-declaration
+parameter-declaration: declaration_specifiers declarator 
+    | declaration_specifiers abstract_declarator
+    | declaration_specifiers
+identifier-list: IDENT
+    | identifier-list ',' IDENT
 
 type_name: specifier_qualifier_list {$$ = $1;}                    
          | specifier_qualifier_list abstract_declarator      

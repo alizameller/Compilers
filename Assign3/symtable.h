@@ -204,6 +204,8 @@ symbol *modify_symbol_type(symbol *sym, symbolType type);
 // append to symbol list -> linked list of symbols
 symbol *append_symbol_list(symbol *sym, symbol *addition);
 
+// compare symbols
+int compare_symbols(symbol *sym, symbol *current);
 /* Hash Table functions */
 // return the symbol with the key (pKey) if it exists
 // else, return NULL

@@ -260,9 +260,9 @@ void printNum(struct numinfo numInfo);
 
 void printAST(union astnode* node, int indent);
 
-void printFunctions(struct symbol *sym);
+void printFunctions(struct symbol *sym, int indent);
 
-void printDeclaration(struct symbol *sym);
+void printDeclaration(struct symbol *sym, int indent);
 
 char *printScopeName(void);
 

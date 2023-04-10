@@ -1,7 +1,7 @@
 #include "symtable.h"
 #define CAPACITY 1319 // random num
 
-symbol *new_symbol(char *ident, enum name_space ns, union astnode *type_ptr, symbolType symType) {
+symbol *new_symbol(char *ident, enum name_space ns, union astnode *decspec_ptr, union astnode *type_ptr, symbolType symType) {
     // Creates a pointer to a new HashTable item.
     symbol* sym = (symbol*) malloc(sizeof(symbol));
 
@@ -12,10 +12,11 @@ symbol *new_symbol(char *ident, enum name_space ns, union astnode *type_ptr, sym
     sym->key = strdup(ident);
     sym->nameSpace = ns;
     sym->sym_type = symType;
-    sym->dec_specs = type_ptr; // contains info on storage class, type spec, type qualifier  
-    // do I need this?
+    sym->dec_specs = decspec_ptr; // contains info on storage class, type spec, type qualifier  
+    sym->type_rep = type_ptr;
     sym->next = NULL;
     sym->line = report.lineNum;
+    sym->filename = report.fileName;
 
     return sym;
 }
@@ -74,42 +75,46 @@ int hash(char *ident, int capacity) {
     return hashVal;
 }
 
-int compare_symbols(symbol *sym, symbol *current) {
+int compare_symbols(symbol *sym, symbol *current) {    
     if (current->dec_specs && sym->dec_specs) {
         if ((current->dec_specs)->decspec.q_type != (sym->dec_specs)->decspec.q_type &&
-            (current->dec_specs)->decspec.s_type != (sym->dec_specs)->decspec.s_type && 
             (current->dec_specs)->decspec.s_class != (sym->dec_specs)->decspec.s_class) {
-                return 1;
+                return 0;
             }
+        if (current->dec_specs->decspec.s_type && sym->dec_specs->decspec.s_type) {
+            if ((current->dec_specs)->decspec.s_type->scalar.scalarType != 
+            (sym->dec_specs)->decspec.s_type->scalar.scalarType) {
+                return 0;
+            }
+        }
     }
     if (current->type_rep) {
         if ((current->type_rep)->generic.type != (sym->type_rep)->generic.type) {
-            return 1;
+            return  0;
         }
     }
 
-    return 0;
+    return 1;
 }
 
 int insert_symbol(symbol_table *symTable, symbol *sym) {
     // HashTable is full
     if (symTable->filled == symTable->capacity) {
-        printf("Insert Error: Hash Table is full\n");
+        fprintf(stderr, "Insert Error: Hash Table is full\n");
         return 0;
     }
 
     // Computes the index using the hash function.
-    int index = hash(sym->key, CAPACITY);
-
+    int index = hash(sym->key, CAPACITY);        
     symbol* current_symbol = symTable->data[index];
-
+    
     // check for attempted redeclaration
     if (current_symbol != NULL) {
         if (!strcmp(current_symbol->key, sym->key)) { // strcmp returns 0 if same
-            if (current_symbol->sym_type != sym->sym_type &&
-                current_symbol->nameSpace != sym->nameSpace &&
-                compare_symbols(sym, current_symbol)) {
-                    printf("Error: Cannot Re-declare %s\n", sym->key);
+            if (!(current_symbol->sym_type == sym->sym_type &&
+                current_symbol->nameSpace == sym->nameSpace &&
+                compare_symbols(sym, current_symbol))) {
+                    fprintf(stderr, "Error: Cannot Re-declare %s\n", sym->key);
                     return 0;
             }
             printf("***Declaration of %s is compatible with previous declaration***\n", current_symbol->key);
@@ -142,15 +147,15 @@ symbol *contains_symbol(symbol_table *symTable, char *ident) {
 
     if (sym == NULL) {
         return NULL; 
-    } else {
-        while (strcmp(sym->key, ident)){ // key is not the same as ident
-            index++;
-            symbol* sym = symTable->data[index];
-            if (sym == NULL) {
-                return NULL; // cannot find symbol in symbol table
-            } else {
-                break;
-            }
+    } 
+    
+    while (strcmp(sym->key, ident)){ // key is not the same as ident
+        index++;
+        symbol* sym = symTable->data[index];
+        if (sym == NULL) {
+            return NULL; // cannot find symbol in symbol table
+        } else {
+            break;
         }
     }
 
@@ -215,7 +220,7 @@ void pop_scope() {
     current = temp; 
 }
 
-symbol *find_symbol(enum name_space nameSpace, char *ident) {
+scope *find_symbol(enum name_space nameSpace, char *ident) {
     if (!current) { // current is NULL, have yet to push any scopes
         fprintf(stderr, "Error: Cannot find symbol because there is no scope to search\n");
         return NULL; 
@@ -227,13 +232,13 @@ symbol *find_symbol(enum name_space nameSpace, char *ident) {
     while (ptr) {
         sym = contains_symbol(ptr->symbolTables[nameSpace], ident);
         if (sym) {
-            printf("Symbol %s found in scope %d\n", sym->key, ptr->name);
+            //printf("Symbol %s found in scope %d\n", sym->key, ptr->name);
             break;
         }
         ptr = ptr->parent;
     }
 
-    return sym; // returns null if symbol is not found in any scope
+    return ptr; // returns null if symbol is not found in any scope
 }
 
 symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
@@ -259,8 +264,8 @@ symbol *append_symbol_list(symbol *sym, symbol *addition) {
     return addition;
 }
 
-/*
-int main() {
+
+/*int main() {
     current = NULL;
     push_scope(FILE_SCOPE);
     printf("current scope is %d\n", current->name);
@@ -268,6 +273,13 @@ int main() {
     symbol *sym = new_symbol(ident, OTHER, NULL, VARIABLE_SYMBOL);
     printf("symbol created, key is %s\n", sym->key);
     insert_symbol(current->symbolTables[OTHER], sym);
+    union astnode *scalarNode = new_astnode_scalar(SCALAR_NODE, VOID_TYPE);
+    union astnode *decNode = new_astnode_declaration_spec(DECSPEC_NODE, scalarNode, 0, 0);
+    add_astnode_to_symbol(sym, decNode);
+    symbol *cur = contains_symbol(current->symbolTables[OTHER], sym->key);
+    if (cur) {
+        printf("type is %d\n", ((cur->dec_specs)->decspec.s_type)->scalar.scalarType);
+    }
 
     return 0;
 } */

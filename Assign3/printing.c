@@ -215,15 +215,11 @@ void printAST(union astnode* node, int indent) {
             }
             break; 
         case SYMBOL_POINTER_NODE:
-            printf("%s is defined at ", (node->sym_p).sym->key);
-            printf("%s:%d ", report.fileName, report.lineNum);
-            if (!current->scope_fileName) {
-                current->scope_fileName = report.fileName;
-            }
-            if (!current->scope_lineNum) {
-                current->scope_lineNum = report.lineNum;
-            }
-            printf("[in %s starting at %s:%d]\n", printScopeName(), current->scope_fileName, current->scope_lineNum);
+            printf("%s is defined at ", (node->sym_p.sym)->key);
+            scope *scope_ptr = find_symbol((node->sym_p.sym)->nameSpace, (node->sym_p.sym)->key);
+            printf("%s:%d ", (node->sym_p.sym)->filename, (node->sym_p.sym)->line); 
+            printf("[in %s starting at %s:%d]\n", printScopeName(), scope_ptr->scope_fileName, scope_ptr->scope_lineNum);
+
             if ((node->sym_p).sym->sym_type == FUNCTION_SYMBOL) {
                 printFunctions((node->sym_p).sym, ++indent);
             } else if ((node->sym_p).sym->sym_type == VARIABLE_SYMBOL) {
@@ -293,11 +289,12 @@ void printDeclaration(struct symbol *sym, int indent) {
         printf("%s ", printTypeQualifier(sym));
     }
 
-    if ((sym->dec_specs)->decspec.s_type) {
+    union astnode *decspec_temp = sym->dec_specs;
+    if (decspec_temp->decspec.s_type) {
         printIndents(indent+1);
-        while(sym->dec_specs) {
-            printf("%s ", printScalarType(sym->dec_specs));
-            sym->dec_specs = (sym->dec_specs)->decspec.next;
+        while(decspec_temp) {
+            printf("%s ", printScalarType(decspec_temp));
+            decspec_temp = (decspec_temp)->decspec.next;
         }
     }
     printf("\n");

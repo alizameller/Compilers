@@ -97,6 +97,7 @@ struct type_def_symbol {
 typedef struct symbol {
     char *key;    // hash value/ident
     int line;     // line number
+    char *filename; // filename
     symbolType sym_type; // enum for type of symbol
     
     enum name_space nameSpace; // name space of symbol
@@ -139,7 +140,7 @@ typedef struct scope {
 scope *current;
 
 // create symbol
-symbol *new_symbol(char *ident, enum name_space ns, union astnode *type_ptr, symbolType symType);
+symbol *new_symbol(char *ident, enum name_space ns, union astnode *decspec_ptr, union astnode *type_ptr, symbolType symType);
 
 // free symbol 
 void free_symbol(symbol *sym);
@@ -193,7 +194,7 @@ void pop_scope();
 
 // starts in current scope calling contains_symbol() in the specific namespace symbol table
 // linearlly moves upwards until global is searched
-symbol *find_symbol(enum name_space nameSpace, char *ident);
+scope *find_symbol(enum name_space nameSpace, char *ident);
 
 // adds astnode representing symbol type (pointer, scalar, function, array) as attribute of symbol
 symbol *add_astnode_to_symbol(symbol *sym, union astnode *node);

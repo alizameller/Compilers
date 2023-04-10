@@ -269,17 +269,24 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration {
+declaration_or_fndef: declaration { 
                                     union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);
                                     //printFunctions(temp, 0);
-                                    printAST(ptr, 0);
+                                    printAST(ptr, 0); // this breaks it
                                     //printDeclaration($1, 0);
+                                    /* DEBUGGING
+                                    symbol *broken = contains_symbol(current->symbolTables[OTHER], $1->key);
+                                    if (curr) {
+                                        printf("type is %d\n WORKS", ((broken->dec_specs)->decspec.s_type)->scalar.scalarType);
+                                    } */
                                     }
     | function_definition {} 
     ;
 
 function_definition: declaration_specifiers declarator  { 
-                                                            //printf("***FUNCTION***\n");
+                                                            if (!current->scope_fileName) {
+                                                                current->scope_fileName = report.fileName;
+                                                            }
                                                             modify_symbol_type($2, FUNCTION_SYMBOL);
                                                             if ($1->decspec.s_class == UNKNOWN_CLASS) {
                                                                 $1->decspec.s_class = EXTERN_CLASS;
@@ -291,10 +298,7 @@ function_definition: declaration_specifiers declarator  {
                                                                 union astnode *type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
                                                                 // change astnode type to function def
                                                                 add_astnode_to_symbol(temp, type);
-                                                                printf("symbol inserted, ident is %s\n", temp->key); 
-                                                            } else {
-                                                                printf("symbol for ident %s, was not inserted into symbol table\n", temp->key);
-                                                            } 
+                                                            }
                                                             union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
                                                             //printFunctions(temp, 0);
                                                             printAST(ptr, 0);
@@ -306,8 +310,14 @@ compound_statement: '{' {
                             if (!push_scope(FUNCTION_SCOPE)) { // if push_scope returns 0 -> ERROR
                                 fprintf(stderr, "Error: Cannot create function scope. Current scope is %d\n", current->name);
                             }
+                            /*if (!current->scope_fileName) {
+                                current->scope_fileName = report.fileName;
+                            }
+                            if (!(current->scope_lineNum + 1)) { //this is not a good solution, but if lineNum is 0, add 1 to make it non-zero for the condition
+                                current->scope_lineNum = report.lineNum;
+                            } 
                             current->scope_fileName = report.fileName;
-                            current->scope_lineNum = report.lineNum;
+                            current->scope_lineNum = report.lineNum; */
                         }
     decl_or_stmt_list '}' {
                             $$ = $3;
@@ -326,20 +336,27 @@ decl_or_stmt: declaration  {$$ = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE,
 
 declaration: declaration_specifiers ';' 
     | declaration_specifiers init_declarator_list ';' {
-                                                        //printf("***DECLARATION***\n");
+                                                        if (!current->scope_fileName) { // if fileName is not set, set it to report.fileName
+                                                            current->scope_fileName = report.fileName;
+                                                        }
+                                                        if (current->name == FUNCTION_SCOPE && $1->decspec.s_class == UNKNOWN_CLASS) {
+                                                            $1->decspec.s_class = AUTO_CLASS;
+                                                        }
                                                         if ($1->decspec.s_class == UNKNOWN_CLASS) {
                                                             $1->decspec.s_class = EXTERN_CLASS;
                                                         }
-                                                        $$ = add_astnode_to_symbol($2, $1);
-                                                        if (!insert_symbol(current->symbolTables[OTHER], $$)) {
-                                                            fprintf(stderr, "Error: Symbol for ident %s, was not inserted into symbol table\n", $$->key);
-                                                        } 
-                                                        if (current->name == FUNCTION_SCOPE) {
-                                                            union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $$);
-                                                            //printFunctions(temp, 0);
-                                                            printAST(ptr, 0);
-                                                            //printDeclaration($$, 0);
+                                                        symbol *temp = add_astnode_to_symbol($2, $1);
+                                            
+                                                        if (!insert_symbol(current->symbolTables[OTHER], temp)) {
+                                                            fprintf(stderr, "Error: Symbol for ident %s declared in %s:%d, was not inserted into symbol table\n", temp->key, report.fileName, report.lineNum); 
+                                                            temp = contains_symbol(current->symbolTables[OTHER], temp->key);
                                                         }
+
+                                                       if (current->name == FUNCTION_SCOPE) {
+                                                            union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
+                                                            printAST(ptr, 0);
+                                                        }
+                                                        $$ = temp;
                                                       }
     ;
 
@@ -490,7 +507,12 @@ declarator: direct_declarator {$$ = $1;}
     | pointer direct_declarator {$$ = add_astnode_to_symbol($2, $1);}
     ;
 
-direct_declarator: IDENT {$$ = new_symbol($1.string_literal, OTHER, NULL, VARIABLE_SYMBOL);} //symbol type defaults to VARIABLE
+direct_declarator: IDENT { //symbol type defaults to VARIABLE
+                            if (!report.lineNum) { //for some reason lineNum starts off as 0, fix this
+                                report.lineNum++;
+                            }
+                            $$ = new_symbol($1.string_literal, OTHER, NULL, NULL, VARIABLE_SYMBOL);
+                          } 
     | '(' declarator ')' {$$ = $2;}
     //| direct_declarator '[' assignment_expression ']'                                             // *** Optional -- Not Implemented ***
     //| direct_declarator '[' type_qualifier_list assignment_expression ']'                         // *** Optional -- Not Implemented ***
@@ -601,16 +623,16 @@ designator: '[' constant_expression ']'
 %%
 
 int main(){
-  //yydebug = 1;
-  current = NULL;
-  push_scope(FILE_SCOPE);
-  current->scope_fileName = NULL;
-  current->scope_lineNum = NULL;
-  int t;
-  while(!(t = yyparse())){
-  };
+    //yydebug = 1;
+    current = NULL;
+    push_scope(FILE_SCOPE);
+    current->scope_fileName = NULL;
+    current->scope_lineNum = 1;
+    int t;
+    while(!(t = yyparse())){
+    };
 }
 
 void yyerror(char *str) {
-  fprintf(stderr,"error: %s\n",str);
+    fprintf(stderr,"error: %s\n",str);
 }

@@ -99,17 +99,18 @@ int compare_symbols(symbol *sym, symbol *current) {
 
 int insert_symbol(symbol_table *symTable, symbol *sym) {
     // HashTable is full
+
     if (symTable->filled == symTable->capacity) {
         fprintf(stderr, "Insert Error: Hash Table is full\n");
         return 0;
     }
 
     // Computes the index using the hash function.
-    int index = hash(sym->key, CAPACITY);        
+    int index = hash(sym->key, CAPACITY);  
     symbol* current_symbol = symTable->data[index];
-    
+
     // check for attempted redeclaration
-    if (current_symbol != NULL) {
+    if (current_symbol) {
         if (!strcmp(current_symbol->key, sym->key)) { // strcmp returns 0 if same
             if (!(current_symbol->sym_type == sym->sym_type &&
                 current_symbol->nameSpace == sym->nameSpace &&
@@ -244,13 +245,30 @@ scope *find_symbol(enum name_space nameSpace, char *ident) {
 symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
     if (node->generic.type == DECSPEC_NODE) {
         sym->dec_specs = node;
+    } else {
+        switch(node->generic.type) {
+            case POINTER_NODE:
+                sym->type_rep = node;
+                break;
+            case ARRAY_NODE:
+                break;
+            case FUNCTION_DEF_NODE:
+                if (sym->type_rep) {
+                    sym->type_rep->ptr.parent = node;
+                    break;
+                } 
+                sym->type_rep = node;
+                break; 
+        }
     }
-    if (node->generic.type >= 11 && node->generic.type <= 13) { //POINTER_NODE through FUNCTION_DEF_NODE
-        sym->type_rep = node;
-    }
-
     return sym; 
 }
+    /*if (node->generic.type == FUNCTION_DEF_NODE) {
+        printf("%d\n", ((node->fndef).ret_type)->generic.type);
+        //sym->dec_specs = node;
+        //printf("dec spec %d\n", (sym->dec_specs)->generic.type);
+        //printf("type rep %d\n", (sym->type_rep)->generic.type);
+    } */
 
 symbol *modify_symbol_type(symbol *sym, symbolType type) {
     sym->sym_type = type; 

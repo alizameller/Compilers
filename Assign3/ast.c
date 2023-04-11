@@ -264,3 +264,15 @@ union astnode* new_astnode_symbol_pointer(nodetype type, symbol *sym){
 
     return node_ptr;
 }
+
+union astnode* new_astnode_return_type(nodetype type, union astnode* s_type, union astnode *next) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->ret.type = type; 
+    node_ptr->ret.s_type = s_type;
+    node_ptr->ret.next = next; 
+
+    return node_ptr;
+}

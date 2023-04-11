@@ -234,11 +234,11 @@ void printFunctions(struct symbol *sym, int indent) {
     printf("%s is a %s function returning\n", sym->key, printStorageClass(sym));
     union astnode *temp = sym->type_rep;
     if (temp) {
-        if ((temp)->generic.type == POINTER_NODE) {
+        if (temp->generic.type == POINTER_NODE) {
             printAST(temp, indent+1);
             indent = indent - 2;
         }
-        if ((temp)->generic.type == ARRAY_NODE) { //add this to printAST instead
+        if (temp->generic.type == ARRAY_NODE) { //add this to printAST instead
             printIndents(indent);
             printf("array ");
         }
@@ -248,11 +248,13 @@ void printFunctions(struct symbol *sym, int indent) {
         printf("%s ", printTypeQualifier(sym));
     }
 
-    if ((sym->dec_specs)->decspec.s_type) {
-        printIndents(indent+1);
-        while(sym->dec_specs) {
-            printf("%s ", printScalarType(sym->dec_specs));
-            sym->dec_specs = (sym->dec_specs)->decspec.next;
+    if (temp->fndef.ret_type) {
+        if ((temp->fndef.ret_type)->generic.type == RETURN_TYPE_NODE) {
+            printIndents(indent+1);
+            while(temp->fndef.ret_type) {
+                printf("%s ", printScalarType(temp->fndef.ret_type));
+                (temp->fndef.ret_type) = (temp->fndef.ret_type)->ret.next;
+            }
         }
     }
     printf("\n");
@@ -276,8 +278,7 @@ void printDeclaration(struct symbol *sym, int indent) {
     if (temp) {
         if ((temp)->generic.type == POINTER_NODE) {
             printAST(temp, indent+1);
-            indent--;
-            indent--;
+            indent = indent - 2;
         }
         if ((temp)->generic.type == ARRAY_NODE) { //add this to printAST instead
             printIndents(indent);
@@ -340,7 +341,13 @@ char *printStorageClass(struct symbol *sym) {
 }
 
 char *printScalarType(union astnode *node) {
-    switch((node->decspec.s_type)->scalar.scalarType) {
+    specifier_type st; 
+    if (node->generic.type == RETURN_TYPE_NODE) {
+        st = (node->ret.s_type)->scalar.scalarType;
+    } else {
+        st = (node->decspec.s_type)->scalar.scalarType;
+    }
+    switch(st) {
         case UNKNOWN_TYPE:
             return "unknown";
         case VOID_TYPE:

@@ -288,19 +288,28 @@ function_definition: declaration_specifiers declarator  {
                                                                 current->scope_fileName = report.fileName;
                                                             }
                                                             modify_symbol_type($2, FUNCTION_SYMBOL);
+
+                                                            // add decspecs to declaration symbol
+                                                            symbol *temp = add_astnode_to_symbol($2, $1);
+                                                            
                                                             if ($1->decspec.s_class == UNKNOWN_CLASS) {
                                                                 $1->decspec.s_class = EXTERN_CLASS;
                                                             }
-                                                            // add decspecs to declaration symbol
-                                                            symbol *temp = add_astnode_to_symbol($2, $1);
+                                                            // create function def node
+                                                            union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
+                                                            // create return type node
+                                                            union astnode *ret = new_astnode_return_type(RETURN_TYPE_NODE, $1->decspec.s_type, $1->decspec.next);
+                                                            // set ret type of fn_type to ret
+                                                            (fn_type->fndef).ret_type = ret;
+                                                            // change astnode type to function def
+                                                            add_astnode_to_symbol(temp, fn_type);
                                                             // if inserting symbol was successful
                                                             if (insert_symbol(current->symbolTables[OTHER], temp)) {
-                                                                union astnode *type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
-                                                                // change astnode type to function def
-                                                                add_astnode_to_symbol(temp, type);
+                                                                // ERROR
+                                                               fprintf(stderr, "Error: Symbol for ident %s declared in %s:%d, was not inserted into symbol table\n", temp->key, report.fileName, report.lineNum); 
                                                             }
+                                                            // create astnode ptr that contains a pointer to the symbol (for printing purposes)
                                                             union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
-                                                            //printFunctions(temp, 0);
                                                             printAST(ptr, 0);
                                                         }
      compound_statement //{$$ = $4;}
@@ -339,15 +348,20 @@ declaration: declaration_specifiers ';'
                                                         if (!current->scope_fileName) { // if fileName is not set, set it to report.fileName
                                                             current->scope_fileName = report.fileName;
                                                         }
-                                                        if (current->name == FUNCTION_SCOPE && $1->decspec.s_class == UNKNOWN_CLASS) {
-                                                            $1->decspec.s_class = AUTO_CLASS;
-                                                        }
-                                                        if ($1->decspec.s_class == UNKNOWN_CLASS) {
-                                                            $1->decspec.s_class = EXTERN_CLASS;
-                                                        }
+                                                        
+                                                        // add decspecs to declaration symbol
                                                         symbol *temp = add_astnode_to_symbol($2, $1);
+
+                                                        if ($1->decspec.s_class == UNKNOWN_CLASS) {
+                                                            if (current->name == FUNCTION_SCOPE) {
+                                                                $1->decspec.s_class = AUTO_CLASS;
+                                                            } else {
+                                                                $1->decspec.s_class = EXTERN_CLASS;
+                                                            }
+                                                        }
                                             
                                                         if (!insert_symbol(current->symbolTables[OTHER], temp)) {
+                                                            // ERROR
                                                             fprintf(stderr, "Error: Symbol for ident %s declared in %s:%d, was not inserted into symbol table\n", temp->key, report.fileName, report.lineNum); 
                                                             temp = contains_symbol(current->symbolTables[OTHER], temp->key);
                                                         }

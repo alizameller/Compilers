@@ -210,7 +210,7 @@ void printAST(union astnode* node, int indent) {
             printf("pointer to\n");
             if (node->ptr.parent) {
                 printAST(node->ptr.parent, indent+1);
-            } else { 
+            } else {
                 printIndents(indent+1);
             }
             break; 
@@ -225,6 +225,16 @@ void printAST(union astnode* node, int indent) {
             } else if ((node->sym_p).sym->sym_type == VARIABLE_SYMBOL) {
                 printDeclaration((node->sym_p).sym, ++indent);
             }
+            break;
+        case FUNCTION_DEF_NODE:
+            indent = indent - 4; // these got messed up I do not know how
+            printIndents(indent);
+            while(node->fndef.ret_type) {
+                printf("%s ", printScalarType(node->fndef.ret_type));
+                (node->fndef.ret_type) = (node->fndef.ret_type)->ret.next;
+            }
+            printf("\n");
+            break;
     }
     free(node); 
 }
@@ -232,38 +242,37 @@ void printAST(union astnode* node, int indent) {
 void printFunctions(struct symbol *sym, int indent) {
     printIndents(indent);
     printf("%s is a %s function returning\n", sym->key, printStorageClass(sym));
-    union astnode *temp = sym->type_rep;
-    if (temp) {
-        if (temp->generic.type == POINTER_NODE) {
-            printAST(temp, indent+1);
-            indent = indent - 2;
-        }
-        if (temp->generic.type == ARRAY_NODE) { //add this to printAST instead
-            printIndents(indent);
-            printf("array ");
-        }
-    }
+    
     if ((sym->dec_specs)->decspec.q_type) {
         printIndents(indent+1);
         printf("%s ", printTypeQualifier(sym));
     }
 
-    if (temp->fndef.ret_type) {
-        if ((temp->fndef.ret_type)->generic.type == RETURN_TYPE_NODE) {
-            printIndents(indent+1);
-            while(temp->fndef.ret_type) {
-                printf("%s ", printScalarType(temp->fndef.ret_type));
-                (temp->fndef.ret_type) = (temp->fndef.ret_type)->ret.next;
-            }
+    union astnode *temp = sym->type_rep;
+    if (temp) {
+        if (temp->generic.type == POINTER_NODE) {
+            printAST(temp, indent+1);
+            indent = indent - 2;
+            temp = temp->ptr.parent;
+        } else if (temp->generic.type == ARRAY_NODE) { //add this to printAST instead?
+            printIndents(indent);
+            printf("array ");
+        } else if (temp->generic.type == FUNCTION_DEF_NODE) {
+            printAST(temp, indent+1);
         }
-    }
+    } /*else {
+        union astnode *decspec_temp = sym->dec_specs;
+        if (decspec_temp->decspec.s_type) {
+            printIndents(indent+1);
+            while(decspec_temp) {
+                printf("%s ", printScalarType(decspec_temp));
+                decspec_temp = (decspec_temp)->decspec.next;
+            }
+        } 
+    } */
+
     printf("\n");
 }
-
-/* i1 is defined at base.c:1 [in global scope starting at base.c:1] as a 
-variable with stgclass extern  of type:
-  int
- */
 
 void printDeclaration(struct symbol *sym, int indent) {
     if (sym->sym_type == FUNCTION_SYMBOL) {
@@ -280,11 +289,12 @@ void printDeclaration(struct symbol *sym, int indent) {
             printAST(temp, indent+1);
             indent = indent - 2;
         }
-        if ((temp)->generic.type == ARRAY_NODE) { //add this to printAST instead
+        if ((temp)->generic.type == ARRAY_NODE) { //add this to printAST instead?
             printIndents(indent);
             printf("array ");
         }
     }
+    
     if ((sym->dec_specs)->decspec.q_type) {
         printIndents(indent+1);
         printf("%s ", printTypeQualifier(sym));
@@ -321,6 +331,7 @@ char *printSymType(struct symbol *sym) {
         case FUNCTION_SYMBOL:
             return "function";
     }
+    return NULL;
 }
 
 char *printStorageClass(struct symbol *sym) {

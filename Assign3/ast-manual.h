@@ -30,8 +30,7 @@ struct info {
 };
 struct info report;
 
-struct numinfo {
-	enum nums {
+enum nums {
 		UNSIGNED_INT,
 		SIGNED_INT,
 		UNSIGNED_LONG,
@@ -41,8 +40,10 @@ struct numinfo {
 		DOUBLE_NUM, 
 		FLOAT_NUM,
 		LONG_DOUBLE
-	};
-	enum nums meta; 
+}; 
+
+struct numinfo {
+    enum nums meta; 
 	union {
     	long long int int_val;
 		long double float_val;  

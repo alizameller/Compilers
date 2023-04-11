@@ -272,15 +272,19 @@ constant_expression: conditional_expression;
 declaration_or_fndef: declaration { 
                                     union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);
                                     //printFunctions(temp, 0);
-                                    printAST(ptr, 0); // this breaks it
-                                    //printDeclaration($1, 0);
-                                    /* DEBUGGING
-                                    symbol *broken = contains_symbol(current->symbolTables[OTHER], $1->key);
-                                    if (curr) {
-                                        printf("type is %d\n WORKS", ((broken->dec_specs)->decspec.s_type)->scalar.scalarType);
-                                    } */
+                                    if (ptr->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
+                                        // create function def node
+                                        union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
+                                        // create return type node
+                                        union astnode *ret = new_astnode_return_type(RETURN_TYPE_NODE, ($1->dec_specs)->decspec.s_type, ($1->dec_specs)->decspec.next);
+                                        // set ret type of fn_type to ret
+                                        (fn_type->fndef).ret_type = ret;
+                                        // change astnode type to function def
+                                        add_astnode_to_symbol($1, fn_type);
                                     }
-    | function_definition {} 
+                                    printAST(ptr, 0);
+                                  }
+    | function_definition {} // ?
     ;
 
 function_definition: declaration_specifiers declarator  { 
@@ -303,14 +307,16 @@ function_definition: declaration_specifiers declarator  {
                                                             (fn_type->fndef).ret_type = ret;
                                                             // change astnode type to function def
                                                             add_astnode_to_symbol(temp, fn_type);
+                                                            
                                                             // if inserting symbol was successful
-                                                            if (insert_symbol(current->symbolTables[OTHER], temp)) {
+                                                            if (!insert_symbol(current->symbolTables[OTHER], temp)) {
                                                                 // ERROR
                                                                fprintf(stderr, "Error: Symbol for ident %s declared in %s:%d, was not inserted into symbol table\n", temp->key, report.fileName, report.lineNum); 
                                                             }
                                                             // create astnode ptr that contains a pointer to the symbol (for printing purposes)
                                                             union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
                                                             printAST(ptr, 0);
+                                                            
                                                         }
      compound_statement //{$$ = $4;}
     ;
@@ -370,6 +376,7 @@ declaration: declaration_specifiers ';'
                                                             union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
                                                             printAST(ptr, 0);
                                                         }
+
                                                         $$ = temp;
                                                       }
     ;
@@ -574,7 +581,7 @@ type_name: specifier_qualifier_list {$$ = $1;}
          | specifier_qualifier_list abstract_declarator      
          ; 
 
-/* DO I NEED TO DO PARAMETERS?
+/* 
 parameter_type_list: parameter_list
     | parameter_list ',' 
     ;

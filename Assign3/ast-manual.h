@@ -216,6 +216,7 @@ struct astnode_array {
     union astnode* element_type;
 };
 union astnode* new_astnode_array(nodetype type, union astnode *element_type, int size);
+union astnode* modify_astnode_array(union astnode *node_ptr, union astnode *element_type);
 
 // Function Definition Node
 struct astnode_fndef {
@@ -236,11 +237,11 @@ union astnode* new_astnode_symbol_pointer(nodetype type, struct symbol *sym);
 // Return Type Node
 struct astnode_return_type {
     enum nodetype type;
-    union astnode *s_type;
+    union astnode *returning;
     union astnode *next;  
 };
 
-union astnode* new_astnode_return_type(nodetype type, union astnode* s_type, union astnode *next);
+union astnode* new_astnode_return_type(nodetype type, union astnode* returning, union astnode *next);
 
 typedef union astnode {
     struct astnode_generic generic;

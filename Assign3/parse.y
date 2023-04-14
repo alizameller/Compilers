@@ -82,6 +82,9 @@ void yyerror(char *s);
 %type<symbol_p> struct_declarator  
 %type<astnode_p>type_qualifier
 %type<astnode_p>function_specifier 
+                parameter-type-list
+                parameter-list
+                parameter-declaration
 %type<symbol_p>declarator 
 %type<symbol_p>direct_declarator 
 %type<astnode_p>pointer 
@@ -265,20 +268,31 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration { 
+declaration_or_fndef: declaration { // int (f[]) (); 
                                     union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);
-
+                                    //printf("ret type is %d\n", ((($1->type_rep)->fndef.ret_type)->ret.returning)->generic.type);
+                                    //printf("ret type is %d\n", (((ptr->sym_p.sym->type_rep)->fndef.ret_type)->ret.returning)->generic.type);
+                                    // fix the way arrays are constructed, make element type the "next" decspec?, change the "ret" part of it stick to fndef.ret_type = array node
                                     if (ptr->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
-                                        // create function def node
-                                        union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
-                                        // create return type node
-                                        union astnode *ret = new_astnode_return_type(RETURN_TYPE_NODE, ($1->dec_specs)->decspec.s_type, ($1->dec_specs)->decspec.next);
-                                        // set ret type of fn_type to ret
-                                        (fn_type->fndef).ret_type = ret;
-                                        // change astnode type to function def
-                                        add_astnode_to_symbol($1, fn_type);
+                                        if (ptr->sym_p.sym->type_rep->generic.type == FUNCTION_DEF_NODE) {
+                                            if ((ptr->sym_p.sym->type_rep)->fndef.ret_type) {
+                                                if (((ptr->sym_p.sym->type_rep)->fndef.ret_type)->ret.returning->generic.type == ARRAY_NODE) {
+                                                   //modify_astnode_array(((ptr->sym_p.sym->type_rep)->fndef.ret_type)->ret.returning, ($1->dec_specs)->decspec.s_type); 
+                                                   printAST(ptr, 0);
+                                                }
+                                            }
+                                        } else {
+                                            // create function def node
+                                            union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
+                                            // create return type node
+                                            union astnode *ret = new_astnode_return_type(RETURN_TYPE_NODE, ($1->dec_specs)->decspec.s_type, ($1->dec_specs)->decspec.next);
+                                            // set ret type of fn_type to ret
+                                            (fn_type->fndef).ret_type = ret;
+                                            // change astnode type to function def
+                                            add_astnode_to_symbol($1, fn_type);
+                                        }
                                     }
-                                    printAST(ptr, 0);
+                                    //printAST(ptr, 0);
                                   }
     | function_definition {} // ?
     ;
@@ -356,7 +370,7 @@ decl_or_stmt: declaration  {$$ = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE,
     ;
 
 declaration: declaration_specifiers ';' 
-    | declaration_specifiers init_declarator_list ';' {
+    | declaration_specifiers init_declarator_list ';' {  
                                                         if (!current->scope_fileName) { // if fileName is not set, set it to report.fileName
                                                             current->scope_fileName = report.fileName;
                                                         }
@@ -371,7 +385,7 @@ declaration: declaration_specifiers ';'
                                                                 $1->decspec.s_class = EXTERN_CLASS;
                                                             }
                                                         }
-
+                                                        
                                                         if ($1->decspec.s_type) {
                                                             if ($1->decspec.s_type->scalar.scalarType == SIGNED_TYPE || $1->decspec.s_type->scalar.scalarType == UNSIGNED_TYPE) {
                                                                 if ((!($1->decspec.prev) && !($1->decspec.next))) { // if the dec spec is ONLY signed or unsigned
@@ -386,7 +400,7 @@ declaration: declaration_specifiers ';'
                                                                 modify_astnode_declaration_spec($1, int_type, NONE_TYPE, UNKNOWN_CLASS);
                                                             }
                                                         }
-                                            
+                                                        
                                                         if (!insert_symbol(current->symbolTables[OTHER], temp)) {
                                                             // ERROR
                                                             fprintf(stderr, "Error: Symbol for ident %s declared in %s:%d, was not inserted into symbol table\n", temp->key, report.fileName, report.lineNum); 
@@ -572,9 +586,19 @@ direct_declarator: IDENT { //symbol type defaults to VARIABLE
                                             $$ = add_astnode_to_symbol($1, arr);
                                        }
     | direct_declarator '(' ')' {   
+                                    symbol *sym; 
+                                    union astnode *ptr;
                                     if ($1->sym_type == VARIABLE_SYMBOL) {
-                                        $$ = modify_symbol_type($1, FUNCTION_SYMBOL);
+                                        sym = modify_symbol_type($1, FUNCTION_SYMBOL);
                                     }
+                                    if ($1->type_rep) {
+                                        if (($1->type_rep)->generic.type == ARRAY_NODE) {
+                                            ptr = new_astnode_return_type(RETURN_TYPE_NODE,  $1->type_rep, NULL);
+                                            ptr = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, ptr);
+                                            add_astnode_to_symbol(sym, ptr);
+                                        }
+                                    }
+                                    $$ = sym;
                                 }
     ;
 
@@ -588,37 +612,44 @@ type_qualifier_list: type_qualifier {$$ = $1;}
     | type_qualifier_list type_qualifier  // *** Optional -- Not Implemented ***
     ;
 
-parameter-type-list: parameter-list
+parameter-type-list: parameter-list {$$ = $1;}
     | parameter-list ',' ELLIPSIS
-parameter-list: parameter-declaration
+    ;
+
+parameter-list: parameter-declaration {$$ = $1;}
     | parameter-list ',' parameter-declaration
-parameter-declaration: declaration_specifiers declarator 
-    | declaration_specifiers abstract_declarator
+    ;
+
+parameter-declaration: declaration_specifiers declarator {  // add decspecs to declarator symbol
+                                                            symbol *temp = add_astnode_to_symbol($2, $1);
+                                                            union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
+                                                            $$ = ptr;
+                                                         }
+    | declaration_specifiers abstract_declarator {
+                                                       if ($2->generic.type == FUNCTION_DEF_NODE) {
+                                                          // function
+                                                       } else if ($2->generic.type == ARRAY_NODE) {
+                                                          union astnode *node_ptr = modify_astnode_array($2, $1);
+                                                          $$ = node_ptr;
+                                                       }
+                                                    }      
     | declaration_specifiers
+    ;
+
 identifier-list: IDENT
     | identifier-list ',' IDENT
+    ;
 
 type_name: specifier_qualifier_list {$$ = $1;}                    
-         | specifier_qualifier_list abstract_declarator      
-         ; 
-
-/* 
-parameter_type_list: parameter_list
-    | parameter_list ',' 
-    ;
-
-parameter_list: parameter_declaration
-    | parameter_list ',' parameter_declaration
-    ;
-
-parameter_declaration: declaration_specifiers  
-    | declaration_specifiers declarator
-    | declaration_specifiers abstract_declarator
+    | specifier_qualifier_list abstract_declarator {
+                                                       if ($2->generic.type == FUNCTION_DEF_NODE) {
+                                                          // function
+                                                       } else if ($2->generic.type == ARRAY_NODE) {
+                                                          union astnode *node_ptr = modify_astnode_array($2, $1);
+                                                          $$ = node_ptr;
+                                                       }
+                                                    }      
     ; 
-
-identifier_list: IDENT 
-    | identifier_list ',' IDENT
-    ; */
 
 abstract_declarator: pointer {$$ = $1;}
     | direct_abstract_declarator {$$ = $1;}
@@ -631,7 +662,7 @@ direct_abstract_declarator: '(' abstract_declarator ')' {$$ = $2;}
     | '[' NUMBER ']'                                    {$$ = new_astnode_array(ARRAY_NODE, NULL, $2.value.int_val);}
     | direct_abstract_declarator '[' NUMBER ']'         {$$ = new_astnode_array(ARRAY_NODE, $1, $3.value.int_val);}
     | '(' ')'                                           {$$ = new_astnode_fndef(FUNCTION_NODE, NULL, NULL);}
-    | direct_abstract_declarator '(' ')'                
+    | direct_abstract_declarator '(' ')'                {$$ = new_astnode_fndef(FUNCTION_NODE, NULL, $1);}
     // | '[' assignment_expression ']'                              // *** Optional -- Not Implemented ***
     // | direct_abstract_declarator '[' assignment_expression ']'   // *** Optional -- Not Implemented ***
     // | '[' '*' ']'                                                // *** Optional -- Not Implemented ***

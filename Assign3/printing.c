@@ -230,8 +230,12 @@ void printAST(union astnode* node, int indent) {
             indent = indent - 4; // these got messed up I do not know how
             printIndents(indent);
             while(node->fndef.ret_type) {
-                printf("%s ", printScalarType(node->fndef.ret_type));
-                (node->fndef.ret_type) = (node->fndef.ret_type)->ret.next;
+                if (node->fndef.ret_type->generic.type == ARRAY_NODE) {
+                    printf("array!");
+                } else {
+                    printf("%s ", printScalarType(node->fndef.ret_type));
+                    (node->fndef.ret_type) = (node->fndef.ret_type)->ret.next;
+                }
             }
             printf("\n");
             break;
@@ -247,8 +251,8 @@ void printFunctions(struct symbol *sym, int indent) {
         printIndents(indent+1);
         printf("%s ", printTypeQualifier(sym));
     }
-
     union astnode *temp = sym->type_rep;
+    //printf("ret type is %d\n", (((temp->fndef.ret_type)->ret.returning)->generic.type));
     if (temp) {
         if (temp->generic.type == POINTER_NODE) {
             printAST(temp, indent+1);
@@ -258,7 +262,12 @@ void printFunctions(struct symbol *sym, int indent) {
             printIndents(indent);
             printf("array ");
         } else if (temp->generic.type == FUNCTION_DEF_NODE) {
-            printAST(temp, indent+1);
+            if (((temp->fndef.ret_type)->ret.returning->generic.type) == ARRAY_NODE) {
+                printIndents(indent);
+                printf("array!!");
+            } else {
+                printAST(temp, indent+1);
+            }
         }
     } /*else {
         union astnode *decspec_temp = sym->dec_specs;
@@ -356,7 +365,7 @@ char *printStorageClass(struct symbol *sym) {
 char *printScalarType(union astnode *node) {
     specifier_type st; 
     if (node->generic.type == RETURN_TYPE_NODE) {
-        st = (node->ret.s_type)->scalar.scalarType;
+        st = (node->ret.returning)->scalar.scalarType;
     } else {
         st = (node->decspec.s_type)->scalar.scalarType;
     }

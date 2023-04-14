@@ -243,6 +243,14 @@ union astnode* new_astnode_array(nodetype type, union astnode *element_type, int
     return node_ptr;
 }
 
+union astnode* modify_astnode_array(union astnode *node_ptr, union astnode *element_type) {
+   if (!(node_ptr->arr.element_type)) {
+        node_ptr->arr.element_type = element_type;
+   }
+   
+    return node_ptr;
+}
+
 union astnode* new_astnode_fndef(nodetype type, union astnode *arg, union astnode *ret){
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
@@ -265,13 +273,13 @@ union astnode* new_astnode_symbol_pointer(nodetype type, symbol *sym){
     return node_ptr;
 }
 
-union astnode* new_astnode_return_type(nodetype type, union astnode* s_type, union astnode *next) {
+union astnode* new_astnode_return_type(nodetype type, union astnode* returning, union astnode *next) {
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
     node_ptr->ret.type = type; 
-    node_ptr->ret.s_type = s_type;
+    node_ptr->ret.returning = returning;
     node_ptr->ret.next = next; 
 
     return node_ptr;

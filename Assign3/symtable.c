@@ -251,6 +251,7 @@ symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
                 sym->type_rep = node;
                 break;
             case ARRAY_NODE:
+                sym->type_rep = node;
                 break;
             case FUNCTION_DEF_NODE:
                 if (sym->type_rep && sym->type_rep->generic.type == POINTER_NODE) { //short circuiting, not a great solution

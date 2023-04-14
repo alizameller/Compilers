@@ -1,9 +1,5 @@
 /*-----------------------------------------------------------------------------------------------------------------\
 |      TO DO:                                                                                                      |
-|       - S̶y̶m̶b̶o̶l̶ T̶a̶b̶l̶e̶                                                                                             |
-|       - A̶S̶T̶ n̶o̶d̶e̶s̶ r̶e̶p̶r̶e̶s̶e̶n̶t̶i̶n̶g̶ s̶c̶a̶l̶a̶r̶ t̶y̶p̶e̶s̶,̶ p̶o̶i̶n̶t̶e̶r̶s̶,̶ a̶r̶r̶a̶y̶s̶ a̶n̶d̶ f̶u̶n̶c̶t̶i̶o̶n̶s̶                                      |
-|       - "mini symbol table" for representing structure and union types                                           |
-|       - system of "dumping" a given AST or portion of an AST to plain text (build on printAST)                   |
 |                                                                                                                  |
 \-----------------------------------------------------------------------------------------------------------------*/
 
@@ -271,7 +267,7 @@ constant_expression: conditional_expression;
 /* Declarations Grammar */
 declaration_or_fndef: declaration { 
                                     union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);
-                                    //printFunctions(temp, 0);
+
                                     if (ptr->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
                                         // create function def node
                                         union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
@@ -307,7 +303,7 @@ function_definition: declaration_specifiers declarator  {
                                                             (fn_type->fndef).ret_type = ret;
                                                             // change astnode type to function def
                                                             add_astnode_to_symbol(temp, fn_type);
-                                                            
+
                                                             // if inserting symbol was successful
                                                             if (!insert_symbol(current->symbolTables[OTHER], temp)) {
                                                                 // ERROR
@@ -321,19 +317,29 @@ function_definition: declaration_specifiers declarator  {
      compound_statement //{$$ = $4;}
     ;
 
-compound_statement: '{' {   
-                            if (!push_scope(FUNCTION_SCOPE)) { // if push_scope returns 0 -> ERROR
-                                fprintf(stderr, "Error: Cannot create function scope. Current scope is %d\n", current->name);
+compound_statement: '{' {                 
+                            if (current->name == FUNCTION_SCOPE) {
+                                if (!push_scope(BLOCK_SCOPE)) { // if push_scope returns 0 -> ERROR
+                                fprintf(stderr, "Error: Cannot create block scope. Current scope is %d\n", current->name);
+                                }
+                            } else {
+                                if (!push_scope(FUNCTION_SCOPE)) { // if push_scope returns 0 -> ERROR
+                                    fprintf(stderr, "Error: Cannot create function scope. Current scope is %d\n", current->name);
+                                }
                             }
-                            /*if (!current->scope_fileName) {
-                                current->scope_fileName = report.fileName;
-                            }
-                            if (!(current->scope_lineNum + 1)) { //this is not a good solution, but if lineNum is 0, add 1 to make it non-zero for the condition
-                                current->scope_lineNum = report.lineNum;
-                            } 
-                            current->scope_fileName = report.fileName;
-                            current->scope_lineNum = report.lineNum; */
                         }
+    '}' { pop_scope(); }
+| '{' {                 
+        if (current->name == FUNCTION_SCOPE) {
+            if (!push_scope(BLOCK_SCOPE)) { // if push_scope returns 0 -> ERROR
+            fprintf(stderr, "Error: Cannot create block scope. Current scope is %d\n", current->name);
+            }
+        } else {
+            if (!push_scope(FUNCTION_SCOPE)) { // if push_scope returns 0 -> ERROR
+                fprintf(stderr, "Error: Cannot create function scope. Current scope is %d\n", current->name);
+            }
+        }
+      }
     decl_or_stmt_list '}' {
                             $$ = $3;
                             pop_scope();
@@ -365,6 +371,21 @@ declaration: declaration_specifiers ';'
                                                                 $1->decspec.s_class = EXTERN_CLASS;
                                                             }
                                                         }
+
+                                                        if ($1->decspec.s_type) {
+                                                            if ($1->decspec.s_type->scalar.scalarType == SIGNED_TYPE || $1->decspec.s_type->scalar.scalarType == UNSIGNED_TYPE) {
+                                                                if ((!($1->decspec.prev) && !($1->decspec.next))) { // if the dec spec is ONLY signed or unsigned
+                                                                    union astnode *int_type = new_astnode_scalar(SCALAR_NODE, INT_TYPE);
+                                                                    int_type = new_astnode_declaration_spec(DECSPEC_NODE, int_type, NONE_TYPE, UNKNOWN_CLASS);
+                                                                    append_astnode_list($1, int_type);
+                                                                }
+                                                            }
+                                                        } else {
+                                                            if ($1->decspec.q_type) {
+                                                                union astnode *int_type = new_astnode_scalar(SCALAR_NODE, INT_TYPE);
+                                                                modify_astnode_declaration_spec($1, int_type, NONE_TYPE, UNKNOWN_CLASS);
+                                                            }
+                                                        }
                                             
                                                         if (!insert_symbol(current->symbolTables[OTHER], temp)) {
                                                             // ERROR
@@ -372,7 +393,7 @@ declaration: declaration_specifiers ';'
                                                             temp = contains_symbol(current->symbolTables[OTHER], temp->key);
                                                         }
 
-                                                       if (current->name == FUNCTION_SCOPE) {
+                                                       if (current->name == FUNCTION_SCOPE || current->name == BLOCK_SCOPE) {
                                                             union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
                                                             printAST(ptr, 0);
                                                         }

@@ -271,7 +271,7 @@ void printFunctions(struct symbol *sym, int indent) {
         } 
     } */
 
-    printf("\n");
+    //printf("\n");
 }
 
 void printDeclaration(struct symbol *sym, int indent) {
@@ -302,7 +302,9 @@ void printDeclaration(struct symbol *sym, int indent) {
 
     union astnode *decspec_temp = sym->dec_specs;
     if (decspec_temp->decspec.s_type) {
-        printIndents(indent+1);
+        if (!decspec_temp->decspec.q_type) {
+            printIndents(indent+1);
+        }
         while(decspec_temp) {
             printf("%s ", printScalarType(decspec_temp));
             decspec_temp = (decspec_temp)->decspec.next;

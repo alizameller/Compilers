@@ -268,31 +268,28 @@ assignment_operator: '=' {$$ = '=';}
 constant_expression: conditional_expression; 
 
 /* Declarations Grammar */
-declaration_or_fndef: declaration { // int (f[]) (); 
+declaration_or_fndef: declaration { // int (g[]) (); 
                                     union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);
-                                    //printf("ret type is %d\n", ((($1->type_rep)->fndef.ret_type)->ret.returning)->generic.type);
-                                    //printf("ret type is %d\n", (((ptr->sym_p.sym->type_rep)->fndef.ret_type)->ret.returning)->generic.type);
                                     // fix the way arrays are constructed, make element type the "next" decspec?, change the "ret" part of it stick to fndef.ret_type = array node
                                     if (ptr->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
-                                        if (ptr->sym_p.sym->type_rep->generic.type == FUNCTION_DEF_NODE) {
-                                            if ((ptr->sym_p.sym->type_rep)->fndef.ret_type) {
-                                                if (((ptr->sym_p.sym->type_rep)->fndef.ret_type)->ret.returning->generic.type == ARRAY_NODE) {
-                                                   //modify_astnode_array(((ptr->sym_p.sym->type_rep)->fndef.ret_type)->ret.returning, ($1->dec_specs)->decspec.s_type); 
-                                                   printAST(ptr, 0);
-                                                }
+                                        // create function def node
+                                        union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
+                                        // if type rep of symbol is array, set element type of innermost array
+                                        if ($1->type_rep && $1->type_rep->generic.type == ARRAY_NODE) {
+                                            union astnode *temp = $1->type_rep;
+                                            while (temp->arr.element_type) { // if element type of array is array
+                                                temp = $1->type_rep->arr.element_type;
                                             }
+                                            temp->arr.element_type = $1->dec_specs; // set element type to dec specs
+                                            (fn_type->fndef).ret_type = $1->type_rep; 
                                         } else {
-                                            // create function def node
-                                            union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
-                                            // create return type node
-                                            union astnode *ret = new_astnode_return_type(RETURN_TYPE_NODE, ($1->dec_specs)->decspec.s_type, ($1->dec_specs)->decspec.next);
-                                            // set ret type of fn_type to ret
-                                            (fn_type->fndef).ret_type = ret;
-                                            // change astnode type to function def
-                                            add_astnode_to_symbol($1, fn_type);
+                                            // set ret type of fn_type to dec specs if astnode type is not already set
+                                            (fn_type->fndef).ret_type = $1->dec_specs;
                                         }
+                                        // change astnode type to function def
+                                        add_astnode_to_symbol($1, fn_type);
                                     }
-                                    //printAST(ptr, 0);
+                                    printAST(ptr, 0);
                                   }
     | function_definition {} // ?
     ;
@@ -311,10 +308,18 @@ function_definition: declaration_specifiers declarator  {
                                                             }
                                                             // create function def node
                                                             union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
-                                                            // create return type node
-                                                            union astnode *ret = new_astnode_return_type(RETURN_TYPE_NODE, $1->decspec.s_type, $1->decspec.next);
-                                                            // set ret type of fn_type to ret
-                                                            (fn_type->fndef).ret_type = ret;
+                                                            // if type rep of symbol is array, set element type of innermost array
+                                                            if ($2->type_rep && $2->type_rep->generic.type == ARRAY_NODE) {
+                                                                union astnode *temp = $2->type_rep;
+                                                                while (temp->arr.element_type) { // if element type of array is array
+                                                                    temp = $2->type_rep->arr.element_type;
+                                                                }
+                                                                temp->arr.element_type = $1; // set element type to dec specs
+                                                                (fn_type->fndef).ret_type = $2->type_rep; 
+                                                            } else {
+                                                                // set ret type of fn_type to dec specs if astnode type is not already set
+                                                                (fn_type->fndef).ret_type = $1;
+                                                            }
                                                             // change astnode type to function def
                                                             add_astnode_to_symbol(temp, fn_type);
 
@@ -591,13 +596,7 @@ direct_declarator: IDENT { //symbol type defaults to VARIABLE
                                     if ($1->sym_type == VARIABLE_SYMBOL) {
                                         sym = modify_symbol_type($1, FUNCTION_SYMBOL);
                                     }
-                                    if ($1->type_rep) {
-                                        if (($1->type_rep)->generic.type == ARRAY_NODE) {
-                                            ptr = new_astnode_return_type(RETURN_TYPE_NODE,  $1->type_rep, NULL);
-                                            ptr = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, ptr);
-                                            add_astnode_to_symbol(sym, ptr);
-                                        }
-                                    }
+                                    // HERE
                                     $$ = sym;
                                 }
     ;

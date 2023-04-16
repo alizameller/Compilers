@@ -242,6 +242,7 @@ struct astnode_return_type {
 };
 
 union astnode* new_astnode_return_type(nodetype type, union astnode* returning, union astnode *next);
+union astnode *modify_astnode_return_type(union astnode *node_ptr, union astnode* returning,  union astnode *next);
 
 typedef union astnode {
     struct astnode_generic generic;

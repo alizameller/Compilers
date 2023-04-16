@@ -284,3 +284,14 @@ union astnode* new_astnode_return_type(nodetype type, union astnode* returning, 
 
     return node_ptr;
 }
+
+union astnode *modify_astnode_return_type(union astnode *node_ptr, union astnode* returning,  union astnode *next) {
+    if (!(node_ptr->ret.returning)) {
+        node_ptr->ret.returning = returning;
+    }
+    if (!(node_ptr->ret.next)) {
+        node_ptr->ret.next = next;
+    }
+   
+    return node_ptr;
+}

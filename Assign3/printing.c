@@ -227,18 +227,31 @@ void printAST(union astnode* node, int indent) {
             }
             break;
         case FUNCTION_DEF_NODE:
-            indent = indent - 4; // these got messed up I do not know how
-            printIndents(indent);
             while(node->fndef.ret_type) {
-                if (node->fndef.ret_type->generic.type == ARRAY_NODE) {
-                    printf("array!");
-                } else {
+                if (node->fndef.ret_type->generic.type == DECSPEC_NODE) {
                     printf("%s ", printScalarType(node->fndef.ret_type));
-                    (node->fndef.ret_type) = (node->fndef.ret_type)->ret.next;
+                    (node->fndef.ret_type) = (node->fndef.ret_type)->decspec.next;
+                    //printf("%d\n", node->fndef.ret_type->decspec.s_type->scalar.scalarType);
+                } else if (node->fndef.ret_type->generic.type == ARRAY_NODE) {
+                    printf("array of\n");
+                    printAST(node->fndef.ret_type, indent++);
+                    break;
                 }
+                //(node->fndef.ret_type) = (node->fndef.ret_type)->ret.next;
             }
             printf("\n");
             break;
+        case ARRAY_NODE:
+            printIndents(1);
+            union astnode *temp = node;
+            while (temp->arr.element_type) { // if element type of array is array
+                if (temp->arr.element_type->generic.type == DECSPEC_NODE) {
+                    printf("%s ", printScalarType(temp->decspec.s_type));
+                    temp->arr.element_type = (temp->arr.element_type)->decspec.next;
+                } else if (node->arr.element_type->generic.type == ARRAY_NODE) {
+                    printAST(node->arr.element_type, indent);
+                }
+            }
     }
     free(node); 
 }
@@ -262,12 +275,12 @@ void printFunctions(struct symbol *sym, int indent) {
             printIndents(indent);
             printf("array ");
         } else if (temp->generic.type == FUNCTION_DEF_NODE) {
-            if (((temp->fndef.ret_type)->ret.returning->generic.type) == ARRAY_NODE) {
-                printIndents(indent);
-                printf("array!!");
-            } else {
+            //if (((temp->fndef.ret_type)->ret.returning->generic.type) == ARRAY_NODE) {
+            //    printIndents(indent);
+            //    printf("array!!");
+            //} else {
                 printAST(temp, indent+1);
-            }
+            //}
         }
     } /*else {
         union astnode *decspec_temp = sym->dec_specs;
@@ -366,9 +379,12 @@ char *printScalarType(union astnode *node) {
     specifier_type st; 
     if (node->generic.type == RETURN_TYPE_NODE) {
         st = (node->ret.returning)->scalar.scalarType;
+    } else if (node->generic.type == SCALAR_NODE) {
+        st = node->scalar.scalarType;
     } else {
         st = (node->decspec.s_type)->scalar.scalarType;
     }
+
     switch(st) {
         case UNKNOWN_TYPE:
             return "unknown";

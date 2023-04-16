@@ -286,6 +286,10 @@ declaration_or_fndef: declaration { // int (g[]) ();
                                         if ($1->type_rep && $1->type_rep->generic.type == ARRAY_NODE) {
                                             //change the fndef.ret_type = array node
                                             (fn_type->fndef).ret_type = $1->type_rep; 
+                                        } else if ($1->type_rep && $1->type_rep->generic.type == FUNCTION_DEF_NODE) {
+                                            printf("ret type of func is %d\n", $1->type_rep->fndef.ret_type->generic.type);
+                                            // make temp astnode * and iterate through return types until NULL then set the ret_type = decspecs
+                                            (fn_type->fndef).ret_type = $1->dec_specs;
                                         } else {
                                             // set ret type of fn_type to dec specs if astnode type is not already set
                                             (fn_type->fndef).ret_type = $1->dec_specs;
@@ -410,6 +414,8 @@ declaration: declaration_specifiers ';'
                                                             }
                                                         }
                                                         
+                                                        //printf("ret type of func is %d\n", $2->type_rep->fndef.ret_type->generic.type);
+
                                                         if (!insert_symbol(current->symbolTables[OTHER], temp)) {
                                                             // ERROR
                                                             fprintf(stderr, "Error: Symbol for ident %s declared in %s:%d, was not inserted into symbol table\n", temp->key, report.fileName, report.lineNum); 
@@ -584,23 +590,52 @@ direct_declarator: IDENT { //symbol type defaults to VARIABLE
     //| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'                  // *** Optional -- Not Implemented ***
     //| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'                  // *** Optional -- Not Implemented ***
     //| direct_declarator '[' type_qualifier_list '*' ']'                                           // *** Optional -- Not Implemented ***
-    | direct_declarator '(' parameter-type-list')' {$$ = modify_symbol_type($1, FUNCTION_SYMBOL);}  // *** Optional -- Not Implemented ***
+    | direct_declarator '(' parameter-type-list')' {                                                // *** Optional -- Not Implemented ***
+                                                        union astnode *ptr = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
+                                                        if ($1->type_rep && $1->type_rep->generic.type == FUNCTION_DEF_NODE) {
+                                                            modify_astnode_fndef($1->type_rep, NULL, ptr);
+                                                        } else {
+                                                            add_astnode_to_symbol($1, ptr);
+                                                        }
+                                                        
+                                                        symbol *sym; 
+                                                        if ($1->sym_type == VARIABLE_SYMBOL) {
+                                                            sym = modify_symbol_type($1, FUNCTION_SYMBOL);
+                                                        } 
+                                                        $$ = sym;
+                                                    }  
     | direct_declarator '(' identifier-list ')' {$$ = modify_symbol_type($1, FUNCTION_SYMBOL);}     // *** Optional -- Not Implemented ***
     | direct_declarator '[' ']' {
                                     union astnode *arr = new_astnode_array(ARRAY_NODE, $1->dec_specs, -1); // -1 = no size specified
-                                    $$ = add_astnode_to_symbol($1, arr);
+                                    if ($1->type_rep && $1->type_rep->generic.type == ARRAY_NODE) { 
+                                        $1->type_rep->arr.element_type = arr;
+                                        $$ = $1;
+                                    } else {
+                                        $$ = add_astnode_to_symbol($1, arr);
+                                    }
                                 }
     | direct_declarator '[' NUMBER ']' {
                                             union astnode *arr = new_astnode_array(ARRAY_NODE, $1->dec_specs, $3.value.int_val);
-                                            $$ = add_astnode_to_symbol($1, arr);
+                                            if ($1->type_rep && $1->type_rep->generic.type == ARRAY_NODE) { 
+                                                $1->type_rep->arr.element_type = arr;
+                                                $$ = $1;
+                                            } else {
+                                                $$ = add_astnode_to_symbol($1, arr);
+                                            }
                                        }
     | direct_declarator '(' ')' {   
+                                    union astnode *ptr = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
+                                    if ($1->type_rep && $1->type_rep->generic.type == FUNCTION_DEF_NODE) {
+                                        modify_astnode_fndef($1->type_rep, NULL, ptr);
+                                        //printf("ret type of func is %d\n", $1->type_rep->fndef.ret_type->generic.type);
+                                    } else {
+                                        add_astnode_to_symbol($1, ptr);
+                                    }
+
                                     symbol *sym; 
-                                    union astnode *ptr;
                                     if ($1->sym_type == VARIABLE_SYMBOL) {
                                         sym = modify_symbol_type($1, FUNCTION_SYMBOL);
-                                    }
-                                    // HERE
+                                    } 
                                     $$ = sym;
                                 }
     ;

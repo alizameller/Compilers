@@ -262,6 +262,17 @@ union astnode* new_astnode_fndef(nodetype type, union astnode *arg, union astnod
     return node_ptr;
 }
 
+union astnode* modify_astnode_fndef(union astnode *node_ptr, union astnode *arg, union astnode *ret) {
+    if (!(node_ptr->fndef.arg_type)) {
+        node_ptr->fndef.arg_type = arg;
+    }
+    if (!(node_ptr->fndef.ret_type)) {
+        node_ptr->fndef.ret_type = ret;
+    }
+   
+    return node_ptr;
+}
+
 union astnode* new_astnode_symbol_pointer(nodetype type, symbol *sym){
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));

@@ -225,6 +225,7 @@ struct astnode_fndef {
     union astnode *ret_type;
 };
 union astnode* new_astnode_fndef(nodetype type, union astnode *arg, union astnode *ret);
+union astnode* modify_astnode_fndef(union astnode *node_ptr, union astnode *arg, union astnode *ret);
 
 // Symbol Pointer Node
 struct astnode_symbol_p {

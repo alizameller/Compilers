@@ -271,9 +271,9 @@ void printFunctions(struct symbol *sym, int indent) {
             printAST(temp, indent+1);
             indent = indent - 2;
             temp = temp->ptr.parent;
-        } else if (temp->generic.type == ARRAY_NODE) { //add this to printAST instead?
+        /*} else if (temp->generic.type == ARRAY_NODE) { //add this to printAST instead?
             printIndents(indent);
-            printf("array ");
+            printf("array "); */
         } else if (temp->generic.type == FUNCTION_DEF_NODE) {
             //if (((temp->fndef.ret_type)->ret.returning->generic.type) == ARRAY_NODE) {
             //    printIndents(indent);
@@ -377,9 +377,10 @@ char *printStorageClass(struct symbol *sym) {
 
 char *printScalarType(union astnode *node) {
     specifier_type st; 
-    if (node->generic.type == RETURN_TYPE_NODE) {
+    /*if (node->generic.type == RETURN_TYPE_NODE) {
         st = (node->ret.returning)->scalar.scalarType;
-    } else if (node->generic.type == SCALAR_NODE) {
+    } else */ 
+    if (node->generic.type == SCALAR_NODE) {
         st = node->scalar.scalarType;
     } else {
         st = (node->decspec.s_type)->scalar.scalarType;

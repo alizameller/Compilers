@@ -270,17 +270,21 @@ constant_expression: conditional_expression;
 /* Declarations Grammar */
 declaration_or_fndef: declaration { // int (g[]) (); 
                                     union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);
-                                    // fix the way arrays are constructed, make element type the "next" decspec?, change the "ret" part of it stick to fndef.ret_type = array node
+                                    // if array, make element type the decspec 
+                                    if ($1->type_rep && $1->type_rep->generic.type == ARRAY_NODE) {
+                                    union astnode *temp = $1->type_rep;
+                                            while (temp->arr.element_type) { // if element type of array is array
+                                                temp = $1->type_rep->arr.element_type;
+                                            }
+                                            temp->arr.element_type = $1->dec_specs; // set element type to dec specs
+                                    }
+
                                     if (ptr->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
                                         // create function def node
                                         union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
                                         // if type rep of symbol is array, set element type of innermost array
                                         if ($1->type_rep && $1->type_rep->generic.type == ARRAY_NODE) {
-                                            union astnode *temp = $1->type_rep;
-                                            while (temp->arr.element_type) { // if element type of array is array
-                                                temp = $1->type_rep->arr.element_type;
-                                            }
-                                            temp->arr.element_type = $1->dec_specs; // set element type to dec specs
+                                            //change the fndef.ret_type = array node
                                             (fn_type->fndef).ret_type = $1->type_rep; 
                                         } else {
                                             // set ret type of fn_type to dec specs if astnode type is not already set

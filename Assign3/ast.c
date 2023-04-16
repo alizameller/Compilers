@@ -272,26 +272,3 @@ union astnode* new_astnode_symbol_pointer(nodetype type, symbol *sym){
 
     return node_ptr;
 }
-
-union astnode* new_astnode_return_type(nodetype type, union astnode* returning, union astnode *next) {
-    // allocate memory
-	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
-
-	// set entries
-    node_ptr->ret.type = type; 
-    node_ptr->ret.returning = returning;
-    node_ptr->ret.next = next; 
-
-    return node_ptr;
-}
-
-union astnode *modify_astnode_return_type(union astnode *node_ptr, union astnode* returning,  union astnode *next) {
-    if (!(node_ptr->ret.returning)) {
-        node_ptr->ret.returning = returning;
-    }
-    if (!(node_ptr->ret.next)) {
-        node_ptr->ret.next = next;
-    }
-   
-    return node_ptr;
-}

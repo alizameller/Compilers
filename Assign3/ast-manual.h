@@ -20,8 +20,8 @@ typedef enum nodetype {
     POINTER_NODE,
     ARRAY_NODE,
     FUNCTION_DEF_NODE,
-    SYMBOL_POINTER_NODE, 
-    RETURN_TYPE_NODE
+    SYMBOL_POINTER_NODE
+    //RETURN_TYPE_NODE
 } nodetype;
 
 struct info {
@@ -234,7 +234,7 @@ struct astnode_symbol_p {
 };
 union astnode* new_astnode_symbol_pointer(nodetype type, struct symbol *sym);
 
-// Return Type Node
+/*// Return Type Node
 struct astnode_return_type {
     enum nodetype type;
     union astnode *returning;
@@ -243,7 +243,7 @@ struct astnode_return_type {
 
 union astnode* new_astnode_return_type(nodetype type, union astnode* returning, union astnode *next);
 union astnode *modify_astnode_return_type(union astnode *node_ptr, union astnode* returning,  union astnode *next);
-
+*/
 typedef union astnode {
     struct astnode_generic generic;
     struct astnode_unop unop;
@@ -261,7 +261,7 @@ typedef union astnode {
     struct astnode_array arr; 
     struct astnode_fndef fndef; 
     struct astnode_symbol_p sym_p;
-    struct astnode_return_type ret; 
+    //struct astnode_return_type ret; 
     /* etc.*/
 } astnode; 
 

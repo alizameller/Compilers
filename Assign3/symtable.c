@@ -210,7 +210,7 @@ int push_scope(enum scope_name scopeType) {
     }
     current = scope_ptr; 
     current->scope_fileName = report.fileName;
-    current->scope_lineNum = report.lineNum;
+    current->scope_lineNum = report.lineNum - 1; //off by one for some reason
     
     return 1; 
 }

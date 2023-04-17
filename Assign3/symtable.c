@@ -254,14 +254,14 @@ symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
                 sym->type_rep = node;
                 break;
             case FUNCTION_DEF_NODE:
-                if (sym->type_rep && sym->type_rep->generic.type == POINTER_NODE) { //short circuiting
+                /*if (sym->type_rep && sym->type_rep->generic.type == POINTER_NODE) { //short circuiting
                     union astnode *temp_sym = sym->type_rep;
                     while(temp_sym->ptr.parent) {
                         temp_sym = temp_sym->ptr.parent;
                     } 
                     temp_sym->ptr.parent = node;
                     break;
-                } 
+                } */
                 sym->type_rep = node;
                 
                 break; 

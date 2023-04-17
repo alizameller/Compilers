@@ -254,7 +254,7 @@ symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
                 sym->type_rep = node;
                 break;
             case FUNCTION_DEF_NODE:
-                if (sym->type_rep && sym->type_rep->generic.type == POINTER_NODE) { //short circuiting, not a great solution
+                if (sym->type_rep && sym->type_rep->generic.type == POINTER_NODE) { //short circuiting
                     union astnode *temp_sym = sym->type_rep;
                     while(temp_sym->ptr.parent) {
                         temp_sym = temp_sym->ptr.parent;
@@ -267,14 +267,10 @@ symbol *add_astnode_to_symbol(symbol *sym, union astnode* node) {
                 break; 
         }
     }
+
     return sym; 
 }
-    /*if (node->generic.type == FUNCTION_DEF_NODE) {
-        printf("%d\n", ((node->fndef).ret_type)->generic.type);
-        //sym->dec_specs = node;
-        //printf("dec spec %d\n", (sym->dec_specs)->generic.type);
-        //printf("type rep %d\n", (sym->type_rep)->generic.type);
-    } */
+
 
 symbol *modify_symbol_type(symbol *sym, symbolType type) {
     sym->sym_type = type; 

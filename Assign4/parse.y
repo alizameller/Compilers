@@ -61,8 +61,8 @@ void yyerror(char *s);
                 assignment_expression
 %type<operator> assignment_operator
 %type<astnode_p>expression 
-                constant_expression
-
+                constant-expression
+                expression_opt
 /* Declarations */
 %type<symbol_p> declaration_or_fndef 
 %type<symbol_p> function_definition
@@ -71,6 +71,10 @@ void yyerror(char *s);
 %type<astnode_p> decl_or_stmt
 %type<symbol_p> declaration 
 %type<astnode_p>statement
+                labeled-statement 
+                selection-statement 
+                iteration-statement 
+                jump-statement
 %type<astnode_p>declaration_specifiers 
 %type<symbol_p> init_declarator_list 
 %type<symbol_p> init_declarator
@@ -268,7 +272,7 @@ assignment_operator: '=' {$$ = '=';}
     | OREQ {$$ = OREQ;}
     ;
 
-constant_expression: conditional_expression; 
+constant-expression: conditional_expression; 
 
 /* Declarations Grammar */
 declaration_or_fndef: declaration { 
@@ -398,6 +402,12 @@ declaration: declaration_specifiers ';'
 
 statement: compound_statement {$$ = $1;}
     | expression ';' {printAST($1, 0);}
+    | labeled-statement
+    | compound_statement 
+    | expression
+    | selection-statement 
+    | iteration-statement 
+    | jump-statement
     ;
 
 declaration_specifiers: storage_class_specifier {$$ = $1;}
@@ -481,10 +491,10 @@ type_specifier: VOID {
                 union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, UNSIGNED_TYPE);
                 $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS);
                }
-    | _BOOL {
+    /*| _BOOL {
                 union astnode *type_spec = new_astnode_scalar(SCALAR_NODE, BOOL_TYPE);
                 $$ = new_astnode_declaration_spec(DECSPEC_NODE, type_spec, NONE_TYPE, UNKNOWN_CLASS);
-            } 
+            } */
     //| _COMPLEX 
     | struct_or_union_specifier 
     /*| enum_specifier */
@@ -718,6 +728,19 @@ initializer: assignment_expression  // *** Optional -- Not Implemented ***
    // | '{' initializer_list ',' '}'
     ;
 
+enum-specifier:
+    ENUM IDENT { enumerator-list } //ident opt
+    | ENUM IDENT { enumerator-list , } //ident opt
+    | ENUM IDENT //ident opt
+
+enumerator-list: enumerator
+    | enumerator-list ',' enumerator
+
+enumerator: enumeration-constant
+    | enumeration-constant '=' constant-expression
+
+enumeration-constant: IDENT
+
 /* initializer_list: initializer
     | designation initializer
     | initializer_list ',' initializer 
@@ -732,7 +755,35 @@ designator_list: designator
 designator: '[' constant_expression ']'
     | '.' IDENT
     ;
+
  */
+
+ /* Statements Grammar */
+labeled-statement: IDENT ':' statement
+    | CASE constant-expression ':' statement DEFAULT ':' statement
+    ;
+
+selection-statement: IF '(' expression ')' statement
+    | IF '(' expression ')' statement ELSE statement 
+    | SWITCH '(' expression ')' statement
+    ;
+
+iteration-statement: WHILE '(' expression ')' statement
+    | DO statement WHILE '(' expression ')' ';'
+    | FOR '(' expression_opt ';' expression_opt ';' expression_opt ')' statement 
+    | FOR '(' declaration expression_opt ';' expression_opt ')' statement
+
+jump-statement: GOTO IDENT ';'
+    | CONTINUE ';'
+    | BREAK ';'
+    | RETURN expression_opt ';'
+
+
+expression_opt:
+    | expression {$$ = $1}
+    ;
+
+
 %%
 
 int main(){

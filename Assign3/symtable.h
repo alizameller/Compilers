@@ -207,6 +207,8 @@ symbol *append_symbol_list(symbol *sym, symbol *addition);
 
 // compare symbols
 int compare_symbols(symbol *sym, symbol *current);
+
+union astnode *merging(symbol *sym);
 /* Hash Table functions */
 // return the symbol with the key (pKey) if it exists
 // else, return NULL

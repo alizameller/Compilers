@@ -24,7 +24,10 @@ typedef enum nodetype {
     //RETURN_TYPE_NODE
     LABEL_NODE,
     IF_NODE,
-    SWITCH_NODE
+    SWITCH_NODE,
+    WHILE_NODE,
+    DO_WHILE_NODE, 
+    FOR_NODE
 } nodetype;
 
 struct info {
@@ -285,6 +288,24 @@ struct astnode_switch {
 
 union astnode* new_astnode_switch(nodetype type, union astnode *exp, union astnode *statement);
 
+// (Do) While Statement Node
+struct astnode_while {
+    enum nodetype type; // WHILE_NODE OR DO_WHILE_NODE
+    union astnode *exp;
+    union astnode *statement;
+};
+
+union astnode* new_astnode_while(nodetype type, union astnode *exp, union astnode *statement);
+
+// For Statement Node
+struct astnode_for {
+    enum nodetype type; 
+    union astnode *exp;
+    union astnode *statement;
+};
+
+union astnode* new_astnode_for(nodetype type, union astnode *exp, union astnode *statement);
+
 
 typedef union astnode {
     struct astnode_generic generic;
@@ -305,8 +326,10 @@ typedef union astnode {
     struct astnode_symbol_p sym_p;
     //struct astnode_return_type ret; 
     struct astnode_label label; 
-    struct astnode_if if_sel;
-    struct astnode_switch switch_sel; 
+    struct astnode_if if_statement;
+    struct astnode_switch switch_statement; 
+    struct astnode_while while_statement;
+    struct astnode_for for_statement;
     /* etc.*/
 } astnode; 
 

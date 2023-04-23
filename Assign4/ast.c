@@ -312,17 +312,36 @@ union astnode* new_astnode_if(nodetype type, union astnode *exp, union astnode *
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
-    node_ptr->if_sel.type = type; 
-    node_ptr->if_sel.exp = exp;
-    node_ptr->if_sel.statement = statement;
+    node_ptr->if_statement.type = type; 
+    node_ptr->if_statement.exp = exp;
+    node_ptr->if_statement.statement = statement;
+
+    return node_ptr;
 }
 
 union astnode* new_astnode_switch(nodetype type, union astnode *exp, union astnode *statement) {
- // allocate memory
+    // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
-    node_ptr->switch_sel.type = type; 
-    node_ptr->switch_sel.exp = exp;
-    node_ptr->switch_sel.statement = statement;
+    node_ptr->switch_statement.type = type; 
+    node_ptr->switch_statement.exp = exp;
+    node_ptr->switch_statement.statement = statement;
+
+    return node_ptr;
+}
+
+union astnode* new_astnode_while(nodetype type, union astnode *exp, union astnode *statement) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->while_statement.type = type; 
+    node_ptr->while_statement.exp = exp;
+    if (exp) {
+        printf("exp is not NULL it is %d\n", exp->generic.type); // overflow check on this
+    }
+    node_ptr->while_statement.statement = statement;
+
+    return node_ptr;
 }

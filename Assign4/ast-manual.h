@@ -20,8 +20,11 @@ typedef enum nodetype {
     POINTER_NODE,
     ARRAY_NODE,
     FUNCTION_DEF_NODE,
-    SYMBOL_POINTER_NODE
+    SYMBOL_POINTER_NODE,
     //RETURN_TYPE_NODE
+    LABEL_NODE,
+    IF_NODE,
+    SWITCH_NODE
 } nodetype;
 
 struct info {
@@ -245,6 +248,44 @@ struct astnode_return_type {
 union astnode* new_astnode_return_type(nodetype type, union astnode* returning, union astnode *next);
 union astnode *modify_astnode_return_type(union astnode *node_ptr, union astnode* returning,  union astnode *next);
 */
+
+/* Statements Nodes */
+
+typedef enum label_type {
+    GOTO_LABEL,
+    CASE_LABEL,
+    DEFAULT_LABEL
+} label_type;
+
+// Labeled Statement Node
+struct astnode_label {
+    enum nodetype type;
+    enum label_type labelType;
+    union astnode *label_name; 
+    union astnode *statement; 
+};
+
+union astnode* new_astnode_label(nodetype type, label_type labelType, union astnode *label_name, union astnode *statement);
+
+// If Statement Node
+struct astnode_if {
+    enum nodetype type;
+    union astnode *exp;
+    union astnode *statement;
+};
+
+union astnode* new_astnode_if(nodetype type, union astnode *exp, union astnode *statement);
+
+// Switch Statement Node
+struct astnode_switch {
+    enum nodetype type;
+    union astnode *exp;
+    union astnode *statement;
+};
+
+union astnode* new_astnode_switch(nodetype type, union astnode *exp, union astnode *statement);
+
+
 typedef union astnode {
     struct astnode_generic generic;
     struct astnode_unop unop;
@@ -263,6 +304,9 @@ typedef union astnode {
     struct astnode_fndef fndef; 
     struct astnode_symbol_p sym_p;
     //struct astnode_return_type ret; 
+    struct astnode_label label; 
+    struct astnode_if if_sel;
+    struct astnode_switch switch_sel; 
     /* etc.*/
 } astnode; 
 

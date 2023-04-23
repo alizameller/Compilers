@@ -148,7 +148,7 @@ union astnode*new_astnode_func(union astnode *function_name, union astnode *arg_
     return node_ptr;
 }
 
-// Declaration Functions
+/* Declaration Functions */ 
 union astnode* new_astnode_declaration_spec(nodetype type, union astnode* s_type, qualifier_type q_type, storage_class s_class){
     // allocate memory
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
@@ -282,4 +282,47 @@ union astnode* new_astnode_symbol_pointer(nodetype type, symbol *sym){
     node_ptr->sym_p.sym = sym;
 
     return node_ptr;
+}
+
+/* Statement Functions */
+union astnode* new_astnode_label(nodetype type, label_type labelType, union astnode *label_name, union astnode *statement) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->label.type = type; 
+    node_ptr->label.labelType = labelType;
+    node_ptr->label.statement = statement;
+
+    if (node_ptr->label.labelType == GOTO_LABEL) {
+        // check if symbol is in symbol table
+        // if yes, print error redeclaration of symbol
+            // set labelType = sym table entry ?
+        // if not, create symbol and add to symbol table
+            // set created symbol as labelType
+    } else {
+        node_ptr->label.label_name = label_name;
+    }
+
+    return node_ptr;
+}
+
+union astnode* new_astnode_if(nodetype type, union astnode *exp, union astnode *statement) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->if_sel.type = type; 
+    node_ptr->if_sel.exp = exp;
+    node_ptr->if_sel.statement = statement;
+}
+
+union astnode* new_astnode_switch(nodetype type, union astnode *exp, union astnode *statement) {
+ // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->switch_sel.type = type; 
+    node_ptr->switch_sel.exp = exp;
+    node_ptr->switch_sel.statement = statement;
 }

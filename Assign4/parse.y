@@ -402,12 +402,12 @@ declaration: declaration_specifiers ';'
 
 statement: compound_statement {$$ = $1;}
     | expression ';' {printAST($1, 0);}
-    | labeled-statement
-    | compound_statement 
-    | expression
-    | selection-statement 
-    | iteration-statement 
-    | jump-statement
+    | labeled-statement {$$ = $1;}
+    | compound_statement {$$ = $1;}
+    | expression {$$ = $1;}
+    | selection-statement {$$ = $1;}
+    | iteration-statement {$$ = $1;}
+    | jump-statement {$$ = $1;}
     ;
 
 declaration_specifiers: storage_class_specifier {$$ = $1;}
@@ -759,13 +759,14 @@ designator: '[' constant_expression ']'
  */
 
  /* Statements Grammar */
-labeled-statement: IDENT ':' statement
-    | CASE constant-expression ':' statement DEFAULT ':' statement
+labeled-statement: IDENT ':' statement {$$ = new_astnode_label(LABEL_NODE, GOTO_LABEL, new_astnode_ident(IDENT_NODE, $1.string_literal), $3);}
+    | CASE constant-expression ':' statement {$$ = new_astnode_label(LABEL_NODE, CASE_LABEL, $1, $3);}
+    | DEFAULT ':' statement {$$ = new_astnode_label(LABEL_NODE, DEFAULT_LABEL, NULL, $3);}
     ;
 
-selection-statement: IF '(' expression ')' statement
-    | IF '(' expression ')' statement ELSE statement 
-    | SWITCH '(' expression ')' statement
+selection-statement: IF '(' expression ')' statement {$$ = new_astnode_if(IF_NODE, $3, $5);}
+    | IF '(' expression ')' statement ELSE statement {$$ = new_astnode_ternop('?', ':', $3, $5, $7)}
+    | SWITCH '(' expression ')' statement {$$ = new_astnode_switch(SWITCH_NODE, $3, $5);}
     ;
 
 iteration-statement: WHILE '(' expression ')' statement
@@ -779,7 +780,7 @@ jump-statement: GOTO IDENT ';'
     | RETURN expression_opt ';'
 
 
-expression_opt:
+expression_opt: /* empty */
     | expression {$$ = $1}
     ;
 

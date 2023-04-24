@@ -371,3 +371,24 @@ union astnode* new_astnode_goto(nodetype type, union astnode *label_ptr) {
 
     return node_ptr;
 }
+
+union astnode* new_astnode_cont_break(nodetype type) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->cont_break_statement.type = type;
+
+    return node_ptr;
+}
+
+union astnode* new_astnode_return(nodetype type, union astnode *exp) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->ret.type = type;
+    node_ptr->ret.exp = exp;
+    
+    return node_ptr;
+}

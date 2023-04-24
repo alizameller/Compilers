@@ -38,14 +38,15 @@ enum name_space {
 typedef enum symbolType {
     VARIABLE_SYMBOL,
     FUNCTION_SYMBOL,
-    TYPEDEF_SYMBOL,
-    SUTAG_SYMBOL,
-    MEMBER_SYMBOL, 
-    ENUMTAG_SYMBOL,
-    ENUM_SYMBOL,
+    //TYPEDEF_SYMBOL,
+    //SUTAG_SYMBOL,
+    //MEMBER_SYMBOL, 
+    //ENUMTAG_SYMBOL,
+    //ENUM_SYMBOL,
     LABEL_SYMBOL
 } symbolType;
 
+/*
 // Variable Symbol
 struct variable_symbol {
     union astnode *type;
@@ -83,15 +84,15 @@ struct enum_symbol {
     struct symbol *tag; // pointer to enum tag?
 } enum_symbol;
 
-// Label Symbol
-struct label_symbol {
-    char *assembly_label;
-} label_symbol;
-
 //  Typedef Symbol
 struct type_def_symbol {
     // type of symbol
-} type_def_symbol;
+} type_def_symbol; 
+
+// Label Symbol
+struct label_symbol {
+    char *assembly_label;
+} label_symbol; */
 
 // Generic Symbol
 typedef struct symbol {
@@ -106,7 +107,7 @@ typedef struct symbol {
     
    struct symbol *next; // 
 
-    // possible types of IDENT symbols
+    /*
     union {
         struct variable_symbol var;
         struct function_symbol func;
@@ -116,7 +117,7 @@ typedef struct symbol {
         struct enum_tag_symbol enumTag;
         struct enum_symbol eNum;
         struct label_symbol label;
-    }; 
+    }; */
 } symbol;
 
 // Symbol Table Struct -- Implemented as a hashtable 

@@ -21,14 +21,16 @@ typedef enum nodetype {
     ARRAY_NODE,
     FUNCTION_DEF_NODE,
     SYMBOL_POINTER_NODE,
-    //RETURN_TYPE_NODE
     LABEL_NODE,
     IF_NODE,
     SWITCH_NODE,
     WHILE_NODE,
     DO_WHILE_NODE, 
     FOR_NODE,
-    GOTO_NODE
+    GOTO_NODE,
+    CONTINUE_NODE,
+    BREAK_NODE,
+    RETURN_NODE
 } nodetype;
 
 struct info {
@@ -265,7 +267,7 @@ typedef enum label_type {
 struct astnode_label {
     enum nodetype type;
     enum label_type labelType;
-    union astnode *label_name; 
+    union astnode *label_name; // for go to labels -> pointer to sym
     union astnode *statement; 
 };
 
@@ -317,6 +319,21 @@ struct astnode_goto {
 
 union astnode* new_astnode_goto(nodetype type, union astnode *label_ptr);
 
+// Continue/Break Statement Node
+struct astnode_cont_break {
+    enum nodetype type; // either CONT_NODE, BREAK_NODE
+};
+
+union astnode* new_astnode_cont_break(nodetype type);
+
+// Return Statement Node
+struct astnode_return {
+    enum nodetype type; 
+    union astnode *exp;
+};
+
+union astnode* new_astnode_return(nodetype type, union astnode *exp);
+
 typedef union astnode {
     struct astnode_generic generic;
     struct astnode_unop unop;
@@ -334,13 +351,14 @@ typedef union astnode {
     struct astnode_array arr; 
     struct astnode_fndef fndef; 
     struct astnode_symbol_p sym_p;
-    //struct astnode_return_type ret; 
     struct astnode_label label; 
     struct astnode_if if_statement;
     struct astnode_switch switch_statement; 
     struct astnode_while while_statement;
     struct astnode_for for_statement;
     struct astnode_goto goto_statement;
+    struct astnode_cont_break cont_break_statement;
+    struct astnode_return ret;
     /* etc.*/
 } astnode; 
 

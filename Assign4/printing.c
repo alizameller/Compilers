@@ -128,6 +128,7 @@ void printNum(struct numinfo numInfo){
 }
 
 void printAST(union astnode* node, int indent) {
+    printf("type is %d\n", node->generic.type);
     int count = 1; 
     printIndents(indent);
     
@@ -289,6 +290,36 @@ void printAST(union astnode* node, int indent) {
             }
             printf("\n");
             break;
+        case LABEL_NODE:
+            printf("LABEL_NODE\n");
+            break;
+        case IF_NODE:
+            printf("IF_NODE\n");
+            break;
+        case SWITCH_NODE:
+            printf("SWITCH_NODE\n");
+            break;
+        case WHILE_NODE:
+            printf("WHILE_NODE\n");
+            break;
+        case DO_WHILE_NODE:
+            printf("DO_WHILE_NODE\n");
+            break;
+        case FOR_NODE:
+            printf("FOR_NODE\n");
+            break;
+        case GOTO_NODE:
+            printf("GOTO_NODE\n");
+            break;
+        case CONTINUE_NODE:
+            printf("CONTINUE_NODE\n");
+            break;
+        case BREAK_NODE:
+            printf("BREAK_NODE\n");
+            break;
+        case RETURN_NODE:
+            printf("RETURN_NODE\n");
+            break;
     }
     free(node); 
 }
@@ -389,6 +420,8 @@ char *printSymType(struct symbol *sym) {
             return "variable";
         case FUNCTION_SYMBOL:
             return "function";
+        case LABEL_SYMBOL:
+            return "label";
     }
     return NULL;
 }

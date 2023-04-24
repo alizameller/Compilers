@@ -27,7 +27,8 @@ typedef enum nodetype {
     SWITCH_NODE,
     WHILE_NODE,
     DO_WHILE_NODE, 
-    FOR_NODE
+    FOR_NODE,
+    GOTO_NODE
 } nodetype;
 
 struct info {
@@ -300,12 +301,21 @@ union astnode* new_astnode_while(nodetype type, union astnode *exp, union astnod
 // For Statement Node
 struct astnode_for {
     enum nodetype type; 
-    union astnode *exp;
+    union astnode *initialization;
+    union astnode *condition;
+    union astnode *update;
     union astnode *statement;
 };
 
-union astnode* new_astnode_for(nodetype type, union astnode *exp, union astnode *statement);
+union astnode* new_astnode_for(nodetype type, union astnode *initialization, union astnode *condition, union astnode *update, union astnode *statement);
 
+// Goto Statement Node
+struct astnode_goto {
+    enum nodetype type; 
+    union astnode *label_ptr;
+};
+
+union astnode* new_astnode_goto(nodetype type, union astnode *label_ptr);
 
 typedef union astnode {
     struct astnode_generic generic;
@@ -330,6 +340,7 @@ typedef union astnode {
     struct astnode_switch switch_statement; 
     struct astnode_while while_statement;
     struct astnode_for for_statement;
+    struct astnode_goto goto_statement;
     /* etc.*/
 } astnode; 
 

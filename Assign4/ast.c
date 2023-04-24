@@ -297,9 +297,10 @@ union astnode* new_astnode_label(nodetype type, label_type labelType, union astn
     if (node_ptr->label.labelType == GOTO_LABEL) {
         // check if symbol is in symbol table
         // if yes, print error redeclaration of symbol
-            // set labelType = sym table entry ?
+            // create union astnode *symbol pointer for symbol
+            // set label_name = symbol pointer
         // if not, create symbol and add to symbol table
-            // set created symbol as labelType
+            // set created symbol pointer as label_name
     } else {
         node_ptr->label.label_name = label_name;
     }
@@ -342,6 +343,31 @@ union astnode* new_astnode_while(nodetype type, union astnode *exp, union astnod
         printf("exp is not NULL it is %d\n", exp->generic.type); // overflow check on this
     }
     node_ptr->while_statement.statement = statement;
+
+    return node_ptr;
+}
+
+union astnode* new_astnode_for(nodetype type, union astnode *initialization, union astnode *condition, union astnode *update, union astnode *statement) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->for_statement.type = type; 
+    node_ptr->for_statement.initialization = initialization;
+    node_ptr->for_statement.condition = condition;
+    node_ptr->for_statement.update = update;
+    node_ptr->for_statement.statement = statement;
+
+    return node_ptr;
+}
+
+union astnode* new_astnode_goto(nodetype type, union astnode *label_ptr) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->goto_statement.type = type; 
+    node_ptr->goto_statement.label_ptr = label_ptr;
 
     return node_ptr;
 }

@@ -760,28 +760,34 @@ designator: '[' constant_expression ']'
 
  /* Statements Grammar */
 labeled-statement: IDENT ':' statement {$$ = new_astnode_label(LABEL_NODE, GOTO_LABEL, new_astnode_ident(IDENT_NODE, $1.string_literal), $3);}
-    | CASE constant-expression ':' statement {$$ = new_astnode_label(LABEL_NODE, CASE_LABEL, $1, $3);}
+    | CASE constant-expression ':' statement {$$ = new_astnode_label(LABEL_NODE, CASE_LABEL, $2, $4);}
     | DEFAULT ':' statement {$$ = new_astnode_label(LABEL_NODE, DEFAULT_LABEL, NULL, $3);}
     ;
 
 selection-statement: IF '(' expression ')' statement {$$ = new_astnode_if(IF_NODE, $3, $5);}
-    | IF '(' expression ')' statement ELSE statement {$$ = new_astnode_ternop('?', ':', $3, $5, $7)}
+    | IF '(' expression ')' statement ELSE statement {$$ = new_astnode_ternop('?', ':', $3, $5, $7);}
     | SWITCH '(' expression ')' statement {$$ = new_astnode_switch(SWITCH_NODE, $3, $5);}
     ;
 
-iteration-statement: WHILE '(' expression ')' statement
-    | DO statement WHILE '(' expression ')' ';'
-    | FOR '(' expression_opt ';' expression_opt ';' expression_opt ')' statement 
-    | FOR '(' declaration expression_opt ';' expression_opt ')' statement
+iteration-statement: WHILE '(' expression_opt ')' statement {$$ = new_astnode_while(WHILE_NODE, $3, $5);}
+    | DO statement WHILE '(' expression ')' ';' {$$ = new_astnode_while(DO_WHILE_NODE, $5, $2);}
+    | FOR '(' expression_opt ';' expression_opt ';' expression_opt ')' statement {$$ = new_astnode_for(FOR_NODE, $3, $5, $7, $9);}
+    | FOR '(' declaration expression_opt ';' expression_opt ')' statement { 
+                                                                            union astnode *decl_ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $3);
+                                                                            $$ = new_astnode_for(FOR_NODE, decl_ptr, $4, $6, $8);
+                                                                          }
 
-jump-statement: GOTO IDENT ';'
+jump-statement: GOTO IDENT ';' {
+                                    union astnode *label_ptr = new_astnode_label(LABEL_NODE, GOTO_LABEL, new_astnode_ident(IDENT_NODE, $2.string_literal), NULL);
+                                    $$ = new_astnode_goto(GOTO_NODE, label_ptr);
+                                }
     | CONTINUE ';'
     | BREAK ';'
     | RETURN expression_opt ';'
 
 
-expression_opt: /* empty */
-    | expression {$$ = $1}
+expression_opt: %empty // maybe make rule here?
+    | expression {$$ = $1;}
     ;
 
 

@@ -549,8 +549,28 @@ function_specifier: INLINE // *** Optional -- Not Implemented ***
     ;
 
 declarator: direct_declarator {$$ = $1;}
-    | pointer direct_declarator {$$ = add_astnode_to_symbol($2, $1);}
+    | pointer direct_declarator {
+                                    if ($2->type_rep && $2->type_rep->generic.type == ARRAY_NODE) {
+                                        union astnode *temp = $2->type_rep;
+                                        while (temp->arr.element_type) { // if element type of array is array -- THIS DOES NOT WORK
+                                            temp = $2->type_rep->arr.element_type;
+                                        }
+                                        $1->ptr.parent = temp;
+                                        $$ = add_astnode_to_symbol($2, $1);
+                                    } else if ($2->type_rep && $2->type_rep->generic.type == POINTER_NODE) {
+                                        // iterate through aprents
+                                    }
+                                }
     ;
+
+    /* else if ($1->type_rep && $1->type_rep->generic.type == POINTER_NODE) {
+                                                union astnode *temp = $1->type_rep;
+                                                while (temp->ptr.parent && (temp->ptr.parent->generic.type == POINTER_NODE)) { // if parent of pointer is a pointer
+                                                    temp = $1->type_rep->ptr.parent;
+                                                }
+                                                temp->ptr.parent = arr;
+                                                $$ = $1;
+                                            }*/
 
 direct_declarator: IDENT { //symbol type defaults to VARIABLE
                             if (!report.lineNum) { 

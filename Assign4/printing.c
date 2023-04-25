@@ -128,7 +128,7 @@ void printNum(struct numinfo numInfo){
 }
 
 void printAST(union astnode* node, int indent) {
-    printf("type is %d\n", node->generic.type);
+    //printf("type is %d\n", node->generic.type);
     int count = 1; 
     printIndents(indent);
     

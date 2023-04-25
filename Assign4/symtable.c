@@ -284,6 +284,13 @@ symbol *append_symbol_list(symbol *sym, symbol *addition) {
     return addition;
 }
 
+void checkArrayType(union astnode *temp, symbol *sym) {
+    while (temp->arr.element_type) { // if element type of array is array
+        temp = sym->type_rep->arr.element_type;
+    }
+    temp->arr.element_type = sym->dec_specs; // set element type of innermost array to dec specs
+}
+
 union astnode *merging(symbol *sym) {
     union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
     if (ptr->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
@@ -358,6 +365,8 @@ union astnode *merging(symbol *sym) {
             }
             if (temp->ptr.parent && temp->ptr.parent->generic.type == FUNCTION_DEF_NODE) { // if type is pointer to ... function, set ret type
                 temp->ptr.parent->fndef.ret_type = sym->dec_specs;
+            } else if (temp->ptr.parent && (temp->ptr.parent->generic.type == ARRAY_NODE)){ // if type is pointer to array
+                checkArrayType(temp, sym);
             } else {
                 temp->ptr.parent = sym->dec_specs; // set parent type of innermost pointer to dec specs
             }

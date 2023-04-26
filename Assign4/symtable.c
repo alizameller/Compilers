@@ -296,18 +296,21 @@ union astnode *merging(symbol *sym) {
     if (ptr->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
         // create function def node
         union astnode *fn_type = new_astnode_fndef(FUNCTION_DEF_NODE, NULL, NULL);
-        
         if (sym->type_rep && sym->type_rep->generic.type == FUNCTION_DEF_NODE) {
             union astnode *temp = sym->type_rep;
             while (temp->fndef.ret_type && temp->fndef.ret_type->generic.type == FUNCTION_DEF_NODE) { // if ret type of function is function
                 temp = temp->fndef.ret_type;
             }
             if (temp->fndef.ret_type && temp->fndef.ret_type->generic.type == POINTER_NODE) { // if ret type of function is pointer
-                // assume only one pointer to function is allowed
-                if (temp->fndef.ret_type->ptr.parent && temp->fndef.ret_type->ptr.parent->generic.type == FUNCTION_DEF_NODE) { // if pointer points to function
-                    temp->fndef.ret_type->ptr.parent->fndef.ret_type = sym->dec_specs;
-                } else { // if pointer does not point to function, assume it points to scalar
-                    temp->fndef.ret_type->ptr.parent = sym->dec_specs;
+                union astnode *ptr = temp->fndef.ret_type;
+                while (ptr->ptr.parent && (ptr->ptr.parent->generic.type == POINTER_NODE)) { // if parent of pointer is a pointer
+                    ptr = ptr->ptr.parent;
+                }
+                if (ptr->ptr.parent && ptr->ptr.parent->generic.type == FUNCTION_DEF_NODE) { // if pointer points to function
+                    ptr->ptr.parent->fndef.ret_type = sym->dec_specs;
+                }
+                else { // if pointer does not point to function, assume it points to scalar
+                    ptr->ptr.parent = sym->dec_specs;
                 }
             } else if (temp->fndef.ret_type && temp->fndef.ret_type->generic.type == ARRAY_NODE) { // if ret type of function is array
                     temp->fndef.ret_type->arr.element_type = sym->dec_specs; // set element type to dec specs
@@ -361,7 +364,7 @@ union astnode *merging(symbol *sym) {
         } else if (sym->type_rep && sym->type_rep->generic.type == POINTER_NODE) {
             union astnode *temp = sym->type_rep;
             while (temp->ptr.parent && (temp->ptr.parent->generic.type == POINTER_NODE)) { // if parent of pointer is a pointer
-                temp = sym->type_rep->ptr.parent;
+                temp = temp->ptr.parent;
             }
             if (temp->ptr.parent && temp->ptr.parent->generic.type == FUNCTION_DEF_NODE) { // if type is pointer to ... function, set ret type
                 temp->ptr.parent->fndef.ret_type = sym->dec_specs;

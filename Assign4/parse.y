@@ -292,7 +292,7 @@ function_definition: declaration_specifiers declarator {
                                                                 current->scope_fileName = report.fileName;
                                                             }
                                                             modify_symbol_type($2, FUNCTION_SYMBOL);
-
+                                                            
                                                             // add decspecs to declaration symbol
                                                             symbol *temp = add_astnode_to_symbol($2, $1);
                                                             
@@ -549,16 +549,12 @@ function_specifier: INLINE // *** Optional -- Not Implemented ***
     ;
 
 declarator: direct_declarator {$$ = $1;}
-    | pointer direct_declarator {
+    | pointer direct_declarator {   
                                     if ($2->type_rep && $2->type_rep->generic.type == ARRAY_NODE) {
-                                        union astnode *temp = $2->type_rep;
-                                        while (temp->arr.element_type) { // if element type of array is array -- THIS DOES NOT WORK
-                                            temp = $2->type_rep->arr.element_type;
-                                        }
-                                        $1->ptr.parent = temp;
+                                        $1->ptr.parent = $2->type_rep;
                                         $$ = add_astnode_to_symbol($2, $1);
-                                    } else if ($2->type_rep && $2->type_rep->generic.type == POINTER_NODE) {
-                                        // iterate through aprents
+                                    } else {
+                                        $$ = add_astnode_to_symbol($2, $1);
                                     }
                                 }
     ;

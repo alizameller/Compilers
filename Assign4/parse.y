@@ -339,7 +339,8 @@ compound_statement: '{' {
       }
     decl_or_stmt_list '}' {
                             $$ = $3;
-                            pop_scope();
+                            printAST($3, 0);
+                            pop_scope(); 
                           }
     ;
 
@@ -401,12 +402,12 @@ declaration: declaration_specifiers ';'
                                                       }
     ;
 
-statement: expression-statement {$$ = $1; printAST($1, 0);}
-    | labeled-statement {$$ = $1; printAST($1, 0);}
-    | compound_statement {$$ = $1; printAST($1, 0);}
-    | selection-statement {$$ = $1; printAST($1, 0);}
-    | iteration-statement {$$ = $1; printAST($1, 0);}
-    | jump-statement {$$ = $1; printAST($1, 0);}
+statement: expression-statement {$$ = $1;} //printAST($1, 0);
+    | labeled-statement {$$ = $1;} //printAST($1, 0);
+    | compound_statement {$$ = $1;} //printAST($1, 0);
+    | selection-statement {$$ = $1;} //printAST($1, 0);
+    | iteration-statement {$$ = $1;} //printAST($1, 0);
+    | jump-statement {$$ = $1;} //printAST($1, 0);
     ;
 
 declaration_specifiers: storage_class_specifier {$$ = $1;}
@@ -784,7 +785,7 @@ labeled-statement: IDENT ':' statement {
     | DEFAULT ':' statement {$$ = new_astnode_label(LABEL_NODE, DEFAULT_LABEL, NULL, $3);}
     ;
 
-selection-statement: IF '(' expression ')' statement {$$ = new_astnode_if(IF_NODE, $3, $5); printf("I SHOULD COME FIRST\n");} //use this example int f() { if(a = 3) a = 4; return a; }
+selection-statement: IF '(' expression ')' statement {$$ = new_astnode_if(IF_NODE, $3, $5);} //use this example int f() { if(a = 3) a = 4; return a; }
     | IF '(' expression ')' statement ELSE statement {$$ = new_astnode_ternop('?', ':', $3, $5, $7);}
     | SWITCH '(' expression ')' statement {$$ = new_astnode_switch(SWITCH_NODE, $3, $5);}
     ;

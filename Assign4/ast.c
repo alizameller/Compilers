@@ -199,13 +199,31 @@ union astnode* new_astnode_scalar(nodetype type, enum specifier_type s_type){
     return node_ptr;
 }
 
-union astnode* append_astnode_list(union astnode *previous, union astnode *addition){
-    if (previous->generic.type == SYMBOL_POINTER_NODE && addition->generic.type == SYMBOL_POINTER_NODE) {
-        previous->sym_p.next = addition;
 
-        return addition;
-    }
-    // ELSE
+union astnode* new_astnode_list(nodetype type, union astnode *list_item, union astnode *prev) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->ast_list.type = type; 
+    node_ptr->ast_list.node = list_item;
+    node_ptr->ast_list.prev = prev;
+    node_ptr->ast_list.next = NULL;
+
+    return node_ptr;
+}
+
+union astnode *append_astnode_list(union astnode *previous, union astnode *addition){
+    if (previous->generic.type != DECSPEC_NODE) {
+        if (previous->generic.type != LIST_NODE) { //head of list
+            previous = new_astnode_list(LIST_NODE, previous, NULL);
+        }
+
+        addition = new_astnode_list(LIST_NODE, addition, previous);
+        previous->ast_list.next = addition;
+
+        return addition; 
+    } // ELSE
     previous->decspec.next = addition; 
     addition->decspec.prev = previous; 
 
@@ -377,7 +395,7 @@ union astnode* new_astnode_cont_break(nodetype type) {
 	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
 
 	// set entries
-    node_ptr->cont_break_statement.type = type;
+    node_ptr->cont_break_statement.type = type; 
 
     return node_ptr;
 }

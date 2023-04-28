@@ -338,15 +338,26 @@ compound_statement: '{' {
         }
       }
     decl_or_stmt_list '}' {
-                            $$ = $3;
-                            printAST($3, 0);
+                            union astnode *temp = $3;
+                            while (temp->ast_list.prev) { // traverse list to get back to head
+                                temp = temp->ast_list.prev;
+                            }
+                            $$ = temp;
+                            if (current->name != BLOCK_SCOPE) {
+                                printAST(temp, 0);
+                            }
                             pop_scope(); 
                           }
     ;
 
 
 decl_or_stmt_list: decl_or_stmt  {$$ = $1;}
-    | decl_or_stmt_list decl_or_stmt {append_astnode_list($1, $2);}
+    | decl_or_stmt_list decl_or_stmt {
+                                        union astnode *temp = append_astnode_list($1, $2);
+                                        if (temp->ast_list.prev) { // not head of list
+                                            $$ = temp;
+                                        }
+                                    }
     ;
 
 decl_or_stmt: declaration  {$$ = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, $1);}

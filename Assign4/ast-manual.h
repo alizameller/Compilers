@@ -30,7 +30,8 @@ typedef enum nodetype {
     GOTO_NODE,
     CONTINUE_NODE,
     BREAK_NODE,
-    RETURN_NODE
+    RETURN_NODE,
+    LIST_NODE
 } nodetype;
 
 struct info {
@@ -334,6 +335,16 @@ struct astnode_return {
 
 union astnode* new_astnode_return(nodetype type, union astnode *exp);
 
+// Astnode List Item
+struct astnode_list {
+    enum nodetype type; 
+    union astnode *node;
+    union astnode *next;
+    union astnode *prev; 
+};
+
+union astnode* new_astnode_list(nodetype type, union astnode *list_item, union astnode *prev);
+
 typedef union astnode {
     struct astnode_generic generic;
     struct astnode_unop unop;
@@ -359,6 +370,7 @@ typedef union astnode {
     struct astnode_goto goto_statement;
     struct astnode_cont_break cont_break_statement;
     struct astnode_return ret;
+    struct astnode_list ast_list; 
     /* etc.*/
 } astnode; 
 

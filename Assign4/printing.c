@@ -294,7 +294,14 @@ void printAST(union astnode* node, int indent) {
             printf("LABEL_NODE\n");
             break;
         case IF_NODE:
+            printIndents(indent++);
             printf("IF_NODE\n");
+            printIndents(indent);
+            printf("EXPRESSION\n");
+            printAST(node->if_statement.exp, indent+1);
+            printIndents(indent);
+            printf("STATEMENT\n");
+            printAST(node->if_statement.statement, indent+1);
             break;
         case SWITCH_NODE:
             printf("SWITCH_NODE\n");
@@ -320,6 +327,19 @@ void printAST(union astnode* node, int indent) {
         case RETURN_NODE:
             printf("RETURN_NODE\n");
             break;
+        case LIST_NODE:
+            if (!(node->ast_list.prev)) {
+                printf("LIST {\n");
+            }
+            while(node->ast_list.node) {
+                printAST(node->ast_list.node, indent);
+                if (!(node->ast_list.next)) { // if next is null
+                    break; 
+                }
+                node = node->ast_list.next; 
+            }
+            printIndents(indent);
+            printf("}\n");
     }
     free(node); 
 }

@@ -345,7 +345,7 @@ compound_statement: '{' {
                             $$ = temp;
                             if (current->name != BLOCK_SCOPE) {
                                 printAST(temp, 0);
-                            }
+                            } 
                             pop_scope(); 
                           }
     ;
@@ -406,7 +406,9 @@ declaration: declaration_specifiers ';'
 
                                                        if (current->name == FUNCTION_SCOPE || current->name == BLOCK_SCOPE) {
                                                             union astnode *ptr = merging(temp);
-                                                            printAST(ptr, 0);
+                                                            if (current->name == BLOCK_SCOPE) {
+                                                                printAST(ptr, 0);
+                                                            }
                                                         } 
 
                                                         $$ = temp;

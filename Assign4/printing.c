@@ -170,8 +170,10 @@ void printAST(union astnode* node, int indent) {
         case TERNOP_NODE:
             printf("TERNARY OP, IF:\n");
 	        printAST(node->ternop.left, indent+1);
+            printIndents(indent);
             printf("THEN:\n");
             printAST(node->ternop.middle, indent+1);
+            printIndents(indent);
 	        printf("ELSE:\n");
             printAST(node->ternop.right, indent+1);
             break;
@@ -314,6 +316,19 @@ void printAST(union astnode* node, int indent) {
             break;
         case FOR_NODE:
             printf("FOR_NODE\n");
+            indent = indent+2;
+            printIndents(indent);
+            printf("INTIIALIZATION\n");
+            printAST(node->for_statement.initialization, indent+1);
+            printIndents(indent);
+            printf("CONDITION\n");
+            printAST(node->for_statement.condition, indent+1);
+            printIndents(indent);
+            printf("UPDATE\n");
+            printAST(node->for_statement.update, indent+1);
+            printIndents(indent);
+            printf("BODY\n");
+            printAST(node->for_statement.statement, indent+1);
             break;
         case GOTO_NODE:
             printf("GOTO_NODE\n");
@@ -332,7 +347,7 @@ void printAST(union astnode* node, int indent) {
                 printf("LIST {\n");
             }
             while(node->ast_list.node) {
-                printAST(node->ast_list.node, indent);
+                printAST(node->ast_list.node, indent+1);
                 if (!(node->ast_list.next)) { // if next is null
                     break; 
                 }

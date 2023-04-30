@@ -279,9 +279,14 @@ symbol *modify_symbol_type(symbol *sym, symbolType type) {
 }
 
 symbol *append_symbol_list(symbol *sym, symbol *addition) {
-    sym->next = addition; 
+    // if sym->next, iterate through until sym->next is null
+    symbol *temp = sym;
+    if (temp->next) {
+        temp = temp->next;
+    }
+    temp->next = addition; 
 
-    return addition;
+    return sym;
 }
 
 void checkArrayType(union astnode *temp, symbol *sym) {

@@ -218,15 +218,21 @@ void printAST(union astnode* node, int indent) {
             }
             break; 
         case SYMBOL_POINTER_NODE:
-            printf("%s is defined at ", (node->sym_p.sym)->key);
-            scope *scope_ptr = find_symbol((node->sym_p.sym)->nameSpace, (node->sym_p.sym)->key);
-            printf("%s:%d ", (node->sym_p.sym)->filename, (node->sym_p.sym)->line); 
-            printf("[in %s starting at %s:%d]\n", printScopeName(), scope_ptr->scope_fileName, scope_ptr->scope_lineNum);
+            printIndents(0); // suppressing error of "expected expression"
+            symbol *temp_sym = node->sym_p.sym;
+            while (temp_sym) {
+                printf("here\n");
+                printf("%s is defined at ", (temp_sym)->key);
+                scope *scope_ptr = find_symbol((temp_sym)->nameSpace, (temp_sym)->key);
+                printf("%s:%d ", (temp_sym)->filename, (temp_sym)->line); 
+                printf("[in %s starting at %s:%d]\n", printScopeName(), scope_ptr->scope_fileName, scope_ptr->scope_lineNum);
 
-            if ((node->sym_p).sym->sym_type == FUNCTION_SYMBOL) {
-                printFunctions((node->sym_p).sym, ++indent);
-            } else if ((node->sym_p).sym->sym_type == VARIABLE_SYMBOL) {
-                printDeclaration((node->sym_p).sym, ++indent);
+                if (temp_sym->sym_type == FUNCTION_SYMBOL) {
+                    printFunctions(temp_sym, ++indent);
+                } else if (temp_sym->sym_type == VARIABLE_SYMBOL) {
+                    printDeclaration(temp_sym, ++indent);
+                } 
+                temp_sym = temp_sym->next;
             }
             break;
         case FUNCTION_DEF_NODE:

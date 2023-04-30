@@ -311,17 +311,7 @@ union astnode* new_astnode_label(nodetype type, label_type labelType, union astn
     node_ptr->label.type = type; 
     node_ptr->label.labelType = labelType;
     node_ptr->label.statement = statement;
-
-    if (node_ptr->label.labelType == GOTO_LABEL) {
-        // check if symbol is in symbol table
-        // if yes, print error redeclaration of symbol
-            // create union astnode *symbol pointer for symbol
-            // set label_name = symbol pointer
-        // if not, create symbol and add to symbol table
-            // set created symbol pointer as label_name
-    } else {
-        node_ptr->label.label_name = label_name;
-    }
+    node_ptr->label.label_name = label_name;
 
     return node_ptr;
 }

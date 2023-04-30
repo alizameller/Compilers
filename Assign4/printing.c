@@ -293,26 +293,52 @@ void printAST(union astnode* node, int indent) {
             printf("\n");
             break;
         case LABEL_NODE:
-            printf("LABEL_NODE\n");
+            if (node->label.labelType == GOTO_LABEL) {
+                printf("LABEL(");
+                if (node->label.label_name) {
+                    printf("%s):\n", node->label.label_name->sym_p.sym->key);
+                } else {
+                    printf("Error: Label does not have a label name\n");
+                }
+            } else if (node->label.labelType ==CASE_LABEL) {
+                printf("CASE\n");
+                printIndents(indent+1);
+                printf("EXPR:\n");
+                printAST(node->label.label_name, indent+2);
+                printIndents(indent+1);
+                printf("STMT:\n");
+            } else { //default label
+                printf("DEFAULT:\n");
+            }
+            printAST(node->label.statement, ++indent);
             break;
         case IF_NODE:
-            printIndents(indent++);
-            printf("IF_NODE\n");
-            printIndents(indent);
-            printf("EXPRESSION\n");
+            printf("IF\n");
             printAST(node->if_statement.exp, indent+1);
             printIndents(indent);
-            printf("STATEMENT\n");
+            printf("THEN\n");
             printAST(node->if_statement.statement, indent+1);
             break;
         case SWITCH_NODE:
-            printf("SWITCH_NODE\n");
+            printf("SWITCH\n");
+            printAST(node->switch_statement.exp, indent+1);
+            printIndents(indent);
+            printf("BODY\n");
+            printAST(node->switch_statement.statement, indent+1);
             break;
         case WHILE_NODE:
-            printf("WHILE_NODE\n");
+            printf("WHILE\n");
+            printAST(node->while_statement.exp, indent+1);
+            printIndents(indent);
+            printf("BODY\n");
+            printAST(node->while_statement.statement, indent+1);
             break;
         case DO_WHILE_NODE:
-            printf("DO_WHILE_NODE\n");
+            printf("DO\n");
+            printAST(node->while_statement.statement, indent+1);
+            printf("WHILE\n");
+            printAST(node->while_statement.exp, indent+1);
+            printIndents(indent);
             break;
         case FOR_NODE:
             printf("FOR_NODE\n");
@@ -331,7 +357,8 @@ void printAST(union astnode* node, int indent) {
             printAST(node->for_statement.statement, indent+1);
             break;
         case GOTO_NODE:
-            printf("GOTO_NODE\n");
+            printf("GOTO ");
+            printf("%s (DEF)\n", node->goto_statement.label_ptr->label.label_name->sym_p.sym->key);
             break;
         case CONTINUE_NODE:
             printf("CONTINUE_NODE\n");
@@ -340,7 +367,8 @@ void printAST(union astnode* node, int indent) {
             printf("BREAK_NODE\n");
             break;
         case RETURN_NODE:
-            printf("RETURN_NODE\n");
+            printf("RETURN\n");
+            printAST(node->ret.exp, indent+1);
             break;
         case LIST_NODE:
             if (!(node->ast_list.prev)) {

@@ -277,17 +277,21 @@ constant-expression: conditional_expression;
 
 /* Declarations Grammar */
 declaration_or_fndef: declaration { 
-                                    union astnode *ptr = merging($1);
-                                    /*printf("ret type is %d\n", $1->type_rep->fndef.ret_type->generic.type);
-                                    printf("pointer parent is %d\n", $1->type_rep->fndef.ret_type->ptr.parent->generic.type);
-                                    printf("ret type of pointed is %d\n", $1->type_rep->fndef.ret_type->ptr.parent->fndef.ret_type->generic.type);
-                                    */
-                                    printAST(ptr, 0);
+                                    symbol *temp_sym = $1; 
+                                    while (temp_sym) {
+                                        union astnode *ptr = merging(temp_sym);
+                                        /*printf("ret type is %d\n", $1->type_rep->fndef.ret_type->generic.type);
+                                        printf("pointer parent is %d\n", $1->type_rep->fndef.ret_type->ptr.parent->generic.type);
+                                        printf("ret type of pointed is %d\n", $1->type_rep->fndef.ret_type->ptr.parent->fndef.ret_type->generic.type);
+                                        */
+                                        printAST(ptr, 0);
+                                        temp_sym = temp_sym->next; 
+                                    }
                                   }
     | function_definition {} // 
     ;
 
-function_definition: declaration_specifiers declarator { 
+function_definition: declaration_specifiers declarator {    
                                                             if (!current->scope_fileName) {
                                                                 current->scope_fileName = report.fileName;
                                                             }
@@ -369,49 +373,53 @@ declaration: declaration_specifiers ';'
                                                         if (!current->scope_fileName) { // if fileName is not set, set it to report.fileName
                                                             current->scope_fileName = report.fileName;
                                                         }
-                                                        
-                                                        // add decspecs to declaration symbol
-                                                        symbol *temp = add_astnode_to_symbol($2, $1);
+                                                        symbol *temp_sym = $2; 
+                                                        while (temp_sym) {
+                                                            // add decspecs to declaration symbol
+                                                            symbol *temp = add_astnode_to_symbol(temp_sym, $1);
 
-                                                        if ($1->decspec.s_class == UNKNOWN_CLASS) {
-                                                            if (current->name == FUNCTION_SCOPE) {
-                                                                $1->decspec.s_class = AUTO_CLASS;
-                                                            } else {
-                                                                $1->decspec.s_class = EXTERN_CLASS;
-                                                            }
-                                                        }
-                                                        
-                                                        if ($1->decspec.s_type) {
-                                                            if ($1->decspec.s_type->scalar.scalarType == SIGNED_TYPE || $1->decspec.s_type->scalar.scalarType == UNSIGNED_TYPE) {
-                                                                if ((!($1->decspec.prev) && !($1->decspec.next))) { // if the dec spec is ONLY signed or unsigned
-                                                                    union astnode *int_type = new_astnode_scalar(SCALAR_NODE, INT_TYPE);
-                                                                    int_type = new_astnode_declaration_spec(DECSPEC_NODE, int_type, NONE_TYPE, UNKNOWN_CLASS);
-                                                                    append_astnode_list($1, int_type);
+                                                            if ($1->decspec.s_class == UNKNOWN_CLASS) {
+                                                                if (current->name == FUNCTION_SCOPE) {
+                                                                    $1->decspec.s_class = AUTO_CLASS;
+                                                                } else {
+                                                                    $1->decspec.s_class = EXTERN_CLASS;
                                                                 }
                                                             }
-                                                        } else {
-                                                            if ($1->decspec.q_type) {
-                                                                union astnode *int_type = new_astnode_scalar(SCALAR_NODE, INT_TYPE);
-                                                                modify_astnode_declaration_spec($1, int_type, NONE_TYPE, UNKNOWN_CLASS);
+                                                            
+                                                            if ($1->decspec.s_type) {
+                                                                if ($1->decspec.s_type->scalar.scalarType == SIGNED_TYPE || $1->decspec.s_type->scalar.scalarType == UNSIGNED_TYPE) {
+                                                                    if ((!($1->decspec.prev) && !($1->decspec.next))) { // if the dec spec is ONLY signed or unsigned
+                                                                        union astnode *int_type = new_astnode_scalar(SCALAR_NODE, INT_TYPE);
+                                                                        int_type = new_astnode_declaration_spec(DECSPEC_NODE, int_type, NONE_TYPE, UNKNOWN_CLASS);
+                                                                        append_astnode_list($1, int_type);
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                if ($1->decspec.q_type) {
+                                                                    union astnode *int_type = new_astnode_scalar(SCALAR_NODE, INT_TYPE);
+                                                                    modify_astnode_declaration_spec($1, int_type, NONE_TYPE, UNKNOWN_CLASS);
+                                                                }
                                                             }
-                                                        }
-                                                        
-                                                        //printf("ret type of func is %d\n", $2->type_rep->fndef.ret_type->generic.type);
+                                                            
+                                                            //printf("ret type of func is %d\n", $2->type_rep->fndef.ret_type->generic.type);
 
-                                                        if (!insert_symbol(current->symbolTables[OTHER], temp)) {
-                                                            // ERROR
-                                                            fprintf(stderr, "Error: Symbol for ident %s declared in %s:%d, was not inserted into symbol table\n", temp->key, report.fileName, report.lineNum); 
-                                                            temp = contains_symbol(current->symbolTables[OTHER], temp->key);
-                                                        }
-
-                                                       if (current->name == FUNCTION_SCOPE || current->name == BLOCK_SCOPE) {
-                                                            union astnode *ptr = merging(temp);
-                                                            if (current->name == BLOCK_SCOPE) {
-                                                                printAST(ptr, 0);
+                                                            if (!insert_symbol(current->symbolTables[OTHER], temp)) {
+                                                                // ERROR
+                                                                fprintf(stderr, "Error: Symbol for ident %s declared in %s:%d, was not inserted into symbol table\n", temp->key, report.fileName, report.lineNum); 
+                                                                temp = contains_symbol(current->symbolTables[OTHER], temp->key);
                                                             }
-                                                        } 
-
-                                                        $$ = temp;
+                                    
+                                                            if (current->name == FUNCTION_SCOPE || current->name == BLOCK_SCOPE) {
+                                                                union astnode *ptr = merging(temp);
+                                                                if (current->name == BLOCK_SCOPE) {
+                                                                    printAST(ptr, 0);
+                                                                }
+                                                            }
+                                                            
+                                                            temp_sym = temp_sym->next;
+                                                            
+                                                            $$ = $2; 
+                                                        }
                                                       }
     ;
 

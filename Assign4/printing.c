@@ -188,11 +188,12 @@ void printAST(union astnode* node, int indent) {
             printf("STRING\t%s\n", node->str.string_literal);
             break;
         case ARGLIST_NODE:
-            printIndents(indent + 1);
+            printIndents(indent-2);
             printf("arg #%d=\n", count);
+            indent++; // im not sure why the indents got messed up here
             printAST((node->list.arg_head)->arg.argument, indent+1);
             while(node->list.arg_next != NULL) {
-                printIndents(indent + 1);
+                printIndents(indent);
                 printf("arg #%d=\n", ++count);
                 printAST((node->list.arg_next)->arg.argument, indent+1);
                 node = node->list.arg_next;
@@ -202,7 +203,7 @@ void printAST(union astnode* node, int indent) {
             printf("FNCALL, %d arguments\n", node->func.num_args);
             printAST(node->func.function_name, indent+1);
             if (node->func.arg_head) {
-                printAST(node->func.arg_head, indent-1);
+                printAST(node->func.arg_head, --indent);
             }
             break;
         case ARGUMENT_NODE:
@@ -220,20 +221,16 @@ void printAST(union astnode* node, int indent) {
         case SYMBOL_POINTER_NODE:
             printIndents(0); // suppressing error of "expected expression"
             symbol *temp_sym = node->sym_p.sym;
-            while (temp_sym) {
-                printf("here\n");
-                printf("%s is defined at ", (temp_sym)->key);
-                scope *scope_ptr = find_symbol((temp_sym)->nameSpace, (temp_sym)->key);
-                printf("%s:%d ", (temp_sym)->filename, (temp_sym)->line); 
-                printf("[in %s starting at %s:%d]\n", printScopeName(), scope_ptr->scope_fileName, scope_ptr->scope_lineNum);
+            printf("%s is defined at ", (temp_sym)->key);
+            scope *scope_ptr = find_symbol((temp_sym)->nameSpace, (temp_sym)->key);
+            printf("%s:%d ", (temp_sym)->filename, (temp_sym)->line); 
+            printf("[in %s starting at %s:%d]\n", printScopeName(), scope_ptr->scope_fileName, scope_ptr->scope_lineNum);
 
-                if (temp_sym->sym_type == FUNCTION_SYMBOL) {
-                    printFunctions(temp_sym, ++indent);
-                } else if (temp_sym->sym_type == VARIABLE_SYMBOL) {
-                    printDeclaration(temp_sym, ++indent);
-                } 
-                temp_sym = temp_sym->next;
-            }
+            if (temp_sym->sym_type == FUNCTION_SYMBOL) {
+                printFunctions(temp_sym, ++indent);
+            } else if (temp_sym->sym_type == VARIABLE_SYMBOL) {
+                printDeclaration(temp_sym, ++indent);
+            } 
             break;
         case FUNCTION_DEF_NODE:
             printf("a function returning\n");
@@ -367,10 +364,10 @@ void printAST(union astnode* node, int indent) {
             printf("%s (DEF)\n", node->goto_statement.label_ptr->label.label_name->sym_p.sym->key);
             break;
         case CONTINUE_NODE:
-            printf("CONTINUE_NODE\n");
+            printf("CONTINUE\n");
             break;
         case BREAK_NODE:
-            printf("BREAK_NODE\n");
+            printf("BREAK\n");
             break;
         case RETURN_NODE:
             printf("RETURN\n");

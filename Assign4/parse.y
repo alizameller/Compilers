@@ -343,7 +343,7 @@ compound_statement: '{' {
       }
     decl_or_stmt_list '}' {
                             union astnode *temp = $3;
-                            while (temp->ast_list.prev) { // traverse list to get back to head
+                            while ((temp->generic.type == LIST_NODE) && temp->ast_list.prev) { // traverse list to get back to head
                                 temp = temp->ast_list.prev;
                             }
                             $$ = temp;

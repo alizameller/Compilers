@@ -75,7 +75,16 @@ void append_bb_list(struct basic_block *entry, struct basic_block *next, struct 
 // initialize current block, current quad and block list 
 void init_IR();
 
-// generate quads for AST nodes
+// generate quads for AST nodes -- main generation function
 void generate_quads(union astnode *node);
+
+// generate quads for assignment expressions
+void generate_assignment(union astnode *node);
+
+// find lvalue of expression
+union astnode *find_lvalue(union astnode *left, int mode);
+
+// find rvalue of expression
+union astnode *find_rvalue(union astnode *right, int mode);
 
 #endif // QUADS_H

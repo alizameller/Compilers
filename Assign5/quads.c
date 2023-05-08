@@ -58,7 +58,7 @@ void append_quad_list(struct quad_list_item *addition) {
         curr_quad = addition; 
         return;
     } 
-    
+
     if(curr_quad->next_quad) {
         curr_quad = curr_quad->next_quad;
     }
@@ -111,4 +111,18 @@ void generate_quads(union astnode *node) {
     }
 
     fprintf(stderr, "Error: Cannot generate quads\n");
+}
+
+// Generates IR for assignments
+void generate_assignment(union astnode *node) {
+    int mode;
+    astnode *lvalue = find_lvalue(node->binop.left, &mode);
+
+    if(mode == DIRECT) {
+        astnode *rvalue = find_rvalue(node->binop.right, NULL);
+        // make quad with MOV lvalue, rvalue
+    } else { // INDIRECT
+        astnode *rvalue = find_rvalue(node->binop.right, NULL);
+        // make quad with STORE lvalue, rvalue
+    }
 }

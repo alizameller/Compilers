@@ -1,8 +1,11 @@
-parse: parse.tab.o symtable.o ast.o lex.yy.o printing.o
-		gcc -g -o parse parse.tab.o printing.o symtable.o ast.o lex.yy.o
+parse: parse.tab.o symtable.o quads.o ast.o lex.yy.o printing.o
+		gcc -g -o parse parse.tab.o printing.o symtable.o quads.o ast.o lex.yy.o
 
 printing.o: ast.o parse.tab.h printing.c
 		gcc -g -c -o printing.o printing.c
+
+quads.o: ast.o quads.h quads.c
+		gcc -g -c -o quads.o quads.c
 
 symtable.o: ast.o symtable.h symtable.c 
 		gcc -g -c -o symtable.o symtable.c

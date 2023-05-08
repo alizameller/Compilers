@@ -11,6 +11,7 @@ void yyerror(char *s);
 
 %code requires {
     #include "symtable.h"
+    #include "quads.h"
 }
 
 /* YYSTYPE union */
@@ -281,7 +282,8 @@ declaration_or_fndef: declaration {
                                         printf("pointer parent is %d\n", $1->type_rep->fndef.ret_type->ptr.parent->generic.type);
                                         printf("ret type of pointed is %d\n", $1->type_rep->fndef.ret_type->ptr.parent->fndef.ret_type->generic.type);
                                         */
-                                        printAST(ptr, 0);
+                                        //printAST(ptr, 0);
+                                        generate_quads(ptr);
                                         temp_sym = temp_sym->next; 
                                     }
                                   }
@@ -310,7 +312,8 @@ function_definition: declaration_specifiers declarator {
                                                             }
                                                             // create astnode ptr that contains a pointer to the symbol (for printing purposes)
                                                             //union astnode *ptr = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, temp);
-                                                            printAST(ptr, 0);         
+                                                            generate_quads(ptr);
+                                                            //printAST(ptr, 0);         
                                                         }
     compound_statement
     ;
@@ -345,7 +348,8 @@ compound_statement: '{' {
                             }
                             $$ = temp;
                             if (current->name != BLOCK_SCOPE) {
-                                printAST(temp, 0);
+                                generate_quads(temp);
+                                //printAST(temp, 0);
                             } 
                             pop_scope(); 
                           }
@@ -409,7 +413,8 @@ declaration: declaration_specifiers ';'
                                                             if (current->name == FUNCTION_SCOPE || current->name == BLOCK_SCOPE) {
                                                                 union astnode *ptr = merging(temp);
                                                                 if (current->name == BLOCK_SCOPE) {
-                                                                    printAST(ptr, 0);
+                                                                    generate_quads(ptr);
+                                                                    //printAST(ptr, 0);
                                                                 }
                                                             }
                                                             

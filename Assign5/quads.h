@@ -87,4 +87,7 @@ union astnode *find_lvalue(union astnode *left, int mode);
 // find rvalue of expression
 union astnode *find_rvalue(union astnode *right, int mode);
 
+// generate quads for functions
+void generate_functions(union astnode *node);
+
 #endif // QUADS_H

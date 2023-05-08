@@ -2,6 +2,7 @@
 #define AST_H
 
 #include "symtable.h"
+#include "quads.h"
 #include <stdio.h>
 #include <stdlib.h>
 

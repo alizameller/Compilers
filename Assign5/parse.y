@@ -349,6 +349,15 @@ compound_statement: '{' {
                             $$ = temp;
                             if (current->name != BLOCK_SCOPE) {
                                 generate_quads(temp);
+                                
+                                printf("%s:\n", block_list->head->bb_name);
+                                if (block_list->head->head_quad) {
+                                    printf("\top:%d dest:%d src:%d\n", block_list->head->head_quad->op_code, block_list->head->head_quad->dest->generic.type, block_list->head->head_quad->src1->generic.type);
+                                } 
+                                if (block_list->head->next_bb) {
+                                    printf("%s:\n", block_list->head->next_bb->bb_name);
+                                } 
+                                
                                 //printAST(temp, 0);
                             } 
                             pop_scope(); 
@@ -850,6 +859,7 @@ int main(){
     current->scope_fileName = NULL;
     current->scope_lineNum = 1;
     int t;
+    init_IR();
     while(!(t = yyparse())){
     };
 }

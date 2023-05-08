@@ -41,7 +41,7 @@ typedef enum mode{
 
 // Basic Block
 typedef struct basic_block {
-    char *bb_name;                           // eg: BB1, BBr, f
+    char *bb_name;                           // eg: BB1, BBr, f ?
     struct quad_list_item *head_quad;             // Linked list of quads within one block
     struct basic_block *next_bb, *branch_bb;    // exit branch, continue linearly (next) or branch (on conditional)
     int branch_condition;                    // Type of comparator (from op_codes enum below)
@@ -82,12 +82,16 @@ void generate_quads(union astnode *node);
 void generate_assignment(union astnode *node);
 
 // find lvalue of expression
-union astnode *find_lvalue(union astnode *left, int mode);
+union astnode *find_lvalue(union astnode *node, int *addressing_mode);
 
 // find rvalue of expression
-union astnode *find_rvalue(union astnode *right, int mode);
+union astnode *find_rvalue(union astnode *node, int *addressing_mode);
 
 // generate quads for functions
 void generate_functions(union astnode *node);
+
+bb_list *block_list;
+basic_block *curr_block;
+quad_list_item *curr_quad;
 
 #endif // QUADS_H

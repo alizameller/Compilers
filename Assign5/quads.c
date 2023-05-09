@@ -6,6 +6,7 @@ void init_IR() {
     // set currents
     curr_block = NULL;
     curr_quad = NULL;
+    temp_num = 0;
 }
 
 struct basic_block *new_basic_block(char *bb_name) {
@@ -30,7 +31,6 @@ struct basic_block *update_block(char *bb_name, struct quad_list_item quad, stru
                                  int branch_condition, int printed, int assembled) {
     // nothing
 }
-
 
 struct quad_list_item *new_quad(opcode op_code, union astnode *dest, union astnode *src1, union astnode *src2, struct quad_list_item *next_quad) {
     // allocate memory
@@ -103,11 +103,7 @@ void generate_quads(union astnode *node) {
             break;
         case IF_NODE:
             break;
-        case SWITCH_NODE:
-            break;
         case WHILE_NODE:
-            break;
-        case DO_WHILE_NODE:
             break;
         case FOR_NODE:
             break;
@@ -117,7 +113,8 @@ void generate_quads(union astnode *node) {
             break;
         case RETURN_NODE:
             break;
-        case FUNCTION_NODE: 
+        case FUNCTION_NODE: // function call
+            //printf("calling function\n");
             break;
         case LIST_NODE:
             while(node->ast_list.node) {
@@ -133,7 +130,7 @@ void generate_quads(union astnode *node) {
             if (node->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
                 generate_functions(node);
             } 
-            // else its a declaration in which case we do not care
+            // else its a declaration in which case we do not care to generate quads for it
             break;
         default:
             fprintf(stderr, "Error: Cannot generate quads\n");
@@ -141,14 +138,14 @@ void generate_quads(union astnode *node) {
     return;
 }
 
-// find lvalue of expression
-union astnode *find_lvalue(union astnode *node, int *addressing_mode) {
+// gen lvalue of expression
+union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
     switch(node->generic.type) {
         case IDENT_NODE:{
             symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
             if (sym) {
                 union astnode *symbol_pointer = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
-                return find_lvalue(symbol_pointer, addressing_mode);
+                return gen_lvalue(symbol_pointer, addressing_mode);
             } else {
                 // ERROR
             }
@@ -163,58 +160,54 @@ union astnode *find_lvalue(union astnode *node, int *addressing_mode) {
                 }
             }
             return node;
+        case UNOP_NODE:
+            // if pointer dereference
+            if(node->unop.operator == '*') {
+                *addressing_mode = INDIRECT;
+                return gen_lvalue(node->unop.operand, NULL);
+            }
+            // if postinc
+            // if postdec
+            break;
     }
 }
 
-/* 
-struct astnode *get_lvalue(struct astnode *node, int *mode) {
-    switch(node->node_type) {
-        // Scalar Variable
-        case SYM_ENTRY_TYPE:
-            // Scalar type
-            if(node->ast_sym_entry.sym_type == VAR_TYPE
-                && node->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) {
-                *mode = DIRECT_MODE;
-                return node;
-            }
-            // Pointer type
-            if(node->ast_sym_entry.sym_type == VAR_TYPE && 
-                node->ast_sym_entry.sym_node->node_type == POINTER_TYPE) {
-                *mode = INDIRECT_MODE;
-                return node;
-                }
-            break;
-
-        // Constants
-        case NUMBER_TYPE:
-        case CHARLIT_TYPE:
-        case STRING_TYPE:
-            return NULL;
-
-        case UNARY_TYPE:
-            // Pointer Deref
-            if(node->ast_unary_op.op == '*') {
-                *mode = INDIRECT_MODE;
-                return get_rvalue(node->ast_unary_op.expr,NULL);
-            }
-            break;
-    }
-
-    return NULL;
-}
-*/
-
-// find rvalue of expression
-union astnode *find_rvalue(union astnode *node, int *addressing_mode) {
+// gen rvalue of expression
+union astnode *gen_rvalue(union astnode *node, union astnode *target) {
     int op;
     //printf("%d\n", node->generic.type);
     switch(node->generic.type) {
         // Constants
+        case SYMBOL_POINTER_NODE: {
+            union astnode *type = node->sym_p.sym->type_rep; //pointer, array or scalar
+            if (node->sym_p.sym->type_rep) {
+                if (type->generic.type == POINTER_NODE) {
+                    if (type->ptr.parent && type->ptr.parent->generic.type != POINTER_NODE) {
+                        // POINTER
+                    }
+                } else if (type->generic.type == ARRAY_NODE) {
+                    // ARRAY
+                }
+            }
+            //printf("%d\n", node->sym_p.sym->type_rep->generic.type);
+            //printf("%d\n", node->generic.type);
+            return node; 
+            break;
+        }
         case NUMBER_NODE:
         case STRING_NODE:
-        case IDENT_NODE:
             return node;
-        case BINOP_NODE:
+        case IDENT_NODE: {
+            symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
+            if (sym) {
+                union astnode *symbol_pointer = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
+                return gen_rvalue(symbol_pointer, NULL);
+            }
+        }
+        case BINOP_NODE: {
+            union astnode *left = gen_rvalue(node->binop.left, NULL);
+            union astnode *right = gen_rvalue(node->binop.right, NULL);
+            if (!target) target = new_temporary(TEMPORARY_NODE, ++temp_num);
             switch(node->binop.operator) {
                 case '+':
                     op = ADD;
@@ -232,8 +225,17 @@ union astnode *find_rvalue(union astnode *node, int *addressing_mode) {
                     op = MOD;
                     break;
             }
-            break;
-        case NONE:
+            curr_quad = new_quad(op, target, left, right, curr_quad);
+            return target;
+        }
+        case UNOP_NODE:
+            if (node->unop.operator == '*') { //pointer deref
+                union astnode *addr = gen_rvalue(node->unop.operand, NULL);
+                if (!target) target = new_temporary(TEMPORARY_NODE, ++temp_num);
+                curr_quad = new_quad(LOAD, target, addr, NULL, curr_quad);
+                
+                return target;
+            }
             break;
     }
 }
@@ -242,13 +244,13 @@ union astnode *find_rvalue(union astnode *node, int *addressing_mode) {
 // Generates IR for assignments
 void generate_assignment(union astnode *node) {
     int *addressing_mode;
-    astnode *lvalue = find_lvalue(node->binop.left, addressing_mode);
+    astnode *lvalue = gen_lvalue(node->binop.left, addressing_mode);
     if (*addressing_mode == DIRECT) {
-        astnode *rvalue = find_rvalue(node->binop.right, NULL);
+        astnode *rvalue = gen_rvalue(node->binop.right, NULL);
         new_quad(MOV, lvalue, rvalue, NULL, NULL);
         // make quad with MOV lvalue, rvalue
     } else if (*addressing_mode == INDIRECT) {
-        astnode *rvalue = find_rvalue(node->binop.right, NULL);
+        astnode *rvalue = gen_rvalue(node->binop.right, NULL);
         new_quad(STORE, lvalue, rvalue, NULL, NULL);
     }
 }

@@ -32,7 +32,8 @@ typedef enum nodetype {
     CONTINUE_NODE,
     BREAK_NODE,
     RETURN_NODE,
-    LIST_NODE
+    LIST_NODE,
+    TEMPORARY_NODE
 } nodetype;
 
 struct info {
@@ -346,6 +347,14 @@ struct astnode_list {
 
 union astnode* new_astnode_list(nodetype type, union astnode *list_item, union astnode *prev);
 
+// Astnode Temporary (for temp regs)
+struct astnode_temp {
+    enum nodetype type; 
+    int num;
+};
+
+union astnode *new_temporary(nodetype type, int num);
+
 typedef union astnode {
     struct astnode_generic generic;
     struct astnode_unop unop;
@@ -372,6 +381,7 @@ typedef union astnode {
     struct astnode_cont_break cont_break_statement;
     struct astnode_return ret;
     struct astnode_list ast_list; 
+    struct astnode_temp temp;
     /* etc.*/
 } astnode; 
 
@@ -397,6 +407,5 @@ char *printStorageClass(struct symbol *sym);
 char *printScalarType(union astnode *node);
 
 char *printTypeQualifier(struct symbol *sym);
-
 
 #endif //AST_H

@@ -400,3 +400,14 @@ union astnode* new_astnode_return(nodetype type, union astnode *exp) {
     
     return node_ptr;
 }
+
+union astnode *new_temporary(nodetype type, int num) {
+    // allocate memory
+	union astnode *node_ptr = (union astnode*) malloc(sizeof (union astnode));
+
+	// set entries
+    node_ptr->temp.type = type;
+    node_ptr->temp.num = num;
+
+    return node_ptr;
+}

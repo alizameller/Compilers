@@ -72,6 +72,9 @@ typedef struct bb_list {
 struct bb_list *new_bblist(struct basic_block *head, struct basic_block *tail);
 void append_bb_list(struct basic_block *entry, struct basic_block *next, struct basic_block *branch);
 
+// create temporary node
+union astnode *new_temp();
+
 // initialize current block, current quad and block list 
 void init_IR();
 
@@ -81,11 +84,11 @@ void generate_quads(union astnode *node);
 // generate quads for assignment expressions
 void generate_assignment(union astnode *node);
 
-// find lvalue of expression
-union astnode *find_lvalue(union astnode *node, int *addressing_mode);
+// gen lvalue of expression
+union astnode *gen_lvalue(union astnode *node, int *addressing_mode);
 
-// find rvalue of expression
-union astnode *find_rvalue(union astnode *node, int *addressing_mode);
+// gen rvalue of expression
+union astnode *gen_rvalue(union astnode *node, union astnode *target);
 
 // generate quads for functions
 void generate_functions(union astnode *node);
@@ -93,5 +96,6 @@ void generate_functions(union astnode *node);
 bb_list *block_list;
 basic_block *curr_block;
 quad_list_item *curr_quad;
+int temp_num;
 
 #endif // QUADS_H

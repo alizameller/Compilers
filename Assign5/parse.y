@@ -359,7 +359,7 @@ compound_statement: '{' {
                                 if (next) {
                                     printf("\t\t  op:%d dest:%d src:T%d\n", next->op_code, next->dest->generic.type, next->src1->temp.num);
                                 } */
-                                // ---------- for example "int f() { int *p; int b; b = *p;}" ----------
+                                // ---------- for example "int f() { int *p; int b; b = *p; }" ----------
                                 /*
                                 if (block_list->head->head_quad) {
                                     printf("\top:%d dest:T%d src1:%s\n", block_list->head->head_quad->op_code, block_list->head->head_quad->dest->temp.num, block_list->head->head_quad->src1->sym_p.sym->key);
@@ -371,7 +371,30 @@ compound_statement: '{' {
                                 if (block_list->head->next_bb) {
                                     printf("%s:\n", block_list->head->next_bb->bb_name);
                                 } */
-                                
+                                // ---------- for example "int f() { int r[2]; int a[2]; a = r; }" ----------
+                                /*if (block_list->head->head_quad) {
+                                    printf("\tdest:T%d = op:%d src1:%s\n", block_list->head->head_quad->dest->temp.num, block_list->head->head_quad->op_code, block_list->head->head_quad->src1->sym_p.sym->key);
+                                }
+                                quad_list_item *next = block_list->head->head_quad->next_quad;
+                                if (next) {
+                                    printf("\top:%d dest:%s src:T%d\n", next->op_code, next->dest->sym_p.sym->key, next->src1->temp.num);
+                                } */
+                                // ---------- for example "int f() { int r[5]; r[4] = 3; }" -------------
+                                if (block_list->head->head_quad) {
+                                    printf("\tdest:T%d = op:%d src1:%d\n", block_list->head->head_quad->dest->temp.num, block_list->head->head_quad->op_code, block_list->head->head_quad->src1->generic.type);
+                                }
+                                quad_list_item *next = block_list->head->head_quad->next_quad;
+                                if (next) {
+                                    printf("\tdest:T%d = op:%d src1:%d src2:%d\n", next->dest->temp.num, next->op_code, next->src1->generic.type, next->src2->generic.type);
+                                } 
+                                if (next->next_quad) {
+                                    next = next->next_quad;
+                                    printf("\tdest:T%d = op:%d src1:T%d src2:T%d\n", next->dest->temp.num, next->op_code, next->src1->temp.num, next->src2->temp.num);
+                                }
+                                if (next->next_quad) {
+                                    next = next->next_quad;
+                                    printf("\top:%d src1:%d src2:T%d\n", next->op_code, next->src1->generic.type, next->dest->temp.num);
+                                }
                                 //printAST(temp, 0);
                             } 
                             pop_scope(); 

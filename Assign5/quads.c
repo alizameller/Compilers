@@ -142,6 +142,7 @@ void generate_quads(union astnode *node) {
 union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
     switch(node->generic.type) {
         case IDENT_NODE:{
+            //printf("%d\n", curr_quad->op_code);
             symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
             if (sym) {
                 union astnode *symbol_pointer = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
@@ -152,8 +153,14 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
         }
         case SYMBOL_POINTER_NODE:
             if (node->sym_p.sym->sym_type == VARIABLE_SYMBOL) {
-                if (node->sym_p.sym->type_rep && (node->sym_p.sym->type_rep->generic.type == POINTER_NODE)) { // or array node?
+                if (node->sym_p.sym->type_rep && (node->sym_p.sym->type_rep->generic.type == POINTER_NODE)) {
                     *addressing_mode = INDIRECT;
+                } else if (node->sym_p.sym->type_rep && (node->sym_p.sym->type_rep->generic.type == ARRAY_NODE)) {
+                    //generate quad for LEA
+                    union astnode *temp = new_temporary(TEMPORARY_NODE, ++temp_num);
+                    curr_quad = new_quad(LEA, temp, node, NULL, curr_quad);
+                    //printf("%d\n", temp->generic.type);
+                    return temp;
                 } else {
                     //printf("%d\n", node->sym_p.sym->dec_specs->decspec.s_type->scalar.scalarType);
                     *addressing_mode = DIRECT;
@@ -163,6 +170,32 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
         case UNOP_NODE:
             // if pointer dereference
             if(node->unop.operator == '*') {
+                if (node->unop.operand->generic.type == BINOP_NODE) {
+                    // example: a[2] = v -> *(a + 2) = v
+                    // binary exp: a + 2
+                    union astnode *left;
+                    union astnode *right;
+                    if (node->unop.operand->binop.left->generic.type == IDENT_NODE) { 
+                        left = gen_lvalue(node->unop.operand->binop.left, NULL);
+                    } else {
+                        left = node->unop.operand->binop.left;
+                    }
+                    if (node->unop.operand->binop.right->generic.type == IDENT_NODE) {
+                       right = gen_lvalue(node->binop.right, NULL);
+                    } else {
+                        right = node->unop.operand->binop.right;
+                    }
+                    // symbol + number ONLY
+                    // curr_quad = new_quad(MUL, temp1, right, sizeof(scalar_type of node->unop.operand->binop.left), curr_quad);
+                    union astnode *temp1 = new_temporary(TEMPORARY_NODE, ++temp_num);
+                    union astnode *num = new_astnode_ident(IDENT_NODE, '4');
+                    append_quad_list(new_quad(MUL, temp1, right, num, NULL));
+                    union astnode *temp2 = new_temporary(TEMPORARY_NODE, ++temp_num);
+                    append_quad_list(new_quad(ADD, temp2, left, temp1, NULL)); 
+                    *addressing_mode = INDIRECT;
+                    return temp2;
+
+                }
                 *addressing_mode = INDIRECT;
                 return gen_lvalue(node->unop.operand, NULL);
             }
@@ -183,10 +216,11 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
             if (node->sym_p.sym->type_rep) {
                 if (type->generic.type == POINTER_NODE) {
                     if (type->ptr.parent && type->ptr.parent->generic.type != POINTER_NODE) {
-                        // POINTER
                     }
                 } else if (type->generic.type == ARRAY_NODE) {
-                    // ARRAY
+                    union astnode *temp = new_temporary(TEMPORARY_NODE, ++temp_num);
+                    curr_quad = new_quad(LEA, temp, node, NULL, curr_quad);
+                    return temp;
                 }
             }
             //printf("%d\n", node->sym_p.sym->type_rep->generic.type);
@@ -230,6 +264,13 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
         }
         case UNOP_NODE:
             if (node->unop.operator == '*') { //pointer deref
+                if (node->unop.operand->generic.type == SYMBOL_POINTER_NODE) {
+                    union astnode *type = node->sym_p.sym->type_rep; //pointer, array or scalar
+                    if (type && type->generic.type == ARRAY_NODE) {
+                        // not sure
+                    }
+                }
+
                 union astnode *addr = gen_rvalue(node->unop.operand, NULL);
                 if (!target) target = new_temporary(TEMPORARY_NODE, ++temp_num);
                 curr_quad = new_quad(LOAD, target, addr, NULL, curr_quad);
@@ -247,11 +288,11 @@ void generate_assignment(union astnode *node) {
     astnode *lvalue = gen_lvalue(node->binop.left, addressing_mode);
     if (*addressing_mode == DIRECT) {
         astnode *rvalue = gen_rvalue(node->binop.right, NULL);
-        new_quad(MOV, lvalue, rvalue, NULL, NULL);
+        append_quad_list(new_quad(MOV, lvalue, rvalue, NULL, NULL));
         // make quad with MOV lvalue, rvalue
     } else if (*addressing_mode == INDIRECT) {
         astnode *rvalue = gen_rvalue(node->binop.right, NULL);
-        new_quad(STORE, lvalue, rvalue, NULL, NULL);
+        append_quad_list(new_quad(STORE, lvalue, rvalue, NULL, NULL));
     }
 }
 

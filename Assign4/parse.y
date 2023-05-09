@@ -148,7 +148,7 @@ primary_expression: IDENT {$$ = new_astnode_ident(IDENT_NODE, $1.string_literal)
     ;
 
 postfix_expression: primary_expression {$$ = $1;}
-    | postfix_expression '[' expression']' { // E1[E2] is identical to (*((E1)+(E2))) 
+    | postfix_expression '[' expression']' { // E1[E2] is identical to (*((E1)+(E2)))
                                             union astnode *astnode_temp = new_astnode_binop('+', $1, $3);
                                             $$ = new_astnode_unop('*', astnode_temp);                           
     }

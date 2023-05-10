@@ -22,7 +22,7 @@ struct basic_block *new_basic_block(char *bb_name) {
     block->head_quad = NULL;
     block->next_bb = NULL;
     block->branch_bb = NULL;
-    block->branch_condition = NONE;
+    block->branch_condition = 0;
     block->printed = 0;
     return block;
 }

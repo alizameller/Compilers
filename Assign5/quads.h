@@ -5,8 +5,7 @@
 
 // Enum of Opcodes
 typedef enum opcode {
-    NONE,
-    LOAD,
+    LOAD = 1,
     STORE,
     LEA,
     MOV,

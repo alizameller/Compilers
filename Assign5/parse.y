@@ -353,11 +353,11 @@ compound_statement: '{' {
                                 printf("%s:\n", block_list->head->bb_name);
                                 // ---------- for example " int f() { int r; r = 5 + 4; }" ----------
                                 /*if (block_list->head->head_quad) {
-                                    printf("\tdest:T%d = op:%d src1:%d src2:%d\n", block_list->head->head_quad->dest->temp.num, block_list->head->head_quad->op_code, block_list->head->head_quad->src1->generic.type, block_list->head->head_quad->src2->generic.type);
+                                    printf("\tdest:T%d = op:%d src1:%d src2:%d\n", block_list->head->head_quad->dest->temp.num, block_list->head->head_quad->op_code, block_list->head->head_quad->src1->num.numInfo.value, block_list->head->head_quad->src2->num.numInfo.value);
                                 } 
                                 quad_list_item *next = block_list->head->head_quad->next_quad;
                                 if (next) {
-                                    printf("\t\t  op:%d dest:%d src:T%d\n", next->op_code, next->dest->generic.type, next->src1->temp.num);
+                                    printf("\t\t  op:%d dest:%s src:T%d\n", next->op_code, next->dest->sym_p.sym->key, next->src1->temp.num);
                                 } */
                                 // ---------- for example "int f() { int *p; int b; b = *p; }" ----------
                                 /*
@@ -380,7 +380,7 @@ compound_statement: '{' {
                                     printf("\top:%d dest:%s src:T%d\n", next->op_code, next->dest->sym_p.sym->key, next->src1->temp.num);
                                 } */
                                 // ---------- for example "int f() { int r[5]; r[4] = 3; }" -------------
-                                if (block_list->head->head_quad) {
+                                /*if (block_list->head->head_quad) {
                                     printf("\tdest:T%d = op:%d src1:%d\n", block_list->head->head_quad->dest->temp.num, block_list->head->head_quad->op_code, block_list->head->head_quad->src1->generic.type);
                                 }
                                 quad_list_item *next = block_list->head->head_quad->next_quad;
@@ -394,7 +394,7 @@ compound_statement: '{' {
                                 if (next->next_quad) {
                                     next = next->next_quad;
                                     printf("\top:%d src1:%d src2:T%d\n", next->op_code, next->src1->generic.type, next->dest->temp.num);
-                                }
+                                } */
                                 //printAST(temp, 0);
                             } 
                             pop_scope(); 

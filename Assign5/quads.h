@@ -5,7 +5,7 @@
 
 // Enum of Opcodes
 typedef enum opcode {
-    LOAD = 1,
+    LOAD,
     STORE,
     LEA,
     MOV,
@@ -28,7 +28,8 @@ typedef enum opcode {
     ARGBEGIN,
     ARG,
     CALL,
-    RET
+    RET,
+    NUM_OPS
 } opcode;
 
 // Enum of Addressing Mode

@@ -555,3 +555,52 @@ char *printTypeQualifier(struct symbol *sym) {
             return "volatile";
     }
 }
+
+    // ---------- for example " int f() { int r; r = 5 + 4; }" ----------
+    // ---------- for example "int f() { int *p; int b; b = *p; }" ----------
+    // ---------- for example "int f() { int r[2]; int a[2]; a = r; }" ----------
+    // ---------- for example "int f() { int r[5]; r[4] = 3; }" -------------
+void printQuads() {
+    basic_block *temp_block = block_list->head; 
+    if (temp_block) {
+        printf("%s:\n", block_list->head->bb_name);
+        quad_list_item *temp_quad = block_list->head->head_quad;
+        while (temp_quad) {
+            printf("\t");
+            if (temp_quad->op_code >= 4 && temp_quad->op_code <= 9) {
+                printType(temp_quad->dest);
+                printf(" =\t");
+            } else {
+                printf("\t");
+                if (temp_quad->dest) {
+                    temp_quad->src2 = temp_quad->dest;
+                }
+            }
+            printf("%s ", printOp(temp_quad->op_code));
+            printType(temp_quad->src1);
+            if (temp_quad->src2) {
+                printType(temp_quad->src2);
+            }
+            printf("\n");
+            temp_quad = temp_quad->next_quad;
+        }
+        temp_block = temp_block->next_bb;
+    }
+}
+
+void printType(union astnode *node) {
+    if (node->generic.type == TEMPORARY_NODE) {
+        printf("T%d ", node->temp.num);
+    } else if (node->generic.type == SYMBOL_POINTER_NODE){
+        printf("%s ", node->sym_p.sym->key);
+    } else if (node->generic.type == NUMBER_NODE){
+        printf("%lld{constant} ", node->num.numInfo.value.int_val);
+    }
+    return;
+}
+
+char *printOp(int opcode) {
+    char *op_code_arr[NUM_OPS] = {"LOAD", "STORE", "LEA", "MOV", "ADD", "SUB", "MUL", "DIV", "MOD", "CMP", "BR",
+                                  "BREQ", "BRNEQ", "BRLT", "BRLE", "BRGT", "BRGE", "ARGBEGIN", "ARG", "CALL", "RET"};
+    return op_code_arr[opcode];
+}

@@ -408,4 +408,10 @@ char *printScalarType(union astnode *node);
 
 char *printTypeQualifier(struct symbol *sym);
 
+void printQuads();
+
+void printType(union astnode *node);
+
+char *printOp(int opcode);
+
 #endif //AST_H

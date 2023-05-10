@@ -160,6 +160,7 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
                     union astnode *temp = new_temporary(TEMPORARY_NODE, ++temp_num);
                     curr_quad = new_quad(LEA, temp, node, NULL, curr_quad);
                     //printf("%d\n", temp->generic.type);
+                    *addressing_mode = INDIRECT;
                     return temp;
                 } else {
                     //printf("%d\n", node->sym_p.sym->dec_specs->decspec.s_type->scalar.scalarType);
@@ -176,12 +177,12 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
                     union astnode *left;
                     union astnode *right;
                     if (node->unop.operand->binop.left->generic.type == IDENT_NODE) { 
-                        left = gen_lvalue(node->unop.operand->binop.left, NULL);
+                        left = gen_lvalue(node->unop.operand->binop.left, addressing_mode);
                     } else {
                         left = node->unop.operand->binop.left;
                     }
                     if (node->unop.operand->binop.right->generic.type == IDENT_NODE) {
-                       right = gen_lvalue(node->binop.right, NULL);
+                       right = gen_lvalue(node->binop.right, addressing_mode);
                     } else {
                         right = node->unop.operand->binop.right;
                     }
@@ -197,7 +198,7 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
 
                 }
                 *addressing_mode = INDIRECT;
-                return gen_lvalue(node->unop.operand, NULL);
+                return gen_lvalue(node->unop.operand, addressing_mode);
             }
             // if postinc
             // if postdec
@@ -289,10 +290,12 @@ void generate_assignment(union astnode *node) {
     if (*addressing_mode == DIRECT) {
         astnode *rvalue = gen_rvalue(node->binop.right, NULL);
         append_quad_list(new_quad(MOV, lvalue, rvalue, NULL, NULL));
+        curr_quad->next_quad = NULL;
         // make quad with MOV lvalue, rvalue
     } else if (*addressing_mode == INDIRECT) {
         astnode *rvalue = gen_rvalue(node->binop.right, NULL);
         append_quad_list(new_quad(STORE, lvalue, rvalue, NULL, NULL));
+        curr_quad->next_quad = NULL;
     }
 }
 

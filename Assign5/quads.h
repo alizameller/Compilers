@@ -97,5 +97,7 @@ bb_list *block_list;
 basic_block *curr_block;
 quad_list_item *curr_quad;
 int temp_num;
+union astnode *symbol_temp;
+union astnode *left_temp;
 
 #endif // QUADS_H

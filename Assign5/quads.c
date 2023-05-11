@@ -1,4 +1,5 @@
 #include "quads.h"
+#include "parse.tab.h"
 
 void init_IR() {
     // allocate memory for list of bbs
@@ -93,6 +94,72 @@ void append_bb_list(struct basic_block *entry, struct basic_block *next, struct 
     // curr quad?
 }
 
+// gets the size before the last operation (eg: for symbol a defined as "char a[3][5]" function returns 5
+// this allows for the next operation to get the size to be performed in assembly -> MUL 3, 5 
+int get_size(union astnode *node) {
+    int size = 1;
+    if (node->generic.type == IDENT_NODE) {
+        symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
+        if (sym) {
+            node = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
+            return get_size(node);
+        } else {
+            // ERROR
+        }
+    }
+    switch(node->generic.type) {
+        case SYMBOL_POINTER_NODE: {
+            union astnode *temp_type = node->sym_p.sym->type_rep;
+            if ((temp_type)->generic.type == POINTER_NODE){
+                // idk
+            } else if ((temp_type)->generic.type == ARRAY_NODE) {
+                int temp_size = get_size(temp_type);
+                size *= temp_size;
+            }
+            break;
+        }
+        case ARRAY_NODE: 
+            return (node->arr.size)*get_size(node->arr.element_type);
+        case DECSPEC_NODE: {
+            union astnode *decspec_temp = node;
+            if (decspec_temp->decspec.s_type) { 
+                return get_scalarSize(decspec_temp);
+            }
+        }
+    }
+    return size;
+} 
+
+int get_scalarSize(union astnode *node) {
+    // assumes floats are not supported
+    int num_longs = 0; 
+    specifier_type st = (node->decspec.s_type)->scalar.scalarType;
+    union astnode *temp = node; 
+    while(temp->decspec.next) {
+        if (temp->decspec.s_type->scalar.scalarType == LONG_TYPE) {
+            num_longs++; 
+        }
+        temp = temp->decspec.next; 
+    }
+
+    switch(st) {
+        case CHAR_TYPE:
+            return 1;
+        case SHORT_TYPE:
+            return 2;
+        case LONG_TYPE:
+            if (num_longs == 2) {
+                return 8;
+            }
+            return 4; 
+        case INT_TYPE:
+            if (num_longs == 2) {
+                return 8;
+            }
+            return 4; 
+    }
+}
+
 void generate_quads(union astnode *node) {
     switch(node->generic.type) {
         case UNOP_NODE:
@@ -177,11 +244,23 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
                     union astnode *left;
                     union astnode *right;
                     if (node->unop.operand->binop.left->generic.type == IDENT_NODE) { 
+                        symbol *sym = contains_symbol(current->symbolTables[OTHER], node->unop.operand->binop.left->id.ident);
+                        if (sym) {
+                            node->unop.operand->binop.left = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
+                        } else {
+                            // ERROR
+                        }
                         left = gen_lvalue(node->unop.operand->binop.left, addressing_mode);
                     } else {
                         left = node->unop.operand->binop.left;
                     }
                     if (node->unop.operand->binop.right->generic.type == IDENT_NODE) {
+                        symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
+                        if (sym) {
+                            node->unop.operand->binop.right = sym;
+                        } else {
+                            // ERROR
+                        }
                        right = gen_lvalue(node->binop.right, addressing_mode);
                     } else {
                         right = node->unop.operand->binop.right;
@@ -189,7 +268,12 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
                     // symbol + number ONLY
                     // curr_quad = new_quad(MUL, temp1, right, sizeof(scalar_type of node->unop.operand->binop.left), curr_quad);
                     union astnode *temp1 = new_temporary(TEMPORARY_NODE, ++temp_num);
-                    union astnode *num = new_astnode_ident(IDENT_NODE, '4');
+                    struct numinfo sizeInfo; 
+                    sizeInfo.value.int_val = get_size(node->unop.operand->binop.left); //sym_p.sym->type_rep->arr.size
+                    printf("%d\n", sizeInfo.value.int_val);
+                    printf("%d\n", node->unop.operand->binop.left->generic.type);
+                    exit(0);
+                    union astnode *num = new_astnode_num(NUMBER_NODE, sizeInfo);
                     append_quad_list(new_quad(MUL, temp1, right, num, NULL));
                     union astnode *temp2 = new_temporary(TEMPORARY_NODE, ++temp_num);
                     append_quad_list(new_quad(ADD, temp2, left, temp1, NULL)); 
@@ -202,6 +286,40 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
             }
             // if postinc
             // if postdec
+            break;
+        case BINOP_NODE:
+        /*    union astnode *left;
+            union astnode *right;
+            if (node->unop.operand->binop.left->generic.type == IDENT_NODE) { 
+                symbol *sym = contains_symbol(current->symbolTables[OTHER], node->unop.operand->binop.left->id.ident);
+                if (sym) {
+                    node->unop.operand->binop.left = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
+                } else {
+                    // ERROR
+                }
+                left = gen_lvalue(node->unop.operand->binop.left, addressing_mode);
+            } else {
+                left = node->unop.operand->binop.left;
+            }
+            if (node->unop.operand->binop.right->generic.type == IDENT_NODE) {
+                symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
+                if (sym) {
+                    node->unop.operand->binop.right = sym;
+                } else {
+                    // ERROR
+                }
+                right = gen_lvalue(node->binop.right, addressing_mode);
+            } else {
+                right = node->unop.operand->binop.right;
+            }
+            // symbol + number ONLY
+            // curr_quad = new_quad(MUL, temp1, right, sizeof(scalar_type of node->unop.operand->binop.left), curr_quad);
+            union astnode *temp1 = new_temporary(TEMPORARY_NODE, ++temp_num);
+            struct numinfo sizeInfo; 
+            sizeInfo.value.int_val = get_size(node->unop.operand->binop.left); //sym_p.sym->type_rep->arr.size
+            printf("%d\n", sizeInfo.value.int_val);
+            printf("%d\n", node->unop.operand->binop.left->generic.type);
+            exit(0); */
             break;
     }
 }
@@ -278,6 +396,25 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                 
                 return target;
             }
+
+            // Sizeof operator
+            if(node->unop.operator == SIZEOF) {
+                if(!target) { // if target is NULL, create temp node
+                    target = new_temporary(TEMPORARY_NODE, ++temp_num);
+                }
+
+                // gen quad MOV size to temp node
+                int size = get_size(node->unop.operand);
+                struct numinfo sizeInfo; 
+                sizeInfo.value.int_val = size;
+                union astnode *num = new_astnode_num(NUMBER_NODE, sizeInfo);
+                printf("%d\n", num->num.numInfo.value.int_val);
+                exit(0);
+                // line below seg faults
+                //append_quad_list(new_quad(MOV, target, size, NULL, NULL));
+
+                return target;
+            }
             break;
     }
 }
@@ -312,3 +449,4 @@ void generate_functions(union astnode *node) {
     append_bb_list(new_basic_block(node->sym_p.sym->key), NULL, NULL);
     return;
 }
+

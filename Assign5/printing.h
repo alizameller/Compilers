@@ -33,4 +33,6 @@ void printType(union astnode *node);
 
 char *printOp(int opcode);
 
+int get_scalarSize(union astnode *node);
+
 #endif //PRINTING_H

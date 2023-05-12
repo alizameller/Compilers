@@ -556,10 +556,6 @@ char *printTypeQualifier(struct symbol *sym) {
     }
 }
 
-    // ---------- for example " int f() { int r; r = 5 + 4; }" ----------
-    // ---------- for example "int f() { int *p; int b; b = *p; }" ----------
-    // ---------- for example "int f() { int r[2]; int a[2]; a = r; }" ----------
-    // ---------- for example "int f() { int r[5]; r[4] = 3; }" -------------
 void printQuads() {
     basic_block *temp_block = block_list->head; 
     if (temp_block) {

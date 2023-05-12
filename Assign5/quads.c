@@ -110,7 +110,9 @@ int get_size(union astnode *node) {
     switch(node->generic.type) {
         case SYMBOL_POINTER_NODE: {
             union astnode *temp_type = node->sym_p.sym->type_rep;
-            if ((temp_type)->generic.type == POINTER_NODE){
+            if (!temp_type) { // ex: int r; SCALAR
+                size = get_size(node->sym_p.sym->dec_specs); 
+            } else if ((temp_type)->generic.type == POINTER_NODE){
                 // idk
             } else if ((temp_type)->generic.type == ARRAY_NODE) {
                 int temp_size = get_size(temp_type);
@@ -306,6 +308,8 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                 if (left->generic.type == TEMPORARY_NODE) {
                     left_temp = left; 
                 }
+            } else if (node->binop.left->generic.type == NUMBER_NODE) {
+                left = node->binop.left;
             }
 
             if (node->binop.right->generic.type == IDENT_NODE) {
@@ -326,13 +330,13 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
             switch(node->binop.operator) {
                 case '+':
                     op = ADD;
-                    // symbol + number ONLY
+                    // symbol + number 
                     if (node->binop.left->generic.type == SYMBOL_POINTER_NODE && node->binop.right->generic.type == NUMBER_NODE) {
                     // curr_quad = new_quad(MUL, temp1, right, sizeof(scalar_type of node->binop.left), curr_quad);
                         if (!target) target = new_temporary(TEMPORARY_NODE, ++temp_num);
                         struct numinfo sizeInfo; 
-                        sizeInfo.value.int_val = get_size(node->binop.left) / node->binop.left->sym_p.sym->type_rep->arr.size; //sym_p.sym->type_rep->arr.size
-                        //printf("%d\n", sizeInfo.value.int_val);
+                        // get size of array and divide by arr.size because array gets promoted to pointer
+                        sizeInfo.value.int_val = get_size(node->binop.left) / node->binop.left->sym_p.sym->type_rep->arr.size; 
                         union astnode *num = new_astnode_num(NUMBER_NODE, sizeInfo);
                         append_quad_list(new_quad(MUL, target, right, num, NULL));
                         //if (target) left = target; 
@@ -345,6 +349,7 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
 
                         return target;
                     }
+                    // deref node + number ex: (a[2][3] -> *(*(a + 2) + 3))
                     if (node->binop.left->generic.type == UNOP_NODE && node->binop.right->generic.type == NUMBER_NODE) {
                         symbol_temp->sym_p.sym->type_rep = symbol_temp->sym_p.sym->type_rep->arr.element_type; // remove one layer of array
                         node->binop.left = symbol_temp;
@@ -388,23 +393,17 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                 if(!target) { // if target is NULL, create temp node
                     target = new_temporary(TEMPORARY_NODE, ++temp_num);
                 }
-
                 // gen quad MOV size to temp node
                 int size = get_size(node->unop.operand);
                 struct numinfo sizeInfo; 
                 sizeInfo.value.int_val = size;
                 union astnode *num = new_astnode_num(NUMBER_NODE, sizeInfo);
-                printf("%d\n", num->num.numInfo.value.int_val);
-                exit(0);
-                // line below seg faults
-                //append_quad_list(new_quad(MOV, target, size, NULL, NULL));
-
+                curr_quad = new_quad(MOV, target, num, NULL, curr_quad);
                 return target;
             }
             break;
     }
 }
-
 
 // Generates IR for assignments
 void generate_assignment(union astnode *node) {
@@ -421,7 +420,6 @@ void generate_assignment(union astnode *node) {
         curr_quad->next_quad = NULL;
     }
 }
-
 
 void generate_functions(union astnode *node) {
     /*

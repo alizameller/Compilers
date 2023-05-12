@@ -557,7 +557,8 @@ char *printTypeQualifier(struct symbol *sym) {
 }
 
 void printQuads() {
-    basic_block *temp_block = block_list->head; 
+    basic_block *temp_block = block_list->head;
+    int op; 
     while (temp_block) {
         if (temp_block->f_name) {
             printf("%s:\n", temp_block->f_name);
@@ -583,13 +584,12 @@ void printQuads() {
             printf("\n");
             temp_quad = temp_quad->next_quad;
         }
-        if (temp_block->branch_bb) {
-            temp_block->branch_bb->branch_bb = NULL;
-            temp_block->branch_bb->next_bb = temp_block->next_bb;
-            temp_block = temp_block->branch_bb; 
-        } else {
-            temp_block = temp_block->next_bb;
+        if (temp_block->branch_condition && temp_block->branch_condition != CMP) {
+            printf("\t\t\t%s %s, %s\n", printOp(temp_block->branch_condition), temp_block->next_bb->bb_name, temp_block->branch_bb->bb_name);
+            basic_block *temp_next = temp_block->next_bb->next_bb;
+            temp_block->next_bb->next_bb = temp_block->branch_bb;
         }
+            temp_block = temp_block->next_bb;
     }
 }
 

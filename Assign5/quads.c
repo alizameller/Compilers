@@ -25,11 +25,12 @@ struct basic_block *new_basic_block(char *bb_name, char *function_name) {
     }
     if (!bb_name) { // if bb_name is NULL
         char *name = calloc(256, sizeof(char));
-        name[0] = 'B';
+        name[0] = '.';
         name[1] = 'B';
-        sprintf(&name[2], "%d", f); 
-        name[3] = '.';
-        sprintf(&name[4], "%d", n); 
+        name[2] = 'B';
+        sprintf(&name[3], "%d", f); 
+        name[4] = '.';
+        sprintf(&name[5], "%d", n); 
         block->bb_name = name;
     } else {
         block->bb_name = bb_name;
@@ -514,7 +515,6 @@ void generate_conditions(union astnode *expr, basic_block *true_bb, basic_block 
 
         // Compare quad
         append_quad_list(new_quad(CMP, left, right, NULL, NULL));
-        printf("current quad op: %d\n", curr_quad->op_code);
         // Attaches true and false branches to current block
         update_block(true_bb, false_bb, op);
 

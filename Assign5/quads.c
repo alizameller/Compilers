@@ -1,5 +1,8 @@
 #include "quads.h"
 #include "parse.tab.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 void init_IR() {
     // allocate memory for list of bbs
@@ -8,13 +11,25 @@ void init_IR() {
     curr_block = NULL;
     curr_quad = NULL;
     temp_num = 0;
+    f = 0; 
+    n = 0; 
 }
 
-struct basic_block *new_basic_block(char *bb_name) {
+struct basic_block *new_basic_block(char *bb_name, char *function_name) {
     // allocate memory
 	basic_block *block = (basic_block *) malloc(sizeof (basic_block));
+    if (function_name) {
+        block->f_name = function_name;
+    } else {
+        block->f_name = NULL;
+    }
     if (!bb_name) { // if bb_name is NULL
         char *name = calloc(256, sizeof(char));
+        name[0] = 'B';
+        name[1] = 'B';
+        sprintf(&name[2], "%d", f); 
+        name[3] = '.';
+        sprintf(&name[4], "%d", n); 
         block->bb_name = name;
     } else {
         block->bb_name = bb_name;
@@ -382,7 +397,9 @@ void generate_assignment(union astnode *node) {
 
 void generate_functions(union astnode *node) {
     // create a first block for function add it to bb_list and set curr block
-    append_bb_list(new_basic_block(node->sym_p.sym->key), NULL, NULL);
+    f++;
+    n = 0;
+    append_bb_list(new_basic_block(NULL, node->sym_p.sym->key), NULL, NULL);
     return;
 }
 
@@ -425,16 +442,19 @@ void generate_ret(union astnode *node) {
 }
 
 void generate_if(union astnode *node) {
-    /*basic_block *true = new_basic_block(NULL);
-    basic_block *false = new_basic_block(NULL);
+    n++;
+    basic_block *true = new_basic_block(NULL, NULL);
+    n++;
+    basic_block *false = new_basic_block(NULL, NULL);
     // if logical? 
     // checks if there is an else (need to branch to false block, otherwise fall through)
     basic_block *next;
     if (node->generic.type == TERNOP_NODE) { // there is an else
-        next = new_basic_block(NULL);
+        n++; 
+        next = new_basic_block(NULL, NULL);
     } else if (node->generic.type == IF_NODE) { // no else
         next = false; 
-    } */
+    } 
     
     // generate condition quad 
     // generate quads for true block

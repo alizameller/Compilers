@@ -559,6 +559,9 @@ char *printTypeQualifier(struct symbol *sym) {
 void printQuads() {
     basic_block *temp_block = block_list->head; 
     while (temp_block) {
+        if (temp_block->f_name) {
+            printf("%s:\n", temp_block->f_name);
+        }
         printf("%s:\n", temp_block->bb_name);
         quad_list_item *temp_quad = temp_block->head_quad;
         while (temp_quad) {

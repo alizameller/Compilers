@@ -42,13 +42,14 @@ typedef enum mode{
 
 // Basic Block
 typedef struct basic_block {
-    char *bb_name;                           // eg: BB1, BBr, f ?
+    char *bb_name; 
+    char *f_name;                          // eg: BB1, BBr, f ?
     struct quad_list_item *head_quad;             // Linked list of quads within one block
     struct basic_block *next_bb, *branch_bb;    // exit branch, continue linearly (next) or branch (on conditional)
     int branch_condition;                    // Type of comparator (from op_codes enum below)
 } basic_block;
 
-struct basic_block *new_basic_block(char *bb_name);
+struct basic_block *new_basic_block(char *bb_name, char *function_name);
 struct basic_block *update_block(struct basic_block *next_bb, struct basic_block *branch_bb, int branch_condition);
 
 // Quads
@@ -99,6 +100,8 @@ bb_list *block_list;
 basic_block *curr_block;
 quad_list_item *curr_quad;
 int temp_num;
+int f; 
+int n; 
 union astnode *symbol_temp;
 union astnode *left_temp;
 

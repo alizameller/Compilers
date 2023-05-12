@@ -91,7 +91,11 @@ void append_bb_list(struct basic_block *entry, struct basic_block *next, struct 
     }
     // do i need this if im keeping track of tail?
     curr_block = entry; 
-    // curr quad?
+    if (curr_quad) {
+        curr_quad->next_quad = NULL;
+    }
+    curr_quad = NULL; 
+    curr_block->head_quad = curr_quad;
 }
 
 int get_size(union astnode *node) {
@@ -158,51 +162,6 @@ int get_scalarSize(union astnode *node) {
             }
             return 4; 
     }
-}
-
-void generate_quads(union astnode *node) {
-    switch(node->generic.type) {
-        case UNOP_NODE:
-            break;
-        case BINOP_NODE:
-            //printf("here! - binop\n");
-            generate_assignment(node);
-            break;
-        case IF_NODE:
-            break;
-        case WHILE_NODE:
-            break;
-        case FOR_NODE:
-            break;
-        case CONTINUE_NODE:
-            break;
-        case BREAK_NODE:
-            break;
-        case RETURN_NODE:
-            break;
-        case FUNCTION_NODE: // function call
-            //printf("calling function\n");
-            break;
-        case LIST_NODE:
-            while(node->ast_list.node) {
-                generate_quads(node->ast_list.node);
-                if (!(node->ast_list.next)) { // if next is null
-                    break; 
-                }
-                node = node->ast_list.next; 
-            }
-            break;
-        case SYMBOL_POINTER_NODE:
-            //printf("here! - symbol\n");
-            if (node->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
-                generate_functions(node);
-            } 
-            // else its a declaration in which case we do not care to generate quads for it
-            break;
-        default:
-            fprintf(stderr, "Error: Cannot generate quads\n");
-    }
-    return;
 }
 
 // gen lvalue of expression
@@ -420,15 +379,58 @@ void generate_assignment(union astnode *node) {
 }
 
 void generate_functions(union astnode *node) {
-    /*
-    // Makes sure that node is a function
-    if(node->node_type != SYM_ENTRY_TYPE || node->ast_sym_entry.sym_type != FNC_NAME_TYPE) {
-        fprintf(stderr, "ERROR: Can only print quads of function.\n");
-        return; // Should this kill the program?
-    }
-    */
     // create a first block for function add it to bb_list and set curr block
     append_bb_list(new_basic_block(node->sym_p.sym->key), NULL, NULL);
     return;
 }
 
+// Generates IR for function call
+void generate_fncall(astnode *node, astnode *target) {
+
+} 
+
+
+void generate_quads(union astnode *node) {
+    switch(node->generic.type) {
+        case UNOP_NODE:
+            break;
+        case BINOP_NODE:
+            //printf("here! - binop\n");
+            generate_assignment(node);
+            break;
+        case IF_NODE:
+            break;
+        case WHILE_NODE:
+            break;
+        case FOR_NODE:
+            break;
+        case CONTINUE_NODE:
+            break;
+        case BREAK_NODE:
+            break;
+        case RETURN_NODE:
+            break;
+        case FUNCTION_NODE: // function call
+            generate_fncall(node, NULL);
+            break;
+        case LIST_NODE:
+            while(node->ast_list.node) {
+                generate_quads(node->ast_list.node);
+                if (!(node->ast_list.next)) { // if next is null
+                    break; 
+                }
+                node = node->ast_list.next; 
+            }
+            break;
+        case SYMBOL_POINTER_NODE:
+            //printf("here! - symbol\n");
+            if (node->sym_p.sym->sym_type == FUNCTION_SYMBOL) {
+                generate_functions(node);
+            } 
+            // else its a declaration in which case we do not care to generate quads for it
+            break;
+        default:
+            fprintf(stderr, "Error: Cannot generate quads\n");
+    }
+    return;
+}

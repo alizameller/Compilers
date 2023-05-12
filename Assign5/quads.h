@@ -81,9 +81,6 @@ void init_IR();
 // generate quads for AST nodes -- main generation function
 void generate_quads(union astnode *node);
 
-// generate quads for assignment expressions
-void generate_assignment(union astnode *node);
-
 // gen lvalue of expression
 union astnode *gen_lvalue(union astnode *node, int *addressing_mode);
 
@@ -92,6 +89,11 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target);
 
 // generate quads for functions
 void generate_functions(union astnode *node);
+
+// generate quads for assignment expressions
+void generate_assignment(union astnode *node);
+
+void generate_fncall(astnode *node, astnode *target);
 
 bb_list *block_list;
 basic_block *curr_block;

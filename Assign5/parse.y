@@ -288,7 +288,7 @@ declaration_or_fndef: declaration {
                                         temp_sym = temp_sym->next; 
                                     }
                                   }
-    | function_definition {} // 
+    | function_definition { } // 
     ;
 
 function_definition: declaration_specifiers declarator {    
@@ -352,6 +352,8 @@ compound_statement: '{' {
                                 //printAST(temp, 0);
                                 generate_quads(temp);
                                 printQuads();
+                                while (block_list->head)
+                                    block_list->head = block_list->head->next_bb; 
                             }
                             pop_scope(); 
                           }

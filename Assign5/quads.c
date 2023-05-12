@@ -24,13 +24,14 @@ struct basic_block *new_basic_block(char *bb_name) {
     block->next_bb = NULL;
     block->branch_bb = NULL;
     block->branch_condition = 0;
-    block->printed = 0;
     return block;
 }
 
-struct basic_block *update_block(char *bb_name, struct quad_list_item quad, struct basic_block next_bb, struct basic_block branch_bb, 
-                                 int branch_condition, int printed, int assembled) {
-    // nothing
+struct basic_block *update_block(struct basic_block *next_bb, struct basic_block *branch_bb, int branch_condition) {
+    curr_block->next_bb = next_bb;
+    curr_block->branch_bb = branch_bb;
+    curr_block->branch_condition = branch_condition;
+    return curr_block;
 }
 
 struct quad_list_item *new_quad(opcode op_code, union astnode *dest, union astnode *src1, union astnode *src2, struct quad_list_item *next_quad) {
@@ -58,7 +59,7 @@ struct quad_list_item *new_quad(opcode op_code, union astnode *dest, union astno
 }
 
 void append_quad_list(struct quad_list_item *addition) {
-    if (!(curr_block->head_quad)) { // first quad in BB
+    if (!(curr_block->head_quad) || !curr_quad) { // first quad in BB
         curr_block->head_quad = addition;
         curr_quad = addition; 
         return;
@@ -359,10 +360,11 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                 return target;
             }
             break;
+        case FUNCTION_NODE:
+            return generate_fncall(node, target);
     }
 }
 
-// Generates IR for assignments
 void generate_assignment(union astnode *node) {
     int *addressing_mode;
     astnode *lvalue = gen_lvalue(node->binop.left, addressing_mode);
@@ -384,11 +386,62 @@ void generate_functions(union astnode *node) {
     return;
 }
 
-// Generates IR for function call
-void generate_fncall(astnode *node, astnode *target) {
+union astnode *generate_fncall(union astnode *node, union astnode *target) {
+    // create num ast node for quad generation
+    struct numinfo args; 
+    args.meta = UNSIGNED_INT; // just default value
+    args.value.int_val = node->func.num_args; 
+    union astnode *num = new_astnode_num(NUMBER_NODE, args); 
 
+    // create quad ARGBEGIN
+    append_quad_list(new_quad(ARGBEGIN, NULL, num, NULL, NULL));
+
+    union astnode *arg_temp = node->func.arg_head;
+    union astnode *arg_id; 
+    while (arg_temp) {
+        if (arg_temp->generic.type == ARGLIST_NODE) {
+            //printf("arg is %s\n", arg_temp->list.arg_head->arg.argument->id.ident);
+            arg_id = arg_temp->list.arg_head->arg.argument; 
+        } else {
+            //printf("arg is %s\n", arg_temp->arg.argument->id.ident);
+            arg_id = arg_temp->arg.argument; 
+        }
+        append_quad_list(new_quad(ARG, NULL, arg_id, NULL, NULL));
+        arg_temp = arg_temp->list.arg_next;
+    }
+
+    if(!target) { // if target is NULL, create temp node
+        target = new_temporary(TEMPORARY_NODE, ++temp_num);
+    }
+    append_quad_list(new_quad(CALL, target, node->func.function_name, NULL, NULL));
+    curr_quad->next_quad = NULL; 
+    return target;
 } 
 
+void generate_ret(union astnode *node) {
+    append_quad_list(new_quad(RET, NULL, gen_rvalue(node->ret.exp, NULL), NULL, NULL));
+    curr_quad->next_quad = NULL; 
+    update_block(NULL, NULL, RET);
+}
+
+void generate_if(union astnode *node) {
+    /*basic_block *true = new_basic_block(NULL);
+    basic_block *false = new_basic_block(NULL);
+    // if logical? 
+    // checks if there is an else (need to branch to false block, otherwise fall through)
+    basic_block *next;
+    if (node->generic.type == TERNOP_NODE) { // there is an else
+        next = new_basic_block(NULL);
+    } else if (node->generic.type == IF_NODE) { // no else
+        next = false; 
+    } */
+    
+    // generate condition quad 
+    // generate quads for true block
+    // append true block to condiiton quads w CMP op 
+    // if there is an else, gen quads for else blocks
+    // append false block to next block w CMP op
+}
 
 void generate_quads(union astnode *node) {
     switch(node->generic.type) {
@@ -409,6 +462,7 @@ void generate_quads(union astnode *node) {
         case BREAK_NODE:
             break;
         case RETURN_NODE:
+            generate_ret(node);
             break;
         case FUNCTION_NODE: // function call
             generate_fncall(node, NULL);

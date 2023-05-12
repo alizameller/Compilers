@@ -563,11 +563,11 @@ void printQuads() {
         quad_list_item *temp_quad = temp_block->head_quad;
         while (temp_quad) {
             printf("\t");
-            if (temp_quad->op_code >= 4 && temp_quad->op_code <= 9) {
+            if (temp_quad->op_code >= 4 && temp_quad->op_code <= 9 || (temp_quad->op_code == CALL)) {
                 printType(temp_quad->dest);
                 printf(" =\t");
             } else {
-                printf("\t");
+                printf("\t\t");
                 if (temp_quad->dest) {
                     temp_quad->src2 = temp_quad->dest;
                 }
@@ -590,13 +590,15 @@ void printType(union astnode *node) {
     } else if (node->generic.type == SYMBOL_POINTER_NODE){
         printf("%s ", node->sym_p.sym->key);
     } else if (node->generic.type == NUMBER_NODE){
-        printf("%lld{constant} ", node->num.numInfo.value.int_val);
+        printf("%lld ", node->num.numInfo.value.int_val);
+    } else if (node->generic.type == IDENT_NODE){
+        printf("%s ", node->id.ident);
     }
     return;
 }
 
 char *printOp(int opcode) {
-    char *op_code_arr[NUM_OPS] = {"LOAD", "STORE", "LEA", "MOV", "ADD", "SUB", "MUL", "DIV", "MOD", "CMP", "BR",
+    char *op_code_arr[NUM_OPS] = {"NONE", "LOAD", "STORE", "LEA", "MOV", "ADD", "SUB", "MUL", "DIV", "MOD", "CMP", "BR",
                                   "BREQ", "BRNEQ", "BRLT", "BRLE", "BRGT", "BRGE", "ARGBEGIN", "ARG", "CALL", "RET"};
     return op_code_arr[opcode];
 }

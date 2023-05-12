@@ -5,6 +5,7 @@
 
 // Enum of Opcodes
 typedef enum opcode {
+    NONE,
     LOAD,
     STORE,
     LEA,
@@ -45,13 +46,10 @@ typedef struct basic_block {
     struct quad_list_item *head_quad;             // Linked list of quads within one block
     struct basic_block *next_bb, *branch_bb;    // exit branch, continue linearly (next) or branch (on conditional)
     int branch_condition;                    // Type of comparator (from op_codes enum below)
-    int printed;                             // Used when printing blocks, so no endless loops
-    int assembled;                           // Used when writing assembly, so no endless loops
 } basic_block;
 
 struct basic_block *new_basic_block(char *bb_name);
-struct basic_block *update_block(char *bb_name, struct quad_list_item quad, struct basic_block next_bb, struct basic_block branch_bb, 
-                                    int branch_condition, int printed, int assembled);
+struct basic_block *update_block(struct basic_block *next_bb, struct basic_block *branch_bb, int branch_condition);
 
 // Quads
 typedef struct quad_list_item {
@@ -93,7 +91,9 @@ void generate_functions(union astnode *node);
 // generate quads for assignment expressions
 void generate_assignment(union astnode *node);
 
-void generate_fncall(astnode *node, astnode *target);
+union astnode *generate_fncall(union astnode *node, union astnode *target);
+
+void generate_if(union astnode *node);
 
 bb_list *block_list;
 basic_block *curr_block;

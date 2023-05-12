@@ -94,8 +94,6 @@ void append_bb_list(struct basic_block *entry, struct basic_block *next, struct 
     // curr quad?
 }
 
-// gets the size before the last operation (eg: for symbol a defined as "char a[3][5]" function returns 5
-// this allows for the next operation to get the size to be performed in assembly -> MUL 3, 5 
 int get_size(union astnode *node) {
     int size = 1;
     if (node->generic.type == IDENT_NODE) {

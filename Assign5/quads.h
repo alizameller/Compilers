@@ -96,6 +96,8 @@ union astnode *generate_fncall(union astnode *node, union astnode *target);
 
 void generate_if(union astnode *node);
 
+void generate_conditions(union astnode *expr, basic_block *true, basic_block *false);
+
 bb_list *block_list;
 basic_block *curr_block;
 quad_list_item *curr_quad;

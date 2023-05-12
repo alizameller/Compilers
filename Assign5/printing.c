@@ -583,7 +583,13 @@ void printQuads() {
             printf("\n");
             temp_quad = temp_quad->next_quad;
         }
-        temp_block = temp_block->next_bb;
+        if (temp_block->branch_bb) {
+            temp_block->branch_bb->branch_bb = NULL;
+            temp_block->branch_bb->next_bb = temp_block->next_bb;
+            temp_block = temp_block->branch_bb; 
+        } else {
+            temp_block = temp_block->next_bb;
+        }
     }
 }
 

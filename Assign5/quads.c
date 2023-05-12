@@ -49,6 +49,19 @@ struct basic_block *update_block(struct basic_block *next_bb, struct basic_block
     return curr_block;
 }
 
+void enter_block(basic_block *block) {
+    curr_block = block;
+    curr_quad = curr_block->head_quad;
+
+    // Moves to end of quad list
+    if(!curr_quad) {
+        return;
+    }
+    while(curr_quad->next_quad) {
+        curr_quad = curr_quad->next_quad;
+    }
+}
+
 struct quad_list_item *new_quad(opcode op_code, union astnode *dest, union astnode *src1, union astnode *src2, struct quad_list_item *next_quad) {
     // allocate memory
 	quad_list_item *quad = (quad_list_item *) malloc(sizeof (quad_list_item));
@@ -229,7 +242,6 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
 // gen rvalue of expression
 union astnode *gen_rvalue(union astnode *node, union astnode *target) {
     int op;
-    //printf("%d\n", node->generic.type);
     switch(node->generic.type) {
         // Constants
         case SYMBOL_POINTER_NODE: {
@@ -443,25 +455,73 @@ void generate_ret(union astnode *node) {
 
 void generate_if(union astnode *node) {
     n++;
-    basic_block *true = new_basic_block(NULL, NULL);
+    basic_block *true_bb = new_basic_block(NULL, NULL);
     n++;
-    basic_block *false = new_basic_block(NULL, NULL);
+    basic_block *false_bb = new_basic_block(NULL, NULL);
     // if logical? 
     // checks if there is an else (need to branch to false block, otherwise fall through)
-    basic_block *next;
+    n++;
+    basic_block *next_bb = new_basic_block(NULL, NULL);
     if (node->generic.type == TERNOP_NODE) { // there is an else
-        n++; 
-        next = new_basic_block(NULL, NULL);
+        generate_conditions(node->ternop.left, true_bb, false_bb);
+        // enter true block to generate quads for true block
+        enter_block(true_bb);
+        generate_quads(node->ternop.middle);
+        update_block(next_bb, NULL, CMP);
+        // enter false block to generate quads for false block
+        enter_block(false_bb);
+        generate_quads(node->ternop.right);
+        update_block(next_bb, false_bb, CMP); 
+
     } else if (node->generic.type == IF_NODE) { // no else
-        next = false; 
-    } 
-    
-    // generate condition quad 
-    // generate quads for true block
-    // append true block to condiiton quads w CMP op 
-    // if there is an else, gen quads for else blocks
-    // append false block to next block w CMP op
+        next_bb = false_bb; 
+        generate_conditions(node->if_statement.exp, true_bb, false_bb);
+        // enter true block to generate quads for true block
+        enter_block(true_bb);
+        generate_quads(node->if_statement.statement);
+        update_block(next_bb, NULL, CMP);
+    }
+    enter_block(next_bb);
 }
+
+// Generates IR for conditional expression
+void generate_conditions(union astnode *expr, basic_block *true_bb, basic_block *false_bb) {
+    int op; 
+    if (expr->generic.type == BINOP_NODE) {
+        switch(expr->binop.operator) {
+            case LTEQ:
+                op = BRLE;
+                break;
+            case GTEQ:
+                op = BRGE;
+                break;
+            case EQEQ:
+                op = BREQ;
+                break;
+            case NOTEQ:
+                op = BRNEQ;
+                break;
+            case '<':
+                op = BRLT;
+                break;
+            case '>':
+                op = BRGT;
+                break;
+        }
+
+        union astnode *left = gen_rvalue(expr->binop.left, NULL);
+        union astnode *right = gen_rvalue(expr->binop.right, NULL);
+
+        // Compare quad
+        append_quad_list(new_quad(CMP, left, right, NULL, NULL));
+        printf("current quad op: %d\n", curr_quad->op_code);
+        // Attaches true and false branches to current block
+        update_block(true_bb, false_bb, op);
+
+        return;
+    }
+}
+
 
 void generate_quads(union astnode *node) {
     switch(node->generic.type) {
@@ -472,6 +532,10 @@ void generate_quads(union astnode *node) {
             generate_assignment(node);
             break;
         case IF_NODE:
+            generate_if(node);
+            break;
+        case TERNOP_NODE:
+            generate_if(node);
             break;
         case WHILE_NODE:
             break;

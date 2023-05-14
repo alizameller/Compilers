@@ -595,6 +595,9 @@ void printQuads() {
             if ((temp_block->branch_bb && temp_block->next_bb) && (temp_block->branch_condition != BR) ) {
                 temp_block->next_bb->next_bb = temp_block->branch_bb;
             }
+            if ((temp_block->branch_bb && !temp_block->next_bb) && (temp_block->branch_condition == BR)) {
+                temp_block->next_bb = temp_block->branch_bb;
+            }
         }
         temp_block = temp_block->next_bb;
     }

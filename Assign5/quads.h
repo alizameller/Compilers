@@ -100,6 +100,8 @@ void generate_conditions(union astnode *expr, basic_block *true, basic_block *fa
 
 void generate_while(union astnode *node);
 
+void generate_inc_dec(union astnode *node);
+
 bb_list *block_list;
 basic_block *curr_block;
 quad_list_item *curr_quad;

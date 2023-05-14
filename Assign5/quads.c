@@ -338,7 +338,7 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
             switch(node->binop.operator) {
                 case '+':
                     op = ADD;
-                    // symbol + number 
+                    // symbol + number (ARRAY OR POINTER + NUMBER)
                     if (node->binop.left->generic.type == SYMBOL_POINTER_NODE && node->binop.right->generic.type == NUMBER_NODE) {
                         //if (node->binop.left->sym_p.sym->type_rep && node->binop.left->sym_p.sym->type_rep->generic.type == ARRAY_NODE) {
                             if (!target) target = new_temporary(TEMPORARY_NODE, ++temp_num);
@@ -371,6 +371,8 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                     curr_quad = new_quad(ADD, target, left, right, curr_quad);
                     return target;
                 case '-':
+                    // need to do pointer - int
+                    // need to do pointer - pointer
                     op = SUB;
                     break;
                 case '*':

@@ -587,11 +587,16 @@ void printQuads() {
             temp_quad = temp_quad->next_quad;
         }
         if (temp_block->branch_condition >= BR && temp_block->branch_condition <= BRGE) {
-            printf("\t\t\t%s %s, %s\n", printOp(temp_block->branch_condition), temp_block->next_bb->bb_name, temp_block->branch_bb->bb_name);
-            basic_block *temp_next = temp_block->next_bb->next_bb;
-            temp_block->next_bb->next_bb = temp_block->branch_bb;
+            if (temp_block->branch_condition == BR) {
+                printf("\t\t\t%s %s\n", printOp(temp_block->branch_condition), temp_block->branch_bb->bb_name);
+            } else {
+                printf("\t\t\t%s %s, %s\n", printOp(temp_block->branch_condition), temp_block->next_bb->bb_name, temp_block->branch_bb->bb_name);
+            }
+            if ((temp_block->branch_bb && temp_block->next_bb) && (temp_block->branch_condition != BR) ) {
+                temp_block->next_bb->next_bb = temp_block->branch_bb;
+            }
         }
-            temp_block = temp_block->next_bb;
+        temp_block = temp_block->next_bb;
     }
 }
 

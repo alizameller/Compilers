@@ -211,7 +211,7 @@ multiplicative_expression: cast_expression {$$ = $1;}
 
 additive_expression: multiplicative_expression {$$ = $1;}
     | additive_expression '+' multiplicative_expression {$$ = new_astnode_binop('+', $1, $3);} 
-    | additive_expression '_' multiplicative_expression {$$ = new_astnode_binop('-', $1, $3);} 
+    | additive_expression '-' multiplicative_expression {$$ = new_astnode_binop('-', $1, $3);} 
     ;
 
 shift_expression: additive_expression {$$ = $1;}
@@ -586,15 +586,6 @@ declarator: direct_declarator {$$ = $1;}
                                     }
                                 }
     ;
-
-    /* else if ($1->type_rep && $1->type_rep->generic.type == POINTER_NODE) {
-                                                union astnode *temp = $1->type_rep;
-                                                while (temp->ptr.parent && (temp->ptr.parent->generic.type == POINTER_NODE)) { // if parent of pointer is a pointer
-                                                    temp = $1->type_rep->ptr.parent;
-                                                }
-                                                temp->ptr.parent = arr;
-                                                $$ = $1;
-                                            }*/
 
 direct_declarator: IDENT { //symbol type defaults to VARIABLE
                             if (!report.lineNum) { 

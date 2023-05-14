@@ -347,9 +347,6 @@ union astnode* new_astnode_while(nodetype type, union astnode *exp, union astnod
 	// set entries
     node_ptr->while_statement.type = type; 
     node_ptr->while_statement.exp = exp;
-    if (exp) {
-        printf("exp is not NULL it is %d\n", exp->generic.type); // overflow check on this
-    }
     node_ptr->while_statement.statement = statement;
 
     return node_ptr;

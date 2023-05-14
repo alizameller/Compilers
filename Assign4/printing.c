@@ -181,8 +181,11 @@ void printAST(union astnode* node, int indent) {
             printf("CONSTANT: (type=");
             printNum(node->num.numInfo);
             break;
-        case IDENT_NODE:
+        case IDENT_NODE: 
             printf("IDENT %s\n", node->id.ident);
+            //symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
+            //union astnode *sym_p = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
+            //printf("SYMBOL %s\n", sym->key);
             break;
         case STRING_NODE:
             printf("STRING\t%s\n", node->str.string_literal);

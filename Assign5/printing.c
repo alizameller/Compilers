@@ -597,11 +597,20 @@ void printType(union astnode *node) {
     if (node->generic.type == TEMPORARY_NODE) {
         printf("T%d ", node->temp.num);
     } else if (node->generic.type == SYMBOL_POINTER_NODE){
-        printf("%s ", node->sym_p.sym->key);
+        printf("%s{%s} ", node->sym_p.sym->key, printStorageClass(node->sym_p.sym));
     } else if (node->generic.type == NUMBER_NODE){
         printf("%lld ", node->num.numInfo.value.int_val);
     } else if (node->generic.type == IDENT_NODE){
-        printf("%s ", node->id.ident);
+        scope *scope_temp = find_symbol(OTHER, node->id.ident);
+        if (scope_temp) { // symbol found in scope scope_temp
+            symbol *sym_temp = contains_symbol(scope_temp->symbolTables[OTHER], node->id.ident);
+            if (sym_temp) { // create node for symbol
+                union astnode *node_temp = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym_temp);
+                printType(node_temp);
+            }
+        } else {
+            printf("%s{ident} ", node->id.ident);
+        }
     }
     return;
 }

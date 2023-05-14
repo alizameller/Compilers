@@ -131,12 +131,17 @@ void append_bb_list(struct basic_block *entry, struct basic_block *next, struct 
 int get_size(union astnode *node) {
     int size = 1;
     if (node->generic.type == IDENT_NODE) {
-        symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
-        if (sym) {
-            node = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
-            return get_size(node);
+        scope *scope_temp = find_symbol(OTHER, node->id.ident);
+        if (scope_temp) { // symbol found in scope scope_temp
+            symbol *sym_temp = contains_symbol(scope_temp->symbolTables[OTHER], node->id.ident);
+            if (sym_temp) {
+                node = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym_temp);
+                return get_size(node);
+             } else {
+                // ERROR symbol not found in symbol table, but found in scope?
+            }
         } else {
-            // ERROR
+            // ERROR symbol not found in any scope
         }
     }
     switch(node->generic.type) {
@@ -199,13 +204,18 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
     switch(node->generic.type) {
         case IDENT_NODE:{
             //printf("%d\n", curr_quad->op_code);
-            symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
-            if (sym) {
-                union astnode *symbol_pointer = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
-                return gen_lvalue(symbol_pointer, addressing_mode);
+            scope *scope_temp = find_symbol(OTHER, node->id.ident);
+            if (scope_temp) { // symbol found in scope scope_temp
+                symbol *sym_temp = contains_symbol(scope_temp->symbolTables[OTHER], node->id.ident);
+                if (sym_temp) {
+                    union astnode *symbol_pointer = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym_temp);
+                    return gen_lvalue(symbol_pointer, addressing_mode);
+                } else {
+                    // ERROR symbol not found in symbol table but found in scope? 
+                } 
             } else {
-                // ERROR
-            } 
+                // ERROR symbol not found in any scope
+            }
         }
         case SYMBOL_POINTER_NODE:
             if (node->sym_p.sym->sym_type == VARIABLE_SYMBOL) {
@@ -271,22 +281,25 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
         case STRING_NODE:
             return node;
         case IDENT_NODE: {
-            symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
-            if (sym) {
-                union astnode *symbol_pointer = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
-                //return gen_rvalue(symbol_pointer, NULL);
-                return symbol_pointer;
-            }
+            scope *scope_temp = find_symbol(OTHER, node->id.ident);
+            if (scope_temp) { // symbol found in scope scope_temp
+                symbol *sym_temp = contains_symbol(scope_temp->symbolTables[OTHER], node->id.ident);
+                if (sym_temp) { // create node for symbol
+                    return new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym_temp); 
+                }
+            } 
+            return node;
         }
         case BINOP_NODE: {
             union astnode *left;
             union astnode *right;
             if (node->binop.left->generic.type == IDENT_NODE) { 
-                symbol *sym = contains_symbol(current->symbolTables[OTHER], node->binop.left->id.ident);
-                if (sym) {
-                    node->binop.left = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
-                } else {
-                    // ERROR
+                scope *scope_temp = find_symbol(OTHER, node->binop.left->id.ident);
+                if (scope_temp) { // symbol found in scope scope_temp
+                    symbol *sym_temp = contains_symbol(scope_temp->symbolTables[OTHER], node->binop.left->id.ident);
+                    if (sym_temp) { // create node for symbol
+                        node->binop.left = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym_temp);
+                    }
                 }
                 left = gen_rvalue(node->binop.left, NULL);
             } else if (node->binop.left->generic.type == UNOP_NODE) { 
@@ -297,13 +310,13 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
             } else if (node->binop.left->generic.type == NUMBER_NODE) {
                 left = node->binop.left;
             }
-
             if (node->binop.right->generic.type == IDENT_NODE) {
-                symbol *sym = contains_symbol(current->symbolTables[OTHER], node->id.ident);
-                if (sym) {
-                    node->binop.left = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym);
-                } else {
-                    // ERROR
+                scope *scope_temp = find_symbol(OTHER, node->binop.right->id.ident);
+                if (scope_temp) { // symbol found in scope scope_temp
+                    symbol *sym_temp = contains_symbol(scope_temp->symbolTables[OTHER], node->binop.right->id.ident);
+                    if (sym_temp) { // create node for symbol
+                        node->binop.right = new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym_temp);
+                    }
                 }
                 right = gen_rvalue(node->binop.right, NULL);
             } else if (node->binop.right->generic.type == UNOP_NODE) { 

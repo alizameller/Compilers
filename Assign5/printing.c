@@ -577,7 +577,9 @@ void printQuads() {
                 }
             }
             printf("%s ", printOp(temp_quad->op_code));
-            printType(temp_quad->src1);
+            if (temp_quad->src1) {
+                printType(temp_quad->src1);
+            }
             if (temp_quad->src2) {
                 printType(temp_quad->src2);
             }

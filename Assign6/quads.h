@@ -66,6 +66,7 @@ void append_quad_list(struct quad_list_item *addition);
 typedef struct bb_list {
     basic_block *head;
     basic_block *tail;
+    basic_block **list;
 } bb_list;
 
 struct bb_list *new_bblist(struct basic_block *head, struct basic_block *tail);

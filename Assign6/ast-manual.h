@@ -415,4 +415,6 @@ void printType(union astnode *node);
 
 char *printOp(int opcode);
 
+int block_cursor;
+
 #endif //AST_H

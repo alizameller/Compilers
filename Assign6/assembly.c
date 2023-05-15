@@ -1,8 +1,15 @@
 #include "assembly.h"
 #include "quads.h"
 
-void generate_globals(char *out) {
+void generate_assembly(char *out) {
     FILE *outfile = fopen(out, "w");
+    fprintf(outfile, "\t.file\t\"%s\"\n", out);
+    generate_globals(outfile);
+    fprintf(outfile, "\t.text\n");
+    generate_funcs(outfile);
+}
+
+void generate_globals(FILE *outfile) {
     scope *global_scope = current; 
     // set global_scope to actual global scope, backtrack through the scopes
     if (!global_scope) { // current scope is NULL, have yet to push any scopes
@@ -47,3 +54,60 @@ int get_alignment(union astnode *node) {
             return 4;
     }
 }
+
+int get_offset(char *f_name) {
+    // Gets symbol table entry for function
+    symbol *sym_temp;
+    int offset = 0;
+
+    scope *f_scope = current; 
+    while (f_scope) {
+        if(f_scope->name == FUNCTION_SCOPE && strcmp(f_name, f_scope->scope_fileName)) break;
+        f_scope = f_scope->parent;
+    }
+
+    if (!f_scope) { 
+        fprintf(stderr, "Error: cannot find scope corresponding to function %s\n", f_name); 
+    }
+
+    symbol_table *f_table = f_scope->symbolTables[OTHER]; 
+    // find all symbols in global symbol table
+    for(int i = 0; i < f_table->capacity; i++) {
+        symbol *sym = f_table->data[i];
+        if(sym && sym->sym_type == VARIABLE_SYMBOL) {
+            if (sym->type_rep && sym->type_rep->generic.type == POINTER_NODE) {
+                offset += 4;
+            } else {
+                offset += get_size(new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym));
+            }
+        }
+    }
+
+    return offset;
+}
+
+void generate_funcs(FILE *outfile) {
+    basic_block *temp_block = block_list->head;
+    int op; 
+    while (temp_block) {
+        if (temp_block->f_name) {
+            fprintf(outfile, "\t.globl\t%s\n", temp_block->f_name);
+            fprintf(outfile, "\t.type\t%s,@function\n", temp_block->f_name);
+            fprintf(outfile, "%s:\n", temp_block->f_name);
+            fprintf(outfile, "\tpushl\t%%ebp\n");
+            fprintf(outfile, "\tmovl\t%%esp, %%ebp\n");
+            // Reserves space for local variables
+            int l_size = get_offset(temp_block->f_name);
+            if(l_size) {
+                fprintf(outfile, "\tsubl \t$%d, %%esp\n", l_size);
+            }
+        }
+        quad_list_item *temp_quad = temp_block->head_quad;
+        while (temp_quad) {
+
+            temp_quad = temp_quad->next_quad;
+        }
+
+        temp_block = temp_block->next_bb;
+    }
+} 

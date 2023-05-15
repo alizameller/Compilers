@@ -113,6 +113,7 @@ struct bb_list *new_bblist(struct basic_block *head, struct basic_block *tail) {
 
 void append_bb_list(struct basic_block *entry, struct basic_block *next, struct basic_block *branch) {
     if (!(block_list->head)) { // if first block in list
+        block_list->list = &entry;
         block_list->head = entry;
         block_list->tail = entry;
     } else {

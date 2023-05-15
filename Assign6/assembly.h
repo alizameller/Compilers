@@ -5,10 +5,15 @@
 #include "quads.h"
 #include "ast-manual.h"
 
-// Generates assembly for global variables
-void generate_globals(char *out);
+void generate_assembly(char *out);
+
+void generate_globals(FILE *outfile);
 
 int get_alignment(union astnode *node); 
+
+void generate_funcs(FILE *outfile);
+
+int get_offset(char *f_name);
 
 /*
 // Generates assembly of file

@@ -352,9 +352,9 @@ compound_statement: '{' {
                             if (current->name != BLOCK_SCOPE) {
                                 //printAST(temp, 0);
                                 generate_quads(temp);
+                                generate_assembly("a.S");
+                                block_list->list = &(block_list->head); // used to iterate through the blocks when printing quads without losing ptr to head of list
                                 printQuads();
-                                while (block_list->head)
-                                    block_list->head = block_list->head->next_bb; 
                             }
                             pop_scope(); 
                           }
@@ -845,11 +845,11 @@ int main(){
     push_scope(FILE_SCOPE);
     current->scope_fileName = NULL;
     current->scope_lineNum = 1;
+    int block_cursor = 0;
     int t;
     init_IR();
     while(!(t = yyparse())){
     };
-    generate_globals("a.S");
 }
 
 void yyerror(char *str) {

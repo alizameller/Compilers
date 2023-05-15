@@ -7,14 +7,27 @@ void generate_assembly(char *out) {
     }
     if (!block_cursor) {
         outfile = fopen(out, "w");
-        fprintf(outfile, "\t.file\t\"%s\"\n", out);
-        generate_globals(outfile);
+        // creating file with string info if there are any strings present
+        stringfile = fopen("string.S", "w");
+        fprintf(stringfile, "\t.section .rodata\n");
+
+        fprintf(outfile, "\t.file\t\"%s\"\n", out); // out is a place holder, should be name of c file
+        generate_globals();
         fprintf(outfile, "\t.text\n");
     }
-    generate_funcs(outfile);
+    generate_funcs();
+
+    fclose(stringfile);
+    stringfile = fopen("string.S", "r");
+    // copy over contents from stringfile to outfile
+    char c = fgetc(stringfile);
+    while(c != EOF) {
+        fputc(c, outfile);
+        c = fgetc(stringfile);
+    }
 }
 
-void generate_globals(FILE *outfile) {
+void generate_globals() {
     scope *global_scope = current; 
     // set global_scope to actual global scope, backtrack through the scopes
     if (!global_scope) { // current scope is NULL, have yet to push any scopes
@@ -41,7 +54,6 @@ void generate_globals(FILE *outfile) {
                 size = get_size(new_astnode_symbol_pointer(SYMBOL_POINTER_NODE, sym));
                 alignment = get_alignment(sym->dec_specs);
             }
-            // Print to output file
             fprintf(outfile, "\t.comm    %s,%d,%d\n", sym->key, size, alignment);
         }
     }
@@ -61,7 +73,6 @@ int get_alignment(union astnode *node) {
 }
 
 int get_offset(char *f_name) {
-    // Gets symbol table entry for function
     // fprintf(stderr, "name of func is %s\n", f_name);
     symbol *sym_temp;
     int offset = 0;
@@ -93,7 +104,30 @@ int get_offset(char *f_name) {
     return offset;
 }
 
-basic_block *generate_blocks(FILE *outfile, basic_block *block) {
+void if_string(struct quad_list_item *quad) {
+    if(quad->src1 && quad->src1->generic.type == STRING_NODE) {
+            // Prints assembly
+            fprintf(stringfile, ".LC%d:\n", f); //matches function number
+            fprintf(stringfile, "\t.string  \"%s\"\n", quad->src1->str.string_literal); //copies over newline as literal newline
+
+            // Changes src -> string memory location
+            astnode *temp_reg = reserve_registers(NULL);
+            fprintf(outfile, "\tleal  .LC%d, %s\n", f, print_assemblyType(temp_reg));
+            quad->src1 = temp_reg;
+        }
+        if(quad->src2 && quad->src2->generic.type == STRING_NODE) {
+            // Prints assembly
+            fprintf(stringfile, "LC%d:\n", f); //matches function number
+            fprintf(stringfile, "\t.string  \"%s\"\n", quad->src2->str.string_literal);
+
+            // Changes src -> string memory location
+            astnode *temp_reg = reserve_registers(NULL);
+            fprintf(outfile, "\tleal  LC%d, %s\n", f, print_assemblyType(temp_reg));
+            quad->src2 = temp_reg;
+        }
+}
+
+basic_block *generate_blocks(basic_block *block) {
     if(block == NULL || block->assembled) {
         return NULL;
     }
@@ -102,35 +136,35 @@ basic_block *generate_blocks(FILE *outfile, basic_block *block) {
 
     quad_list_item *temp_quad = block->head_quad;
     while (temp_quad) {
-        generate_quad_assembly(outfile, temp_quad);
+        generate_quad_assembly(temp_quad);
         temp_quad = temp_quad->next_quad;
     }
 }
 
-void generate_quad_assembly(FILE *outfile, quad_list_item *quad) {
+void generate_quad_assembly(quad_list_item *quad) {
     char *temp = "temp";
     // if string -> create separate file and insert at beginning of file?
     if (quad->dest && quad->dest->generic.type == TEMPORARY_NODE) {
         quad->dest = reserve_registers(quad->dest);
     }
+    // if src1 or src2 are strings, the respective info is added to stringfile to later be added to outfile
+    if_string(quad);
 
     // Checks op code
     switch(quad->op_code) {
         // astnode for temporary register
         astnode *temp_reg;
 
-        // Addressing & Assigning
         case LOAD: //there is a problem with load
-            // Gets temp register
             temp_reg = reserve_registers(NULL);
             astnode *temp_reg2 = reserve_registers(NULL);
 
-            // Prints assembly
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(quad->src2));
             fprintf(outfile, "\tmovl  (%s), %s\n", print_assemblyType(temp_reg), print_assemblyType(temp_reg2));
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src2), print_assemblyType(quad->dest));
 
-            //free_register(temp_reg2);
+            free_register(temp_reg2);
+            free_register(temp_reg);
 
             break;
 
@@ -143,25 +177,27 @@ void generate_quad_assembly(FILE *outfile, quad_list_item *quad) {
                 quad->src2 = quad->dest;
                 quad->dest = NULL;
             }
-            // Gets temp register
+
             temp_reg = reserve_registers(NULL);
-            // Prints assembly
             
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
-            fprintf(outfile, "\tmovl  %s, (%s)\n", print_assemblyType(quad->src2), print_assemblyType(temp_reg));
+            if (quad->src2->generic.type == TEMPORARY_NODE) {
+                fprintf(outfile, "\tmovl  %s, (%s)\n", print_assemblyType(temp_reg), print_assemblyType(quad->src2));
+            } else {
+                fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->src2));
+            }
             
+            free_register(temp_reg);
+
             break;
 
         case LEA:
-            // Gets temp register
             temp_reg = reserve_registers(NULL);
 
-            // Prints assembly
             fprintf(outfile, "\tleal  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->src1));
         
-            // Frees temp register
-            //free_register(temp_reg);
+            free_register(temp_reg);
             
             break;
 
@@ -172,7 +208,7 @@ void generate_quad_assembly(FILE *outfile, quad_list_item *quad) {
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             // Frees temp register
-            //free_register(temp_reg);
+            free_register(temp_reg);
             break;
 
         // Arithmetic Operations
@@ -186,7 +222,7 @@ void generate_quad_assembly(FILE *outfile, quad_list_item *quad) {
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             
             // Frees temp register
-            //free_register(temp_reg);
+            free_register(temp_reg);
 
             break;
 
@@ -200,7 +236,7 @@ void generate_quad_assembly(FILE *outfile, quad_list_item *quad) {
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             
             // Frees temp register
-            //free_register(temp_reg);
+            free_register(temp_reg);
 
             break;
 
@@ -214,10 +250,43 @@ void generate_quad_assembly(FILE *outfile, quad_list_item *quad) {
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             
             // Frees temp register
-            //free_register(temp_reg);
+            free_register(temp_reg);
 
             break;
+
+        case RET:
+            if(curr_quad->src1) {
+                fprintf(outfile, "\tmovl  %s, %%eax\n", print_assemblyType(quad->src1));
+                fprintf(outfile, "\tleave\n");
+                fprintf(outfile, "\tret\n");
+            }
+            
+            break;
+
+        case ARG:
+            fprintf(outfile, "\tpushl  %s\n", print_assemblyType(quad->src1));
+            break;
+
+        case CALL:
+            fprintf(outfile, "\tcall  %s\n", quad->src1->id.ident);
+            // reset stack pointer
+            //fprintf(stderr, "src2 type is %d\n", quad->src2->generic.type);
+            if(quad->src2->num.numInfo.value.int_val > 0) { // at least one argument
+                fprintf(outfile, "\taddl  $%lld, %%esp\n", quad->src2->num.numInfo.value.int_val * sizeof(int)); 
+            }
+
+            // Moves to target, if needed
+            if(quad->dest) {
+                fprintf(outfile, "\tmovl  %%eax, %s\n", print_assemblyType(quad->dest));
+            } 
+
+            break; 
+
     }
+
+    // Frees registers used by sources
+    free_register(curr_quad->src1);
+    free_register(curr_quad->src2);
 }
 
 union astnode *reserve_registers(union astnode *node) {
@@ -242,6 +311,16 @@ union astnode *reserve_registers(union astnode *node) {
     return NULL;
 }
 
+void free_register(union astnode *temp_reg) {
+    if(temp_reg == NULL) {
+        return;
+    }
+
+    if(temp_reg->generic.type == TEMPORARY_NODE && temp_reg->temp.reg != NO_REG) {
+        regs[temp_reg->temp.reg] = NO_REG;
+        temp_reg->temp.reg = NO_REG;
+    }
+}
 
 char *print_assemblyType(union astnode *node) {
     static char *assembly;
@@ -306,7 +385,7 @@ char *print_assemblyType(union astnode *node) {
     return assembly;
 }
 
-void generate_funcs(FILE *outfile) {
+void generate_funcs() {
     char *func_name;
     int i = 0;
     basic_block *temp_block = (*(block_list->list + i));
@@ -331,7 +410,7 @@ void generate_funcs(FILE *outfile) {
         func_name = temp_block->f_name;
     }
     quad_list_item *temp_quad = temp_block->head_quad;
-    basic_block *end = generate_blocks(outfile, temp_block);
+    basic_block *end = generate_blocks(temp_block);
     temp_block->assembled = 1; 
     // Generates assembly for return
     // Checks if explicit return, if not then 0

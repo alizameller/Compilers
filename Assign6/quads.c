@@ -558,7 +558,7 @@ union astnode *generate_fncall(union astnode *node, union astnode *target) {
     if(!target) { // if target is NULL, create temp node
         target = new_temporary(TEMPORARY_NODE, ++temp_num);
     }
-    append_quad_list(new_quad(CALL, target, node->func.function_name, NULL, NULL));
+    append_quad_list(new_quad(CALL, target, node->func.function_name, num, NULL));
     curr_quad->next_quad = NULL; 
     return target;
 } 

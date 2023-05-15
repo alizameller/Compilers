@@ -1,6 +1,6 @@
 char e;
 
-int f() { 
+int main() { 
     int *a;
     *a = 4;
     } 

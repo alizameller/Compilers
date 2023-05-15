@@ -405,6 +405,7 @@ union astnode *new_temporary(nodetype type, int num) {
 	// set entries
     node_ptr->temp.type = type;
     node_ptr->temp.num = num;
+    node_ptr->temp.reg = NO_REG;
 
     return node_ptr;
 }

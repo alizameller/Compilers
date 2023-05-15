@@ -348,9 +348,21 @@ struct astnode_list {
 
 union astnode* new_astnode_list(nodetype type, union astnode *list_item, union astnode *prev);
 
+typedef enum registers {
+    NO_REG = -1,
+    EAX,
+    EBX,
+    ECX,
+    EDX,
+    EDI,
+    ESI,
+    NUM_REGISTERS
+} registers;
+
 // Astnode Temporary (for temp regs)
 struct astnode_temp {
     enum nodetype type; 
+    enum registers reg; 
     int num;
 };
 

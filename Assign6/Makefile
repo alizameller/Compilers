@@ -1,7 +1,7 @@
 parse: parse.tab.o symtable.o quads.o assembly.o ast.o lex.yy.o printing.o
 		gcc -g -o parse parse.tab.o printing.o symtable.o quads.o assembly.o ast.o lex.yy.o
 
-assembly.o: quads.o assembly.h assembly.c
+assembly.o: ast.o assembly.h assembly.c
 		gcc -g -c -o assembly.o assembly.c
 
 printing.o: ast.o parse.tab.h printing.c

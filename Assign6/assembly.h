@@ -1,9 +1,8 @@
 #ifndef ASSEMBLY_H
 #define ASSEMBLY_H
 
-#include <stdio.h>
-#include "quads.h"
 #include "ast-manual.h"
+#include <stdio.h>
 
 void generate_assembly(char *out);
 
@@ -15,7 +14,19 @@ void generate_funcs(FILE *outfile);
 
 int get_offset(char *f_name);
 
+struct basic_block *generate_blocks(FILE *outfile, struct basic_block *block);
+
+void generate_quad_assembly(FILE *outfile, struct quad_list_item *quad);
+
+char *print_assemblyType(union astnode *node);
+
 FILE *outfile;
+
+char *printRegisters(int registers);
+
+union astnode *reserve_registers(union astnode *node);
+
+int regs[6]; //indexed by enum registers to keep track of which ones are in use
 
 /*
 // Generates assembly of file

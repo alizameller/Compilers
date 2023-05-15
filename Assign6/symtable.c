@@ -17,6 +17,7 @@ symbol *new_symbol(char *ident, enum name_space ns, union astnode *decspec_ptr, 
     sym->next = NULL;
     sym->line = report.lineNum;
     sym->filename = report.fileName;
+    sym->stack_offset = 0;
 
     return sym;
 }

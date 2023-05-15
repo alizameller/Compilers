@@ -106,6 +106,7 @@ typedef struct symbol {
     union astnode *type_rep; // pointer to ast node, whether declaration is pointer, scalar, array, etc. 
     
    struct symbol *next; // 
+   int stack_offset;
 
     /*
     union {

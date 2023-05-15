@@ -1,6 +1,8 @@
+char e;
+
 int f() { 
-    int a; 
-    a = 4 + 3; 
+    int *a;
+    *a = 4;
     } 
 
 int g() { 
@@ -8,3 +10,4 @@ int g() {
     int g; 
     g = sizeof(d);
 }
+

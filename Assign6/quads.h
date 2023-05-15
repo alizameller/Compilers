@@ -102,6 +102,10 @@ void generate_while(union astnode *node);
 
 void generate_inc_dec(union astnode *node);
 
+int get_size(union astnode *node);
+
+int get_scalarSize(union astnode *node);
+
 bb_list *block_list;
 basic_block *curr_block;
 quad_list_item *curr_quad;

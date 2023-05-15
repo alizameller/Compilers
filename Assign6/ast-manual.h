@@ -3,6 +3,7 @@
 
 #include "symtable.h"
 #include "quads.h"
+#include "assembly.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -413,7 +414,5 @@ void printQuads();
 void printType(union astnode *node);
 
 char *printOp(int opcode);
-
-int get_scalarSize(union astnode *node);
 
 #endif //AST_H

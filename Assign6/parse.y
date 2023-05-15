@@ -13,6 +13,7 @@ void yyerror(char *s);
     #include "symtable.h"
     #include "quads.h"
     #include "printing.h"
+    #include "assembly.h"
 }
 
 /* YYSTYPE union */
@@ -848,6 +849,7 @@ int main(){
     init_IR();
     while(!(t = yyparse())){
     };
+    generate_globals("a.S");
 }
 
 void yyerror(char *str) {

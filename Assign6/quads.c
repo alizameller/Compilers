@@ -12,7 +12,7 @@ void init_IR() {
     curr_quad = NULL;
     temp_num = 0;
     f = 0; 
-    n = 0; 
+    n = 0;
 }
 
 struct basic_block *new_basic_block(char *bb_name, char *function_name) {
@@ -40,6 +40,7 @@ struct basic_block *new_basic_block(char *bb_name, char *function_name) {
     block->next_bb = NULL;
     block->branch_bb = NULL;
     block->branch_condition = 0;
+    block->assembled = 0;
     return block;
 }
 

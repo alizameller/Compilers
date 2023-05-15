@@ -47,6 +47,7 @@ typedef struct basic_block {
     struct quad_list_item *head_quad;             // Linked list of quads within one block
     struct basic_block *next_bb, *branch_bb;    // exit branch, continue linearly (next) or branch (on conditional)
     int branch_condition;                    // Type of comparator (from op_codes enum below)
+    int assembled;
 } basic_block;
 
 struct basic_block *new_basic_block(char *bb_name, char *function_name);

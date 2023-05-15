@@ -2,10 +2,12 @@
 #include "quads.h"
 
 void generate_assembly(char *out) {
-    FILE *outfile = fopen(out, "w");
-    fprintf(outfile, "\t.file\t\"%s\"\n", out);
-    generate_globals(outfile);
-    fprintf(outfile, "\t.text\n");
+    if (!block_cursor) {
+        outfile = fopen(out, "w");
+        fprintf(outfile, "\t.file\t\"%s\"\n", out);
+        generate_globals(outfile);
+        fprintf(outfile, "\t.text\n");
+    }
     generate_funcs(outfile);
 }
 
@@ -57,6 +59,7 @@ int get_alignment(union astnode *node) {
 
 int get_offset(char *f_name) {
     // Gets symbol table entry for function
+    fprintf(stderr, "name of func is %s\n", f_name);
     symbol *sym_temp;
     int offset = 0;
 
@@ -87,27 +90,31 @@ int get_offset(char *f_name) {
 }
 
 void generate_funcs(FILE *outfile) {
-    basic_block *temp_block = block_list->head;
-    int op; 
-    while (temp_block) {
-        if (temp_block->f_name) {
-            fprintf(outfile, "\t.globl\t%s\n", temp_block->f_name);
-            fprintf(outfile, "\t.type\t%s,@function\n", temp_block->f_name);
-            fprintf(outfile, "%s:\n", temp_block->f_name);
-            fprintf(outfile, "\tpushl\t%%ebp\n");
-            fprintf(outfile, "\tmovl\t%%esp, %%ebp\n");
-            // Reserves space for local variables
-            int l_size = get_offset(temp_block->f_name);
-            if(l_size) {
-                fprintf(outfile, "\tsubl \t$%d, %%esp\n", l_size);
-            }
-        }
-        quad_list_item *temp_quad = temp_block->head_quad;
-        while (temp_quad) {
-
-            temp_quad = temp_quad->next_quad;
-        }
-
+    int i = 0;
+    basic_block *temp_block = (*(block_list->list + i));
+    i++;
+    while (temp_block->assembled) {
         temp_block = temp_block->next_bb;
     }
+    int op; 
+    int l_size;
+    if (temp_block->f_name) {
+        fprintf(outfile, "\t.globl\t%s\n", temp_block->f_name);
+        fprintf(outfile, "\t.type\t%s,@function\n", temp_block->f_name);
+        fprintf(outfile, "%s:\n", temp_block->f_name);
+        fprintf(outfile, "\tpushl\t%%ebp\n");
+        fprintf(outfile, "\tmovl\t%%esp, %%ebp\n");
+        // Reserves space for local variables
+        l_size = get_offset(temp_block->f_name);
+        fprintf(stderr, "lsize is %d\n", l_size);
+        if(l_size) {
+            fprintf(outfile, "\tsubl \t$%d, %%esp\n\n", l_size);
+        }
+    }
+    quad_list_item *temp_quad = temp_block->head_quad;
+    while (temp_quad) {
+
+        temp_quad = temp_quad->next_quad;
+    }
+    temp_block->assembled = 1; 
 } 

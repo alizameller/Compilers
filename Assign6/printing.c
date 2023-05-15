@@ -557,8 +557,7 @@ char *printTypeQualifier(struct symbol *sym) {
 }
 
 void printQuads() {
-    basic_block *temp_block;
-    temp_block = (*(block_list->list + block_cursor));
+    basic_block *temp_block = (*(block_list->list + block_cursor));
     block_cursor++;
     int op; 
     while (temp_block) {

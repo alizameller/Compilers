@@ -15,6 +15,8 @@ void generate_funcs(FILE *outfile);
 
 int get_offset(char *f_name);
 
+FILE *outfile;
+
 /*
 // Generates assembly of file
 void gen_assembly();

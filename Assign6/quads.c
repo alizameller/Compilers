@@ -245,7 +245,12 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
             }
             return node;
         case UNOP_NODE:
-            // if pointer dereference
+            if(node->unop.operator == '*') {
+                *addressing_mode = INDIRECT;
+                return gen_rvalue(node->unop.operand, NULL);
+            }
+            break;
+            /*
             if(node->unop.operator == '*') {
                 if (node->unop.operand->generic.type == BINOP_NODE) {
                     //printf("unop left %d\n", node->unop.operand->binop.left->generic.type);
@@ -256,7 +261,8 @@ union astnode *gen_lvalue(union astnode *node, int *addressing_mode) {
                 *addressing_mode = INDIRECT;
                 return gen_rvalue(node->unop.operand, NULL);
             }
-        break;
+            
+        break; */
     }
 }
 
@@ -479,7 +485,17 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
             return target;
         }
         case UNOP_NODE:
-            if (node->unop.operator == '*') { //pointer deref
+            if(node->unop.operator == '*') {
+                astnode *addr = gen_rvalue(node->unop.operand,NULL);
+
+                // Checks if target
+                if (!target) target = new_temporary(TEMPORARY_NODE, ++temp_num);
+
+                curr_quad = new_quad(LOAD, target, addr, NULL, curr_quad);
+                return target;
+            }
+
+            /*if (node->unop.operator == '*') { //pointer deref
                 union astnode *addr;
                 if (node->unop.operand->generic.type == BINOP_NODE) {
                     return gen_rvalue(node->unop.operand, NULL);
@@ -491,7 +507,9 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                 curr_quad = new_quad(LOAD, target, addr, NULL, curr_quad);
                 
                 return target;
-            }
+
+                
+            }*/
 
             // Sizeof operator
             if(node->unop.operator == SIZEOF) {
@@ -685,7 +703,7 @@ void generate_inc_dec(union astnode *node) { //turn unop into binop
     } else {
         bin_node = new_astnode_binop('-', node->unop.operand, one);
     }
-    printf("binop type %d\n", bin_node->generic.type);
+    //printf("binop type %d\n", bin_node->generic.type);
     // Creates assignment node & generates IR
     generate_assignment(new_astnode_binop('=', node->unop.operand, bin_node));
 }

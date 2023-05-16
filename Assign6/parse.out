@@ -1,0 +1,11 @@
+main:
+.BB1.0:
+			LEA a{extern} T1 
+	T2  =	MUL 10 4 
+	T3  =	ADD T1 T2 
+			STORE 3 T3 
+			LEA a{extern} T4 
+	T5  =	MUL 10 4 
+	T6  =	ADD T4 T5 
+			LOAD (T6) T7 
+			RET T7 

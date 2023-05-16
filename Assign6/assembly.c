@@ -80,7 +80,7 @@ int get_offset(char *f_name) {
     scope *f_scope = current; 
     while (f_scope) {
         //fprintf(stderr, "scope name is %s\n", f_scope->scope_fileName);
-        if(f_scope->name == FUNCTION_SCOPE && strcmp(f_name, f_scope->scope_fileName)) break;
+        if(f_scope->name == FUNCTION_SCOPE) break;
         f_scope = f_scope->parent;
     }
 
@@ -183,11 +183,12 @@ void generate_quad_assembly(quad_list_item *quad) {
             union astnode *temp_reg2 = reserve_registers(NULL);
             if (quad->src1->generic.type == SYMBOL_POINTER_NODE && quad->src1->sym_p.sym->dec_specs->decspec.s_class == EXTERN_CLASS) {
                 fprintf(outfile, "\tmovl  $%s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+                fprintf(outfile, "\tmovl  (%s), %s\n", print_assemblyType(temp_reg), print_assemblyType(temp_reg2));
+                fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg2), print_assemblyType(quad->dest));
             } else {
                 fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+                fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             }
-            fprintf(outfile, "\tmovl  (%s), %s\n", print_assemblyType(temp_reg), print_assemblyType(temp_reg2));
-            fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg2), print_assemblyType(quad->dest));
 
             free_register(temp_reg2);
             free_register(temp_reg);
@@ -221,7 +222,6 @@ void generate_quad_assembly(quad_list_item *quad) {
             temp_reg = reserve_registers(NULL);
 
             fprintf(outfile, "\tleal  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
-            fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->src1));
         
             free_register(temp_reg);
             

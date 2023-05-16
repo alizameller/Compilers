@@ -353,7 +353,7 @@ compound_statement: '{' {
                                 //printAST(temp, 0);
                                 generate_quads(temp);
                                 block_list->list = &(block_list->head); // used to iterate through the blocks when printing quads without losing ptr to head of list
-                                //generate_assembly("a.S");
+                                generate_assembly("a.S");
                                 printQuads();
                             }
                             pop_scope(); 

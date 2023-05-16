@@ -3,7 +3,7 @@ int f() {
     int a;
     int b;
     b = 0;
-    a = 1;
+    a = 3;
     if (a == 2) {
         return a;
     } else {
@@ -18,5 +18,4 @@ int main() {
        return f();
     }
 }
-
 

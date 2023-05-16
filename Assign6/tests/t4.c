@@ -1,3 +1,4 @@
+// should return 8
 int i; 
 int a;
 
@@ -9,5 +10,3 @@ int main() {
     } 
     return a;
 }  
-
-// should return 8

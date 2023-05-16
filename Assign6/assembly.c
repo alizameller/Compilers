@@ -1,6 +1,7 @@
 #include "assembly.h"
 
 void generate_assembly(char *out) {
+    add_dest_contains_addr = 0;
     int i;
     for (i = 0; i < NUM_REGISTERS; i++) {
         regs[i] = NO_REG; //initialize register array to NO_REG (available for use)
@@ -185,6 +186,9 @@ void generate_quad_assembly(quad_list_item *quad) {
                 fprintf(outfile, "\tmovl  $%s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
                 fprintf(outfile, "\tmovl  (%s), %s\n", print_assemblyType(temp_reg), print_assemblyType(temp_reg2));
                 fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg2), print_assemblyType(quad->dest));
+            } else if (quad->src1->generic.type == TEMPORARY_NODE) {
+                fprintf(outfile, "\tmovl  (%s), %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+                fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             } else {
                 fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
                 fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
@@ -229,22 +233,44 @@ void generate_quad_assembly(quad_list_item *quad) {
 
         case MOV:
             temp_reg = reserve_registers(NULL);
-    
-            fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
-            fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
-
+            temp_reg2 = reserve_registers(NULL);
+            if ((quad->src1->generic.type == SYMBOL_POINTER_NODE && quad->src1->sym_p.sym->dec_specs->decspec.s_class == EXTERN_CLASS) &&
+                (quad->src1->sym_p.sym->type_rep->generic.type == POINTER_NODE)) {
+                    fprintf(outfile, "\tmovl  $%s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+            } else {
+                fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+            }
+            if ((quad->dest->generic.type == SYMBOL_POINTER_NODE && quad->dest->sym_p.sym->dec_specs->decspec.s_class == EXTERN_CLASS) &&
+                (quad->dest->sym_p.sym->type_rep->generic.type == POINTER_NODE)) {
+                    fprintf(outfile, "\tmovl  $%s, %s\n", print_assemblyType(quad->dest), print_assemblyType(temp_reg2));
+                    if (add_dest_contains_addr) {
+                        fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(temp_reg2));
+                    } else {
+                        fprintf(outfile, "\tmovl  %s, (%s)\n", print_assemblyType(temp_reg), print_assemblyType(temp_reg2));
+                    }
+            } else {
+                fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
+            }
             free_register(temp_reg);
+            free_register(temp_reg2);
+            add_dest_contains_addr = 0;
             break;
 
         case ADD:
             temp_reg = reserve_registers(NULL);
-
-            fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+            if ((quad->src1->generic.type == SYMBOL_POINTER_NODE && quad->src1->sym_p.sym->dec_specs->decspec.s_class == EXTERN_CLASS) && 
+                ((quad->src1->sym_p.sym->type_rep) &&
+                (quad->src1->sym_p.sym->type_rep->generic.type == POINTER_NODE) || (quad->src1->sym_p.sym->type_rep->generic.type == ARRAY_NODE))) {
+                fprintf(outfile, "\tmovl  $%s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+                add_dest_contains_addr = 1; 
+            } else {
+                fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+                add_dest_contains_addr = 0;
+            }
             fprintf(outfile, "\taddl  %s, %s\n", print_assemblyType(quad->src2), print_assemblyType(temp_reg));
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
-            
-            free_register(temp_reg);
 
+            free_register(temp_reg);
             break;
 
         case SUB:

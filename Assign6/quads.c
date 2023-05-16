@@ -149,14 +149,18 @@ int get_size(union astnode *node) {
     switch(node->generic.type) {
         case SYMBOL_POINTER_NODE: {
             union astnode *temp_type = node->sym_p.sym->type_rep;
-            if (!temp_type) { // ex: int r; SCALAR
+            if (temp_type) {
+                if ((temp_type)->generic.type == POINTER_NODE){
+                    int temp_size = get_size(temp_type);
+                    size *= temp_size;
+                } else if ((temp_type)->generic.type == ARRAY_NODE) {
+                    int temp_size = get_size(temp_type);
+                    size *= temp_size;
+                } else if ((temp_type)->generic.type == DECSPEC_NODE){
+                    size = get_size(node->sym_p.sym->dec_specs); 
+                }
+            } else {
                 size = get_size(node->sym_p.sym->dec_specs); 
-            } else if ((temp_type)->generic.type == POINTER_NODE){
-                int temp_size = get_size(temp_type);
-                size *= temp_size;
-            } else if ((temp_type)->generic.type == ARRAY_NODE) {
-                int temp_size = get_size(temp_type);
-                size *= temp_size;
             }
             break;
         }
@@ -202,6 +206,7 @@ int get_scalarSize(union astnode *node) {
             }
             return 4; 
     }
+    return 4;
 }
 
 // gen lvalue of expression
@@ -235,6 +240,10 @@ union astnode *gen_lvalue(union astnode *node) {
                     addressing_mode = DIRECT;
                     return node;
                 } else if (node->sym_p.sym->type_rep && (node->sym_p.sym->type_rep->generic.type == ARRAY_NODE)) {
+                    if (node->sym_p.sym->type_rep->arr.element_type != ARRAY_NODE) { //1d array
+                        addressing_mode = DIRECT;
+                        return node;
+                    }
                     //generate quad for LEA
                     union astnode *temp = new_temporary(TEMPORARY_NODE, ++temp_num);
                     curr_quad = new_quad(LEA, temp, node, NULL, curr_quad);
@@ -285,6 +294,9 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                         return node;
                     }
                 } else if (type->generic.type == ARRAY_NODE) {
+                    if (node->sym_p.sym->type_rep->arr.element_type != ARRAY_NODE) { //1d array
+                        return node;
+                    }
                     if(!target) target = new_temporary(TEMPORARY_NODE, ++temp_num);
                     curr_quad = new_quad(LEA, target, node, NULL, curr_quad);
                     return target;
@@ -361,14 +373,13 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                             if (node->binop.left->sym_p.sym->type_rep->generic.type == ARRAY_NODE) {
                                 sizeInfo.value.int_val = get_size(node->binop.left) / node->binop.left->sym_p.sym->type_rep->arr.size; 
                             } else if (node->binop.left->sym_p.sym->type_rep->generic.type == POINTER_NODE) {
-                                addressing_mode = DIRECT;
                                 sizeInfo.value.int_val = 4; 
                             }
                             union astnode *num = new_astnode_num(NUMBER_NODE, sizeInfo);
                             append_quad_list(new_quad(MUL, target, right, num, NULL));
                             //if (target) left = target; 
                             union astnode *temp = target;
-                            if (left->generic.type != TEMPORARY_NODE) {
+                            if ((left->generic.type != TEMPORARY_NODE) && left_temp) {
                                 left = left_temp;
                             }
                             target = new_temporary(TEMPORARY_NODE, ++temp_num);
@@ -403,7 +414,7 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                             append_quad_list(new_quad(MUL, target, right, num, NULL));
                             //if (target) left = target; 
                             union astnode *temp = target;
-                            if (left->generic.type != TEMPORARY_NODE) {
+                            if (left->generic.type != TEMPORARY_NODE && left_temp) {
                                 left = left_temp;
                             }
                             target = new_temporary(TEMPORARY_NODE, ++temp_num);
@@ -424,14 +435,14 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                             if (node->binop.left->sym_p.sym->type_rep->generic.type == ARRAY_NODE) {
                                 sizeInfo_left.value.int_val = get_size(node->binop.left) / node->binop.left->sym_p.sym->type_rep->arr.size; 
                             } else if (node->binop.left->sym_p.sym->type_rep->generic.type == POINTER_NODE) {
-                                sizeInfo_left.value.int_val = 4; //divide by size of pointer itself;
+                                sizeInfo_left.value.int_val = 4; 
                             }
                             // right side
                             struct numinfo sizeInfo_right; 
                             if (node->binop.left->sym_p.sym->type_rep->generic.type == ARRAY_NODE) {
                                 sizeInfo_right.value.int_val = get_size(node->binop.left) / node->binop.left->sym_p.sym->type_rep->arr.size; 
                             } else if (node->binop.left->sym_p.sym->type_rep->generic.type == POINTER_NODE) {
-                                sizeInfo_right.value.int_val = 4; //divide by size of pointer itself
+                                sizeInfo_right.value.int_val = 4; 
                             }
                             // if size of pointers are not equal - ERROR
                             if (sizeInfo_left.value.int_val != sizeInfo_right.value.int_val) {
@@ -443,7 +454,7 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                             append_quad_list(new_quad(op, target, left, right, NULL)); 
                             //if (target) left = target; 
                             union astnode *temp = target;
-                            if (left->generic.type != TEMPORARY_NODE) {
+                            if (left->generic.type != TEMPORARY_NODE && left_temp) {
                                 left = left_temp;
                             }
                             target = new_temporary(TEMPORARY_NODE, ++temp_num);

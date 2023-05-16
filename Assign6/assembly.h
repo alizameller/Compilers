@@ -36,4 +36,6 @@ void if_string(struct quad_list_item *quad);
 
 void generate_jump(struct basic_block *block);
 
+int add_dest_contains_addr; 
+
 #endif // ASSEMBLY_H

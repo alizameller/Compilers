@@ -651,7 +651,7 @@ void generate_conditions(union astnode *expr, basic_block *true_bb, basic_block 
         int i;
         for (i = 0; i <= 1; i++) {
             backup = curr_quad->src1; 
-            printf("backup is %d\n", backup->num.numInfo.value.int_val);
+            //printf("backup is %d\n", backup->num.numInfo.value.int_val);
         }
         return;
     }

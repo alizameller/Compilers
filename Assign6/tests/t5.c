@@ -1,15 +1,15 @@
-int i; 
+int g() {
+    int p;
+    p = 1 + 3;
+    return p;
+}
 
-int f() { 
-    i = 5; 
-    int *p;
-    int *a; 
-    while(i <= 7) { 
-        a = p - 2;
-    } 
-}  
-/*
-int f() {
-    int i;
-    i = i + 1;
-}*/
+void main() { 
+    int e;
+    int f[4][5]; 
+    e = sizeof(f);
+    e = e + 1; 
+    return g();
+}
+
+// should return 4

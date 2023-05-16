@@ -176,15 +176,18 @@ void generate_quad_assembly(quad_list_item *quad) {
     //fprintf(stderr, "opode is %d\n", quad->op_code);
     switch(quad->op_code) {
         // astnode for temporary register
-        astnode *temp_reg;
+        union astnode *temp_reg;
 
         case LOAD: //there is a problem with load
             temp_reg = reserve_registers(NULL);
-            astnode *temp_reg2 = reserve_registers(NULL);
-
-            fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(quad->src2));
+            union astnode *temp_reg2 = reserve_registers(NULL);
+            if (quad->src1->generic.type == SYMBOL_POINTER_NODE && quad->src1->sym_p.sym->dec_specs->decspec.s_class == EXTERN_CLASS) {
+                fprintf(outfile, "\tmovl  $%s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+            } else {
+                fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
+            }
             fprintf(outfile, "\tmovl  (%s), %s\n", print_assemblyType(temp_reg), print_assemblyType(temp_reg2));
-            fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src2), print_assemblyType(quad->dest));
+            fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg2), print_assemblyType(quad->dest));
 
             free_register(temp_reg2);
             free_register(temp_reg);
@@ -432,7 +435,7 @@ char *print_assemblyType(union astnode *node) {
     } else if (node->num.numInfo.value.int_val){ // weird situation -- it has type TERNOP (in while loops only)
         sprintf(assembly, "$%lld", node->num.numInfo.value.int_val);
     }
-    fprintf(stderr, "%s\n", assembly);
+    //fprintf(stderr, "%s\n", assembly);
     return assembly;
 }
 

@@ -345,6 +345,9 @@ compound_statement: '{' {
       }
     decl_or_stmt_list '}' {
                             union astnode *temp = $3;
+                            if (temp->generic.type != LIST_NODE) {
+                                temp = new_astnode_list(LIST_NODE, temp, NULL);
+                            }
                             while ((temp->generic.type == LIST_NODE) && temp->ast_list.prev) { // traverse list to get back to head
                                 temp = temp->ast_list.prev;
                             }
@@ -353,8 +356,9 @@ compound_statement: '{' {
                                 //printAST(temp, 0);
                                 generate_quads(temp);
                                 block_list->list = &(block_list->head); // used to iterate through the blocks when printing quads without losing ptr to head of list
-                                generate_assembly("a.S");
+                                //generate_assembly("a.S");
                                 printQuads();
+                                exit(0);
                             }
                             pop_scope(); 
                           }

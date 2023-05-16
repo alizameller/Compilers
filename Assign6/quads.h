@@ -83,7 +83,7 @@ void init_IR();
 void generate_quads(union astnode *node);
 
 // gen lvalue of expression
-union astnode *gen_lvalue(union astnode *node, int *addressing_mode);
+union astnode *gen_lvalue(union astnode *node);
 
 // gen rvalue of expression
 union astnode *gen_rvalue(union astnode *node, union astnode *target);
@@ -117,5 +117,6 @@ int n;
 union astnode *symbol_temp;
 union astnode *left_temp;
 union astnode *backup;
+int addressing_mode; 
 
 #endif // QUADS_H

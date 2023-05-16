@@ -11,7 +11,7 @@ void generate_assembly(char *out) {
         stringfile = fopen("string.S", "w");
         fprintf(stringfile, "\t.section .rodata\n");
 
-        fprintf(outfile, "\t.file\t\"%s\"\n", out); // out is a place holder, should be name of c file
+        fprintf(outfile, "\t.file\t\"%s\"\n", "test.c"); //place holder, should be name of c file
         generate_globals();
         fprintf(outfile, "\t.text\n");
     }

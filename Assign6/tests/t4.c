@@ -1,22 +1,13 @@
-int f() {
-    int a;
-    int b;
-    if (a == 2) {
-        return a;
-    } else {
-        return b;
-    }
-}
+int i; 
+int a;
 
-int g() {
-    int a; 
-    if (a == 2) {
-       f();
-    }
-}
+int main() { 
+    i = 6; 
+    a = 3;
+    while(a <= 7) { 
+        a = i + 2;
+    } 
+    return a;
+}  
 
-int main() {
-    f();
-}
-
-
+// should return 8

@@ -79,6 +79,7 @@ int get_offset(char *f_name) {
 
     scope *f_scope = current; 
     while (f_scope) {
+        //fprintf(stderr, "scope name is %s\n", f_scope->scope_fileName);
         if(f_scope->name == FUNCTION_SCOPE && strcmp(f_name, f_scope->scope_fileName)) break;
         f_scope = f_scope->parent;
     }
@@ -106,7 +107,7 @@ int get_offset(char *f_name) {
 
 void if_string(struct quad_list_item *quad) {
     if(quad->src1 && quad->src1->generic.type == STRING_NODE) {
-            // Prints assembly
+            
             fprintf(stringfile, ".LC%d:\n", f); //matches function number
             fprintf(stringfile, "\t.string  \"%s\"\n", quad->src1->str.string_literal); //copies over newline as literal newline
 
@@ -116,7 +117,7 @@ void if_string(struct quad_list_item *quad) {
             quad->src1 = temp_reg;
         }
         if(quad->src2 && quad->src2->generic.type == STRING_NODE) {
-            // Prints assembly
+            
             fprintf(stringfile, "LC%d:\n", f); //matches function number
             fprintf(stringfile, "\t.string  \"%s\"\n", quad->src2->str.string_literal);
 
@@ -128,16 +129,37 @@ void if_string(struct quad_list_item *quad) {
 }
 
 basic_block *generate_blocks(basic_block *block) {
-    if(block == NULL || block->assembled) {
-        return NULL;
-    }
+    while (block) {
+        if(block->assembled) {
+            block = block->next_bb;
+        }
 
-    fprintf(outfile, "%s:\n", block->bb_name);
+        fprintf(outfile, "%s:\n", block->bb_name);
 
-    quad_list_item *temp_quad = block->head_quad;
-    while (temp_quad) {
-        generate_quad_assembly(temp_quad);
-        temp_quad = temp_quad->next_quad;
+        quad_list_item *temp_quad = block->head_quad;
+        while (temp_quad) {
+            generate_quad_assembly(temp_quad);
+            prev = temp_quad;
+            temp_quad = temp_quad->next_quad;
+        }
+        
+        if (block->branch_condition >= BR && block->branch_condition <= BRGE) {
+            if (block->branch_condition == BR) {
+                    generate_jump(block);
+                    //printf("\t\t\t%s %s\n", printOp(block->branch_condition), block->branch_bb->bb_name);
+                } else {
+                    generate_jump(block);
+                    //printf("\t\t\t%s %s, %s\n", printOp(block->branch_condition), block->next_bb->bb_name, block->branch_bb->bb_name);
+                }
+            if ((block->branch_bb && block->next_bb) && (block->branch_condition != BR) ) {
+                block->next_bb->next_bb = block->branch_bb;
+            }
+            if ((block->branch_bb && !block->next_bb) && (block->branch_condition == BR)) {
+                block->next_bb = block->branch_bb;
+            }
+        }
+
+        block = block->next_bb;
     }
 }
 
@@ -151,6 +173,7 @@ void generate_quad_assembly(quad_list_item *quad) {
     if_string(quad);
 
     // Checks op code
+    //fprintf(stderr, "opode is %d\n", quad->op_code);
     switch(quad->op_code) {
         // astnode for temporary register
         astnode *temp_reg;
@@ -202,60 +225,54 @@ void generate_quad_assembly(quad_list_item *quad) {
             break;
 
         case MOV:
-            // Gets temp register
             temp_reg = reserve_registers(NULL);
-            // Prints assembly
+    
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
-            // Frees temp register
+
             free_register(temp_reg);
             break;
 
-        // Arithmetic Operations
         case ADD:
-            // Gets temp register
             temp_reg = reserve_registers(NULL);
 
-            // Prints assembly
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
             fprintf(outfile, "\taddl  %s, %s\n", print_assemblyType(quad->src2), print_assemblyType(temp_reg));
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             
-            // Frees temp register
             free_register(temp_reg);
 
             break;
 
         case SUB:
-            // Gets temp register
             temp_reg = reserve_registers(NULL);
 
-            // Prints assembly
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
             fprintf(outfile, "\tsubl  %s, %s\n", print_assemblyType(quad->src2), print_assemblyType(temp_reg));
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             
-            // Frees temp register
             free_register(temp_reg);
 
             break;
 
         case MUL:
-            // Gets temp register
             temp_reg = reserve_registers(NULL);
 
-            // Prints assembly
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(temp_reg));
             fprintf(outfile, "\timull  %s, %s\n", print_assemblyType(quad->src2), print_assemblyType(temp_reg));
             fprintf(outfile, "\tmovl  %s, %s\n", print_assemblyType(temp_reg), print_assemblyType(quad->dest));
             
-            // Frees temp register
             free_register(temp_reg);
 
             break;
+        
+        case CMP:
+            if (quad->next_quad == quad) {quad->next_quad = NULL;}
+            fprintf(outfile, "\tcmpl  %s, %s\n", print_assemblyType(quad->src1), print_assemblyType(quad->dest));
+            break;
 
         case RET:
-            if(curr_quad->src1) {
+            if(quad->src1) {
                 fprintf(outfile, "\tmovl  %s, %%eax\n", print_assemblyType(quad->src1));
                 fprintf(outfile, "\tleave\n");
                 fprintf(outfile, "\tret\n");
@@ -264,6 +281,7 @@ void generate_quad_assembly(quad_list_item *quad) {
             break;
 
         case ARG:
+            // need to reverse order of args ?
             fprintf(outfile, "\tpushl  %s\n", print_assemblyType(quad->src1));
             break;
 
@@ -285,8 +303,41 @@ void generate_quad_assembly(quad_list_item *quad) {
     }
 
     // Frees registers used by sources
-    free_register(curr_quad->src1);
-    free_register(curr_quad->src2);
+    free_register(quad->src1);
+    free_register(quad->src2);
+}
+
+void generate_jump(basic_block *temp_block) {
+    switch(temp_block->branch_condition) {
+        // inversion applies so that branched block is the jumped to one
+        case BREQ:
+            fprintf(outfile, "\tjne  %s\n", temp_block->branch_bb->bb_name);
+            break;
+
+        case BRNEQ:
+            fprintf(outfile, "\tje  %s\n", temp_block->branch_bb->bb_name);
+            break;
+            
+        case BRLT:
+            fprintf(outfile, "\tjge  %s\n", temp_block->branch_bb->bb_name);
+            break;
+
+        case BRGT:
+            fprintf(outfile, "\tjle  %s\n", temp_block->branch_bb->bb_name);
+            break;
+            
+        case BRLE:
+            fprintf(outfile, "\tjg  %s\n", temp_block->branch_bb->bb_name);
+            break;
+            
+        case BRGE:
+            fprintf(outfile, "\tjl  %s\n", temp_block->branch_bb->bb_name);
+            break;
+            
+        default:
+            fprintf(outfile, "\tjmp  %s\n", temp_block->branch_bb->bb_name);
+            break;
+    }
 }
 
 union astnode *reserve_registers(union astnode *node) {
@@ -378,10 +429,10 @@ char *print_assemblyType(union astnode *node) {
             }
     } else if (node->generic.type == IDENT_NODE){
         strcpy(assembly, node->id.ident);
-    } else {
-        sprintf(assembly, "variable");
+    } else if (node->num.numInfo.value.int_val){ // weird situation -- it has type TERNOP (in while loops only)
+        sprintf(assembly, "$%lld", node->num.numInfo.value.int_val);
     }
-    //fprintf(stderr, "%s\n", assembly);
+    fprintf(stderr, "%s\n", assembly);
     return assembly;
 }
 
@@ -412,9 +463,8 @@ void generate_funcs() {
     quad_list_item *temp_quad = temp_block->head_quad;
     basic_block *end = generate_blocks(temp_block);
     temp_block->assembled = 1; 
-    // Generates assembly for return
-    // Checks if explicit return, if not then 0
-    if(block_list->tail->branch_condition != RET) {
+    // if no explicit return, return 0
+    if(block_list->tail->head_quad && block_list->tail->branch_condition != RET) {
         // Sets return value
             fprintf(outfile, "\tmovl  $0, %%eax\n");
             // Resets stack frame

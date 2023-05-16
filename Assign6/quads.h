@@ -116,5 +116,6 @@ int f;
 int n; 
 union astnode *symbol_temp;
 union astnode *left_temp;
+union astnode *backup;
 
 #endif // QUADS_H

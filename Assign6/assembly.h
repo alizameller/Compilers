@@ -6,6 +6,7 @@
 
 FILE *outfile;
 FILE *stringfile;
+struct quad_list_item *prev; 
 
 void generate_assembly(char *out);
 
@@ -32,5 +33,7 @@ int regs[6]; //indexed by enum registers to keep track of which ones are in use
 void free_register(union astnode *temp_reg);
 
 void if_string(struct quad_list_item *quad);
+
+void generate_jump(struct basic_block *block);
 
 #endif // ASSEMBLY_H

@@ -1,10 +1,22 @@
+// should return 0
 int f() {
     int a;
     int b;
-    a = 1; 
+    b = 0;
+    a = 1;
     if (a == 2) {
         return a;
     } else {
         return b;
     }
 }
+
+int main() {
+    int a; 
+    a = 2;
+    if (a == 2) {
+       return f();
+    }
+}
+
+

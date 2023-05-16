@@ -455,6 +455,24 @@ union astnode *gen_rvalue(union astnode *node, union astnode *target) {
                 case '%':
                     op = MOD;
                     break;
+                case LTEQ:
+                    op = BRLE;
+                    break;
+                case GTEQ:
+                    op = BRGE;
+                    break;
+                case EQEQ:
+                    op = BREQ;
+                    break;
+                case NOTEQ:
+                    op = BRNEQ;
+                    break;
+                case '<':
+                    op = BRLT;
+                    break;
+                case '>':
+                    op = BRGT;
+                    break;
             }
             curr_quad = new_quad(op, target, left, right, curr_quad);
 
@@ -630,7 +648,11 @@ void generate_conditions(union astnode *expr, basic_block *true_bb, basic_block 
         append_quad_list(new_quad(CMP, left, right, NULL, NULL));
         // Attaches true and false branches to current block
         update_block(true_bb, false_bb, op);
-
+        int i;
+        for (i = 0; i <= 1; i++) {
+            backup = curr_quad->src1; 
+            printf("backup is %d\n", backup->num.numInfo.value.int_val);
+        }
         return;
     }
 }
